@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>dialog</title>
+		
+		<style>
+@import "css/itahm.css";
+
+body {
+	margin: 0; padding: 0;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+.dialog {
+	width: 300px;
+	padding: 20px;
+	background-color: #fff;
+}
+
+input[type="text"],
+input[type="submit"],
+input[type="reset"],
+textarea,
+select {
+	width: 100%;
+	box-sizing: border-box;
+	padding: .5em;
+}
+
+input[type="checkbox"] {
+	vertical-align: middle;
+}
+
+.table {
+	margin-bottom: 10px;
+}
+
+.table ul {
+	display: flex;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.table li:first-child {
+	text-align: right;
+	padding: .5em;
+	flex: 1;
+}
+
+.table li:last-child {
+	flex: 3;
+}
+
+footer{
+	display: flex;
+}
+
+footer input {
+	flex: 1;
+}
+
+body:not(.removable) .remove {
+	display: none;
+}
+
+		</style>
+		
+	</head>
+	
+	<body>
+	
+		<div class="dialog rounded">
+			<form autocomplete="off">
+				<h2>구글 클라우드 메세징(GCM)</h2>
+				<div class="table">
+					<ul>
+						<li>아이디: 
+						<li>
+							<input type="text" name="id" class="table text"
+								placeholder="Instance ID" required autofocus>
+						
+					</ul>
+					<ul>
+						<li>토큰:  
+						<li>
+							<textarea name="token" rows="6" placeholder="Registration Token" required></textarea>
+					</ul>
+				</div>
+				<label class="remove"><input type="checkbox" name="remove" disabled>remove</label>
+				<footer>
+					<input type="reset" class="r_button" value="cancel">
+					<input type="submit" class="r_button" value="apply" disabled>
+				</footer>
+			</form>
+		</div>
+		
+		<script>
+	
+if (top === window) {
+	throw "";
+}
+
+var form = document.querySelector("form");
+
+form.addEventListener("reset", onCancel);
+
+if (top.databases.local.level === 0) {
+	form.addEventListener("submit", onApply);
+	form.elements.remove.onclick = onRemove;
+	form.elements.remove.disabled = false;
+	document.querySelector("input[type=submit]").disabled = false;
+}
+
+
+/**
+ * callback method
+ */
+ function onApply(e) {
+	e.preventDefault();
+	
+	var id = form.elements.id.value;
+	
+	put(id, {
+		id: id,
+		token: form.elements.token.value
+	});
+}
+
+function onRemove(e) {
+	if (!confirm("알림을 삭제하겠습니까?")) {
+		return;
+	}
+	
+	put(form.elements.id.value, null);
+}
+
+function onCancel(e) {
+	top.closeDialog();
+}
+
+function initialize(id) {
+	window.opener = this && this.location;
+	
+	if (id) {
+		var gcm = top.databases.gcm[id];
+		
+		form.elements.id.value = id;
+		form.elements.id.disabled = true;
+		
+		form.elements.token.value = gcm.token;
+		
+		document.body.classList.add("removable");
+	}
+	else {
+		form.elements.id.focus();
+	}
+}
+
+function put(id, gcm) {
+	document.body.classList.add("loading");
+	
+	top.sendRequest({
+		command: "put",
+		database: "gcm",
+		key: id,
+		value: gcm
+	}, function (data) {
+		top.databases.gcm = data;
+		
+		if (window.opener) {
+			window.opener.reload();
+		}
+		
+		top.closeDialog();
+	});
+}
+
+		</script>
+	
+	</body>
+	
+</html>

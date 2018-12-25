@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Cache-Control" content="No-Cache">
+		<title>ITAhM</title>
+		
+		<style>
+@import "/css/itahm.css";
+
+body {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	margin: 0; padding: 0;
+}
+
+svg {
+	width: 100%; height: 100%;
+}
+
+text {
+	fill: #fff;
+}
+
+#graph path {
+	stroke: #fff;
+	fill: none;
+}
+
+#grid path {
+	stroke: #ddd;
+	stroke-width: .5;
+}
+
+#cur_text {
+	font-size: 15px;
+	font-weight: bold;
+}
+
+#max_text,
+#min_text {
+	text-anchor: end;
+}
+
+#point {
+	fill: #fff;
+}
+
+@media print {
+	text {
+		fill: #000;
+	}
+	
+	#graph path {
+		stroke: #000;
+	}
+	
+	#point {
+		fill: #000;
+	}
+}
+
+		</style>
+		<script>
+
+function RealtimeData(period) {
+	this.initialize(period);
+}
+
+RealtimeData.prototype = {
+	initialize: function (period) {
+		this.period = period;
+		this.valueArray = [];
+		this.dateArray = [];
+	},
+	put: function (value) {
+		var mills = new Date().getTime();
+		
+		this.dateArray.push(mills);
+		this.valueArray.push(value);
+		
+		mills -= this.period;
+		
+		while (this.dateArray[0] < mills) {
+			this.dateArray.shift();
+			this.valueArray.shift();
+		}
+		
+		this.max = Math.max.apply(undefined, this.valueArray);
+		this.min = Math.min.apply(undefined, this.valueArray);
+			
+		if (this.max === this.min) {
+			this.max++;
+			this.min--;
+		}
+	},
+	each: function (handler) {
+		for (var i=0, length=this.dateArray.length; i<length; i++) {
+			handler(this.dateArray[i], this.valueArray[i]);
+		}
+	}
+};
+
+		</script>		
+	</head>
+	
+	<body>
+
+		<svg id="chart">
+			<text id="max_text">max</text>
+			<text id="cur_text">cur</text>
+			<text id="min_text">min</text>
+			<g id="grid"></g>
+			<g id="graph" transform="translate(0) scale(1 -1)"></g>
+			<circle id="point" r="5" />
+		</svg>
+		
+		<script src="js/ITAhM.js"></script>
+		<script src="js/object.js"></script>
+		<script>
+if (window == top) {
+	throw "!";
+}
+
+var OX = 200,
+	OY = 20,
+	INTERVAL = 5000,
+	PERIOD = 5;
+
+var chart = document.getElementById("chart"),
+	graph = document.getElementById("graph"),
+	translate = graph.transform.baseVal.getItem(0),
+	line = new ITAhM.Path(graph),
+	point = document.getElementById("point"),
+	maxText = document.getElementById("max_text"),
+	curText = document.getElementById("cur_text"),
+	minText = document.getElementById("min_text")
+	grid = new ITAhM.Path(document.getElementById("grid")),
+	realtimeData = new RealtimeData(PERIOD * 60000);
+
+window.addEventListener("resize", function() {
+	if (window.timeout) {
+		clearTimeout(window.timeout);
+	}
+	
+	window.timeout = setTimeout(onResize, 500);
+});
+
+resize();
+
+/**
+ * public
+ */
+function initialize(ip) {
+	window.request = {
+		command: "select",
+		ip: ip
+	};
+	
+	top.sendRequest(window.request, onResponse);
+}
+
+function format(value) {
+	return value +"ms";
+}
+
+function onResize() {
+	window.schedule = undefined;
+	
+	resize();
+	
+	draw();
+}
+
+function resize() {
+	var rect = chart.getBoundingClientRect(),
+		x = rect.width;
+		y = rect.height,
+		width = x -window.OX;
+	
+	window.x = x;
+	window.y = y;
+	
+	window.height = y - window.OY *2;
+	
+	window.grid.beginPath();
+	window.grid.moveTo(width -.5, 0);
+	window.grid.lineTo(width -.5, y);
+	window.grid.moveTo(0, window.OY -.5);
+	window.grid.lineTo(x, window.OY -.5);
+	window.grid.moveTo(0, y - window.OY -.5);
+	window.grid.lineTo(x, y - window.OY -.5);
+	window.grid.draw();
+	
+	window.tpp = (window.PERIOD * 60000) / width;
+	window.height = y - window.OY *2;
+	
+	translate.setTranslate(0, height + window.OY);
+	
+	window.maxText.setAttribute("x", width -20);
+	window.maxText.setAttribute("y", window.OY -6);
+	
+	window.curText.setAttribute("x", width +20);
+	
+	window.minText.setAttribute("x", width -20);
+	window.minText.setAttribute("y", y - window.OY +20);
+	
+	point.setAttribute("cx", width);
+}
+
+function onResponse(data) {
+	parseData(data.responseTime);
+	
+	setTimeout(function () {
+		top.sendRequest(window.request, onResponse);
+	}, INTERVAL);
+}
+
+function parseData(value) {
+	window.realtimeData.put(value);
+	
+	window.max = window.realtimeData.max;
+	window.min = window.realtimeData.min;
+	
+	window.maxText.textContent = format(window.max);
+	window.minText.textContent = format(window.min);
+	
+	window.curText.textContent = format(value);
+	
+	draw();
+}
+
+function draw() {
+	var valueRatio = window.height / (window.max - window.min),
+		initialized = false,
+		date = new Date(),
+		start = date.setMinutes(date.getMinutes() -window.PERIOD),
+		mills, y;
+	
+	window.line.beginPath();
+	
+	window.realtimeData.each(function (mills, value) {
+		if (initialized) {
+			window.line.lineTo((mills - start) / window.tpp, y = (value - window.min) * valueRatio);
+		}
+		else {
+			window.line.moveTo((mills - start) / window.tpp, y = (value - window.min) * valueRatio);
+			
+			initialized = true;
+		}
+	});
+	
+	window.line.draw();
+	
+	y = window.height + window.OY - y;
+	
+	if (isNaN(y)) {
+		throw "!";
+	}
+	
+	window.curText.setAttribute("y", y);
+	window.point.setAttribute("cy", y);
+}
+
+		</script>
+	
+	</body>
+	
+</html>

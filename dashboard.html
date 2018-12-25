@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Content-Script-Type" content="text/javascript">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<title>Dashboard @ ITAhM</title>
+		
+		<style>
+@import "/css/itahm.css";
+
+body {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	padding: 0; margin: 0;
+	display: flex;
+	align-items: stretch;
+	background-color: #4d525a;
+	color: #fff;
+}
+
+aside {
+	position: absolute; top: 0; bottom: 0; left: 0;
+	pointer-events: none;
+	width: 300px;
+	box-sizing: border-box;
+	padding: .5em;
+	text-shadow: 1px 1px 1px #000;
+}
+
+aside> .top {
+	height: 140px;
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+}
+
+#summary_list {
+	position: relative;
+	overflow-y: auto;
+	pointer-events: auto;
+}
+
+article {
+	flex: 1;
+	border: 3px solid #000;
+	box-sizing: border-box;
+	border-radius: 3px;
+	position: relative;
+	background: url("/img/world.png") no-repeat center center fixed;
+	background-size: cover;
+	user-select: none;
+	animation-duration: .5s;
+	animation-timing-function:  cubic-bezier(.9, .1, .9, .1);
+	overflow: hidden;
+}
+
+.map >nav {
+	position: absolute; top: 0; right: 0;
+	padding: 5px;
+	background-color: #ddd;
+}
+
+.map >nav >img {
+	display: block;
+}
+
+.map >nav >img:not(:nth-of-type(1)) {
+	border-top: 1px solid #777;
+}
+
+#map {
+	width: 100%; height: 100%;
+	background-color: rgba(0, 0, 0, 0.8);
+	border: none;
+}
+
+iframe.top {
+	width: 320px;
+	border: none;
+}
+
+section {
+	min-width: 260px;
+	margin: 0 .5em;
+	flex-direction: column;
+}
+
+.title,
+section >div:first-child {
+	padding: .5em 2em;
+	border-radius: 3px 3px 0 0;
+	border-bottom: none;
+	font-weight: bold;
+	color: #fff;
+	/*background-color: #0084ff;*/
+	background-color: #000;
+	text-shadow: 1px 1px 1px #777;
+}
+
+ul {
+	list-style: none;
+	padding: 0; margin: 0;
+}
+
+.list {
+	padding: .5em 1em;
+}
+
+.summary {
+	display: flex;
+	justify-content: space-between;
+	font-weight: bold;
+	margin: 3px 0;
+	padding: 0.5em;
+	background-color: rgba(255, 255, 255, 0.2);
+	border-radius: 5px;
+}
+
+.summary> li:first-child {
+	width: 120px;
+	overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+header {
+	margin-bottom: 1em;
+	text-align: center;
+}
+
+header> ul {
+	display: flex;
+}
+
+header> ul> li {
+	padding: .5em;
+	border-radius: 10px 10px 0 0;
+	box-shadow: 0 0 5px #fff inset;
+	flex: 1;
+}
+
+header> ul> li:nth-child(1) {
+	background-color: #f00;
+}
+
+header> ul> li:nth-child(2) {
+	background-color: #fc0;
+}
+
+header> ul> li:nth-child(3) {
+	background-color: #0f0;
+}
+
+#summary_list> .summary> li:first-child {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.agent_status {
+	display: flex;
+	padding: .5em;
+}
+
+.agent_status li:first-child {
+	flex: none;
+}
+
+.agent_status li:last-child {
+	flex: 1;
+	text-align: right;
+}
+
+.agent_status li:first-child {
+	text-align: center;
+}
+
+.head {
+	flex: none; height: 12px;
+	background-color: #ddd;
+	border-radius: 3px;
+}
+
+.layout {
+	display: none;
+}
+
+/* bounce >> */
+.bounce {
+	position: relative;
+	width: 60px;
+	height: 120px;
+	color: #fff;
+	font-weight: bold;
+}
+
+.ball {
+	border-radius: 50%;
+	box-shadow: inset 0 -5px 15px rgba(255,255,255,0.4), inset -2px -1px 40px rgba(0,0,0,0.4), 0 0 1px #000;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.bounce >.ball {
+	position: absolute; top: 0; left: 0;
+	width: 100%;
+	height: 50%;
+	animation: bounce 10s infinite;
+}
+
+.summary >.ball {
+	position: relative;
+	width: 40px; height: 40px;
+}
+
+.green.ball {
+	background-color: #0f0;
+}
+
+.orange.ball {
+	background-color: #ffa500;
+}
+
+.bounce >.orange.ball {
+	animation-delay: .5s;
+}
+
+.red.ball {
+	background: #f00;
+}
+
+.bounce >.red.ball {
+	animation-delay: 1s;
+}
+
+.ball:before {
+	content: "";
+	position: absolute;
+	width: 50%;
+	height: 25%;
+	border-radius: 50%;
+	left: 25%;
+	top: 5%;
+	background: linear-gradient(to bottom, rgba(232,232,232,1), rgba(255,255,255,0));
+}
+
+.ready::after {
+	content: attr(data-value);
+}
+
+.bounce div:last-child {
+	position: absolute; bottom: 0;
+	width: 100%;
+	height: 20%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.bounce div:last-child::after {
+	content: "";
+	width: 100%;
+	height: 80%;
+	border-radius: 50%;
+	background: rgba(20, 20, 20, 0.1);
+	animation: shadow 1s;
+}
+
+@keyframes bounce {
+	0% {
+		top: 0;
+		animation-timing-function: ease-in;
+	}
+	4% {
+		top: 40%;
+		height: 50%;
+		animation-timing-function: ease-out;
+	}
+	5% {
+		top: 45%;
+		height: 45%;
+		animation-timing-function: ease-in;
+	}
+	6% {
+		top: 30%;
+		height: 50%;
+		animation-timing-function: ease-out;
+	}
+	10% {
+		top: 0;
+		animation-timing-function: ease-in;
+	}
+}
+
+@keyframes shadow {
+	0% {
+		background: rgba(20, 20, 20, .1);
+		animation-timing-function: ease-in;
+	}
+	50% {
+		background: rgba(20, 20, 20, .3);
+		height: 40%;
+		width: 80%;
+		animation-timing-function: ease-out;
+	}
+	100% {
+		background: rgba(20, 20, 20, .1);
+		animation-timing-function: ease-in;
+	}
+}
+
+/* << bounce */
+
+		</style>
+		
+		<script>
+
+function initialize() {
+	update();
+	
+	(function (map, configData) {
+		map.onload = function () {
+			var mapWindow = window.map.contentWindow,
+				scale;
+			
+			function zoom(zoom) {
+				scale = zoom? scale * 1.1: scale / 1.1;
+
+				mapWindow.zoom(scale);
+				
+				window.top.databases.local.scale = scale;
+			}
+			
+			document.getElementById("zoom_in").onclick = function () {
+				zoom(true);
+			};
+
+			document.getElementById("zoom_out").onclick = function () {
+				zoom(false);
+			};
+			
+			mapWindow.addEventListener("wheel", function (e) {
+				zoom(e.deltaY < 0);
+			});
+			
+			mapWindow.zoom(scale = window.top.databases.local.scale);
+			
+			mapWindow.initialize();
+		};
+
+		if ("animation" in configData) {
+			switch(configData.animation) {
+				case "none":
+					map.src = "/map_dashboard.html";
+				break;
+
+				default:
+					map.src = "/map_dashboard_"+ configData.animation +".html";
+			}
+		}
+		else {
+			map.src = "/map_dashboard.html";
+		}
+	}) (document.getElementById("map"), top.getDB("config"));
+	
+	removeClass(document.body, "loading");
+	
+	window.setInterval(update, 5000);
+}
+
+function update() {
+	initStats();
+}
+
+function initStats() {
+	var monitorData = top.getDB("monitor"),
+		df = document.createDocumentFragment(),
+		monitor,
+		shutdown = 0,
+		critical = 0,
+		normal = 0,
+		labelData = {},
+		device, count;
+	
+	while (window.summaryList.firstChild) {
+		window.summaryList.removeChild(window.summaryList.firstChild);
+	}
+	
+	top.forEachDB("device", function (id, device) {
+		monitor = device.ip && monitorData[device.ip];
+	
+		if (!monitor) {
+			return;
+		}
+		
+		if (device.label) {
+			labels = device.label.split(",");
+			
+			for (var i=0, length=labels.length; i<length; i++) {
+				if (!labelData[labels[i]]) {
+					labelData[labels[i]] = {
+						shutdown: 0,
+						critical: 0,
+						normal: 0
+					}
+				}
+				
+				if (monitor.shutdown) {
+					labelData[labels[i]].shutdown++;
+				}
+				else if (monitor.critical) {
+					labelData[labels[i]].critical++;
+				}
+				else {
+					labelData[labels[i]].normal++;
+				}
+			}
+		}
+		
+		if (monitor.shutdown) {
+			shutdown++;
+		}
+		else if (monitor.critical) {
+			critical++;
+		}
+		else {
+			normal++;
+		}		
+	});
+	
+	window.alert.dataset.value = shutdown;
+	window.critical.dataset.value = critical;
+	window.normal.dataset.value = normal;
+	
+	window.alert.classList.add("ready");
+	window.critical.classList.add("ready");
+	window.normal.classList.add("ready");
+	
+	var labels = Object.keys(labelData).sort(function (a, b) {
+		return a > b? 1: -1;
+	});
+	
+	for (var i=0, _i=labels.length, label, values; i<_i; i++) {
+		label = labels[i];
+		values = labelData[label];
+		
+		df.appendChild(
+			createStatusItem(
+				label,
+				values.critical,
+				values.shutdown,
+				values.normal,
+				values.critical + values.shutdown + values.normal));
+	}
+	
+	
+	window.summaryList.appendChild(df);
+}
+
+function toErrorString(value) {
+	return (value /10).toFixed(0);
+}
+
+function toMillsString(value) {
+	return value +"ms";
+}
+
+function toPercentageString(value) {
+	return value +"%";
+}
+
+function clear(list) {
+	var child;
+	
+	while(child = list.firstChild) {
+		list.removeChild(child);
+	}
+}
+
+function getTime() {
+	var date = new Date(),
+		h = date.getHours(),
+		m = date.getMinutes(),
+		s = date.getSeconds();
+	
+	return (h > 9? "": "0") + h +" : "+ (m > 9? "": "0") + m +" : "+ (s > 9? "": "0") + s;
+}
+
+function createStatusItem(label, critical, alert, normal, sum) {
+	var ul = document.createElement("ul"),
+		li;
+	
+	ul.appendChild(document.createElement("li")).textContent = label;
+	
+	li = ul.appendChild(document.createElement("li"));
+	li.dataset.value = alert;
+	li.className = "ready";
+	
+	li = ul.appendChild(document.createElement("li"));
+	li.dataset.value = critical;
+	li.className = "ready";
+	
+	li = ul.appendChild(document.createElement("li"));
+	li.dataset.value = normal;
+	li.className = "ready";
+	
+	ul.className = "summary";
+	
+	return ul;
+}
+
+// static
+function toTimeString(mills) {
+	var date = new Date(mills),
+		hh = date.getHours(),
+		mm = date.getMinutes(),
+		ss = date.getSeconds();
+	
+	return (hh > 9? "": "0") + hh +":"+ (mm > 9? "": "0") + mm +":"+ (ss > 9? "": "0") + ss;
+}
+
+
+function addClass(e, className) {
+	var cls = e.getAttribute("class"),
+		classList = cls? cls.split(" "): [];
+	
+	for (var i=1, _i=arguments.length; i<_i; i++) {
+		if (classList.indexOf(className) === -1) {
+			classList.push(className);
+		}
+	}
+	
+	e.setAttribute("class", classList.join(" "));
+}
+
+function removeClass(e, className) {
+	var cls = e.getAttribute("class"),
+		classList = cls? cls.split(" "): [],
+		index;
+	
+	for (var i=1; i<arguments.length; i++) {
+		className = arguments[i];
+		
+		index = classList.indexOf(className);
+		
+		if (index !== -1) {
+			classList.splice(index, 1);
+		}
+	}
+	
+	e.setAttribute("class", classList.join(" "));
+}
+
+function hasClass(e, className) {
+	var cls = e.getAttribute("class"),
+		classList = cls? cls.split(" "): [];
+	
+	for (var i=1; i<arguments.length; i++) {
+		if (classList.indexOf(arguments[i]) == -1) {
+			return false;
+		}
+	}
+	
+	return true;
+}
+
+		</script>
+		
+	</head>
+	
+	<body class="loading name">		
+		<article class="map">
+			<iframe id="map"></iframe>
+			<nav>
+				<img src="/img/zoomi.png" width="16" height="16" title="전체화면에서 편집" id="edit">
+				<img src="/img/plus.png" width="16" height="16" title="맵 확대" id="zoom_in">
+				<img src="/img/minus.png" width="16" height="16" title="맵 축소" id="zoom_out">
+			</nav>
+		</article>
+		
+		<aside>
+			<header>
+				<ul>
+					<li>장애
+					<li>임계
+					<li>정상
+				</ul>
+			</header>
+			
+			<div class="top">
+				<div class="bounce">
+					<div id="alert" class="ball red"></div>
+					<div></div>
+				</div>
+				<div class="bounce">
+					<div id="critical"  class="ball orange"></div>
+					<div></div>
+				</div>
+				<div class="bounce">
+					<div id="normal"  class="ball green"></div>
+					<div></div>
+				</div>
+			</div>
+
+			<div id="summary_list"></div>
+			
+		</aside>
+		
+		<iframe class="top" src="/top.html"></iframe>
+			
+		<div class="bg_loading"></div>
+		<script src="/js/ITAhM.js"></script>
+		<script src="/js/Draggable.js"></script>
+		<script>
+
+var configData = top.databases.config,
+	summaryList = document.getElementById("summary_list"),
+	eventList = document.getElementById("event_list"),
+	article = document.querySelector("article"),
+	alert = document.getElementById("alert"),
+	critical = document.getElementById("critical"),
+	normal = document.getElementById("normal"),
+	resources = {
+		responseTime: {
+			title: "응답시간",
+			id: "responseTime",
+			toString: toMillsString
+		},
+		processor: {
+			title: "프로세서 로드",
+			id: "processor",
+			toString: toPercentageString
+		},
+		memory: {
+			title: "메모리 사용량",
+			id: "memory",
+			toString: ITAhM.util.toBytesString
+		},
+		memoryRate: {
+			title: "메모리 사용율(%)",
+			id: "memory",
+			toString: ITAhM.util.toBytesString,
+			sortByRate: true
+		},
+		storage: {
+			title: "저장공간 사용량",
+			id: "storage",
+			toString: ITAhM.util.toBytesString
+		},
+		storageRate: {
+			title: "저장공간 사용율(%)",
+			id: "storage",
+			toString: ITAhM.util.toBytesString,
+			sortByRate: true
+		},
+		throughput: {
+			title: "통신 사용량",
+			id: "throughput",
+			toString: ITAhM.util.toBPSString
+		},
+		throughputRate: {
+			title: "통신 사용율(%)",
+			id: "throughput",
+			toString: ITAhM.util.toBPSString,
+			sortByRate: true
+		},
+		throughputErr: {
+			title: "통신 오류",
+			id: "error",
+			toString: toErrorString,
+			skipZero: true
+		},
+		failureRate: {
+			title: "SNMP 오류",
+			toString: toPercentageString,
+			skipZero: true
+		}
+	};
+
+if ("display" in configData) {
+	window[top.databases.config.display !== "name"? "removeClass": "addClass"](document.body, "name");
+}
+
+document.getElementById("edit").onclick = function () {
+	window.location.href = "/map_edit.html";
+};
+
+(function (delay) {
+	var start, running = false;
+
+	function optimize(timestamp) {
+		if (timestamp - start > delay) {
+			window.location.reload();
+		}
+		else {
+			requestAnimationFrame(optimize);
+		}
+	}
+
+	window.onEvent = function () {
+		if (running) {
+			return;
+		}
+		
+		running = true;
+	
+		requestAnimationFrame(function(timestamp) {
+			if (isNaN(start)) {
+				start = timestamp;
+				
+				requestAnimationFrame(optimize);
+			}
+			else {
+				start = timestamp;
+			}
+			
+			running = false;
+		});
+	};
+}) (1000);
+
+initialize();
+
+		</script>
+	
+	</body>
+	
+</html>

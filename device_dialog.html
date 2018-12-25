@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Cache-Control" content="no-cache">
+		
+		<title>dialog</title>
+		
+		<style>
+@import "/css/style.css";
+
+body {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+form {
+	width: 300px;
+	padding: 20px;
+	background-color: #fff;
+	position: relative;
+}
+
+h2 {
+	background-color: #0084ff;
+	padding: 10px; margin: 0;
+	color: #fff;
+}
+
+.table {
+	border: 1px solid #aaa;
+	padding: 1em;
+	margin: 1em 0;
+}
+
+.table ul {
+	list-style: none;
+	padding: 0; margin: 3px 0;
+	display: flex;
+	align-items: center;
+}
+
+.table li {
+	flex: 1;
+}
+
+.table li:first-child {
+	padding: .5em;
+	text-align: right;
+}
+
+.table li:last-child {
+	flex: 3;
+}
+
+.table li input[type="text"],
+.table li select {
+	padding: .5em;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+input[type="checkbox"] {
+	margin: .5em;
+	vertical-align: middle;
+}
+
+#profile:hover {
+	cursor: default;
+	text-decoration: underline;
+}
+
+u {
+	cursor: default;
+}
+
+footer {
+	display: flex;
+}
+
+footer> input {
+	flex: 1;
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: .2em solid transparent;
+	padding: .5em;
+}
+
+footer> input:hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+body:not(.monitor) .monitor {
+	display: none;
+}
+
+#close {
+	font-size: 20px;
+	position: absolute; top: 5px; right: 5px;
+	border: 3px solid transparent;
+}
+
+#close:hover {
+	border-color: #c68e17;
+}
+
+#close::before, #close::after {
+	background-color: #c68e17;
+}
+
+body:not(.edit) input[type=reset] {
+	display: none;
+}
+
+body.edit .search {
+	display: none;
+}
+
+body.dummy .ip {
+	display: none;
+}
+
+body.loading {
+	pointer-events: none; 
+}
+
+		</style>
+		
+		<script>
+		// static function
+function isIPv4(s) {
+    return s.match(/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/)? true: false;
+}
+		</script>
+		
+		<script>
+		
+function buildType() {
+	var df = document.createDocumentFragment(),
+		groupName, optgroup, option,
+		typeData = {},
+		group = {},
+		icon, iconData, type;
+	
+	iconData = top.databases.local.icon;
+	
+	for (type in iconData) {
+		typeData[type] = iconData[type];
+	}
+	
+	iconData = top.databases.icon;
+	
+	for (type in iconData) {
+		typeData[type] = iconData[type];
+	}
+	
+	for (type in typeData) {
+		icon = typeData[type];
+		
+		groupName = icon.group;
+		
+		optgroup = group[groupName];
+		
+		if (!optgroup) {
+			optgroup = document.createElement("optgroup");
+			optgroup.label = groupName;
+			
+			group[groupName] = optgroup;
+			
+			df.appendChild(optgroup);
+		}
+		
+		optgroup.appendChild(document.createElement("option")).text = type;
+	}
+	
+	return df;
+}
+
+function onSearch() {
+	if (Object.keys(top.databases.profile).length > 0) {
+		top.showDialog.call(window, "/search_dialog.html");
+	}
+	else {
+		alert("사용 가능한 프로파일이 존재하지 않습니다.\n"+ "\n" +"먼저 프로파일을 생성하십시오.");
+	}
+}
+
+function onApply(e) {
+	e.preventDefault();
+	
+	const ip = this.elements["ip"].value,
+		device = window.id
+			? JSON.parse(JSON.stringify(top.getDB("device", window.id)))
+			: {
+				ifSpeed: {}
+		};
+
+	if (ip) {
+		if (!isIPv4(ip)) {
+			return this.elements["ip"].select();
+		}
+
+		if (device.ip !== ip && top.getDeviceID(ip)) {
+			alert("사용중인 IP 입니다.");
+
+			return this.elements["ip"].select();
+		}
+	}
+	
+	device.ip = ip;
+	device.name = this.elements["name"].value;
+	device.type = this.elements["type"].value;
+	device.label = trimLabel(this.elements["label"].value);
+	
+	for (var custom in window.custom) {
+		device[custom] = window.custom[custom].value;
+	}
+	
+	// 생성
+	if (!window.id) {
+		top.sendRequest({
+			command: "put",
+			database: "device",
+			key: "",
+			value: device
+		}, function (data) {
+			const pos = {
+					x: 0,
+					y: 0,
+					ifEntry: {}
+				},
+				parent = top.getDB("local", "parent");
+			var id;
+
+			for (id in data) {
+				break;
+			}
+
+			top.putDB("position", id, pos)
+			
+			if (parent) {
+				pos.parent = parent;
+			}
+			
+			saveDevice(id, device);
+		});
+	}
+	// 수정
+	else {
+		top.sendRequest({
+			command: "put",
+			database: "device",
+			key: window.id,
+			value: device
+		}, function () {
+			saveDevice(window.id, device);		
+		});
+	}
+}
+
+function saveDevice(id, device) {
+	top.putDB("device", id, device);
+	
+	window.opener && window.opener.reload();
+	
+	top.closeDialog();
+}
+
+function onCancel(e) {
+	top.closeDialog();
+}
+
+/**
+ * device의 monitor, critical 정보를 삭제해 주되,
+ * 서버에서도 이 작업을 수행해주어야 동기화 된다.
+ * 변경된 position 정보가 저장된다는 alarm을 주고,
+ * 삭제 완료후에는 device와 연결된 link를 끊어주고,
+ * 서버와 position 동기화를 진행한다.
+ */
+function onRemoveDevice(e) {
+	e.preventDefault();
+
+	if (!confirm("장비를 삭제하겠습니까?")) {
+		return;
+	}
+
+	document.body.classList.add("loading");
+	
+	top.sendRequest({
+		command: "put",
+		database: "device",
+		key: window.id,
+		value: null
+	}, function () {
+		const posData = top.databases.position;
+		
+		// device 정보 삭제
+		top.putDB("device", window.id, null);
+		
+		// device의 monitor 정보 삭제
+		delete top.databases.monitor[window.id];
+		
+		// device의 critical 정보 삭제
+		delete top.databases.critical[window.id];
+		
+		// 연관 link 정보 삭제
+		if (posData[window.id]) {
+			for (var id in posData[window.id].ifEntry) {
+				if (posData[id]) {
+					delete posData[id].ifEntry[window.id];
+				}
+			}
+		}				
+		
+		// device의 position 정보 삭제
+		delete posData[window.id];				
+		
+		document.body.classList.remove("loading");
+		
+		window.opener && window.opener.reload();
+		
+		top.closeDialog();
+	});
+}
+
+function onMonitorDevice(e) {
+	const device = top.getDB("device", window.id);;
+	
+	if (device.ip != window.form.elements["ip"].value) {
+		return alert("IP를 변경한 경우 먼저 저장 하십시오.");
+	}
+	
+	if (confirm("모니터 설정을 변경하시겠습니까?")) {
+		if (this.value === "snmp" && Object.keys(top.databases.profile).length === 0) {
+			alert("사용 가능한 프로파일이 존재하지 않습니다.\n"+ "\n" +"먼저 프로파일을 생성하십시오.");
+		}
+		else {
+			return top.sendRequest({
+				command: "put",
+				database: "monitor",
+				key: device.ip,
+				value: this.value === "none"? null: {
+					protocol: this.value,
+					id: window.id
+				}
+			}, function (data) {
+				top.databases.monitor = data;
+				
+				window.opener && window.opener.reload();
+				
+				top.closeDialog();
+			});
+		}
+	}
+	
+	this.value = window.monitor;
+}
+
+function trimLabel(labels) {
+	var array = labels.split(","),
+		label, result = [];
+	
+	for (var i=0, _i=array.length; i<_i; i++) {
+		label = array[i].replace(/\s+/g, "");
+		
+		if (label) {
+			result[result.length] = label;
+		}
+	}
+	
+	return result.join(",");
+}
+
+//public
+function initialize(id) {
+	window.opener = this && this.location;
+	window.id = id;
+	
+	if ("custom" in top.databases.config) {
+		var customs = top.databases.config.custom,
+			df = document.createDocumentFragment(),
+			ul, input;
+		
+		if (customs) {
+			customs = customs.split(",");
+			
+			for (var i=0, _i=customs.length; i<_i; i++) {
+				ul = df.appendChild(document.createElement("ul"));
+				ul.appendChild(document.createElement("li")).textContent = customs[i];
+				
+				input = document.createElement("input");
+				input.type = "text";
+				
+				window.custom[customs[i]] = input;
+				
+				ul.appendChild(document.createElement("li")).appendChild(input);
+			}
+		}
+		
+		document.getElementById("custom").appendChild(df);
+	}
+	
+	if (id) {
+		const device = top.getDB("device", window.id);
+		
+		window.form.elements["name"].value = device.name || "";
+		
+		window.form.elements["ip"].value = device.ip;
+		window.form.elements["type"].value = device.type;
+		// 저장할때는 trim으로 다 붙여서 넣지만 보여줄때는 보기 좋게 한칸씩 띈다.
+		window.form.elements["label"].value = device.label && (device.label.split(",")).join(", ") || "";
+		
+		for (var custom in window.custom) {
+			window.custom[custom].value = device[custom] || "";
+		}
+		
+		if (device.ip) {
+			const monitor = top.getDB("monitor", device.ip);
+		
+			if (monitor) {
+				window.form.elements["monitor"].value = monitor.protocol;
+			}
+			else {
+				window.form.elements["monitor"].value = "none";
+			}
+			
+			// ip는 한번 지정하면 변경할 수 없다.
+			window.form.elements["ip"].disabled = true;
+
+			document.body.classList.add("monitor");
+		}
+		
+		document.body.classList.add("edit");
+		
+		document.body.classList.add("initialized");
+	}
+	else {
+		window.form.elements["type"].value = "unknown";
+	}
+}
+		
+		</script>
+	</head>
+	
+	<body>
+	
+		<form class="rounded">
+			<i class="btn_close round" id="close"></i>
+			<h2>
+				장비 정보
+			</h2>
+			<div class="table">
+				<ul class="ip">
+					<li>ip 주소
+					<li>
+						<input type="text" name="ip" autofocus>
+				</ul>
+				<ul>
+					<li>이름
+					<li>
+						<input type="text" name="name" placeholder="장비 이름">
+				</ul>
+				<ul>
+					<li>타입
+					<li>
+						<select name="type" required></select>
+					
+				</ul>
+				<ul>
+					<li title="콤마(,)로 구분하며 공백을 허용하지 않습니다."><i>*라벨</i>
+					<li>
+						<input type="text" name="label" placeholder="라벨1 [,라벨2 ...]">
+					
+				</ul>
+				<ul class="monitor">
+					<li>모니터링
+					<li>
+						<select name="monitor">
+							<option value="none" selected>없음
+							<option value="icmp">ICMP
+							<option value="snmp">SNMP
+						</select>					
+				</ul>
+				
+				<div id="custom"></div>
+				
+				<label class="search">
+					<input type="checkbox" name="search">
+					자동탐색
+				</label>
+			</div>
+			
+			<footer>
+				<input type="reset" value="삭제" disabled>
+				<input type="submit" value="확인" disabled>
+			</footer>
+			
+		</form>
+		
+		<script>
+
+var form = document.querySelector("form"),
+	monitor = "none",
+	custom = {};
+
+if (top.databases.local.level === 0) {
+	document.querySelector("input[type=submit]").disabled = false;
+	document.querySelector("input[type=reset]").disabled = false;
+}
+
+document.getElementById("close").onclick = function () {
+	top.closeDialog(true);
+};
+
+(function (form) {
+	
+	form.onsubmit = onApply;
+	form.onreset = onRemoveDevice;
+	form.elements["monitor"].onchange = onMonitorDevice;
+	form.elements["monitor"].onclick = function () {
+		window.monitor = this.value;
+	};
+	form.elements["type"].appendChild(buildType());
+	form.elements["search"].onclick = onSearch;
+
+}) (document.querySelector("form"));
+	</script>
+	
+	</body>
+	
+</html>

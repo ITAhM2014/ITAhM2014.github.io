@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Connect @ ITAhM</title>
+		
+		<style>
+@import "css/itahm.css";
+
+body {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: #f9f9f9;
+}
+
+.content_width {
+	width: 360px;
+}
+
+p, input {
+	font-size: 13px;
+}
+
+h1 {
+	text-align: center;
+}
+
+h1 img {
+	vertical-align: middle;
+}
+
+form {
+	padding: 20px;
+	border: 1px solid #ddd;
+	background-color: #fff;
+}
+
+p {
+	/*margin: 0;*/
+}
+
+input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 3px 3px 3px 3px;
+}
+
+input[type="submit"] {
+	margin-top: 20px;
+	background-image: linear-gradient(#7af, #0084ff);
+	border: 1px solid #07f;
+	font-weight: bold;
+	color: #fff;
+}
+
+#comment {
+	color: #911;
+}
+
+#comment:empty {
+	display: none;
+}
+
+.flex {
+	display: flex;
+}
+
+.flex input:first-child {
+	flex: 2;
+}
+
+.flex input:last-child {
+	flex: 1;
+}
+
+input[name="host"] {
+	background: url("img/home.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="port"] {
+	background: transparent url("img/port.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="username"] {
+	background: transparent url("img/user.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="password"] {
+	background: transparent url("img/lock.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+.bg_loading {
+	opacity: .5;
+}
+
+
+		</style>
+		<script>
+		
+function initialize() {
+	(function (search) {
+		var map = {},
+			pair;
+		
+		for (var i=0, _i=search.length; i<_i; i++) {
+			pair = search[i].split("=");
+			
+			if (pair.length === 2) {
+				map[pair[0]] = pair[1];
+			}
+			else if (pair.length === 1) {
+				map[pair[0]] = null;
+			}
+		}
+		
+		if ("username" in map) {
+			form.elements["username"].value = map.username;
+		}
+		
+		if ("host" in map) {
+			form.elements["host"].value = map.host;
+		}
+		
+		if ("port" in map) {
+			form.elements["port"].value = map.port;
+		}
+	})(window.location.search.substring(1).split("&"));
+	
+	form.addEventListener("submit", onConnect);
+}
+
+function onConnect(e) {
+	e.preventDefault();
+	
+	document.body.classList.add("loading");
+	
+	new ITAhM.Communicator(form.elements.host.value, form.elements.port.value, 10000)
+	.sendRequest({
+		command: "signin",
+		username: form.elements.username.value,
+		password: hex_md5(form.elements.password.value)
+	}, function (status, response) {
+		document.body.classList.remove("loading");
+		
+		switch(status) {
+		case 200:
+			top.signIn(form.elements.host.value, form.elements.port.value, form.elements.username.value, response.level);
+			
+			break;
+		case 401:
+			window.comment.textContent = "Incorrect username or password.";
+			
+			form.elements.username.select();
+			
+			break;
+		default:
+			window.comment.textContent = "Agent is not responding. status: "+ status;
+			
+			form.elements.host.select();
+		}
+	});
+}
+		
+		</script>
+	</head>
+	
+	<body>
+		<section class="content_width">
+			<h1>Connect to agent</h1>
+			<form id="form" class="rounded">
+				<div>
+					<p>Agent address</p>
+					<div class="flex">
+						<div>
+							<input type="text" name="host" value="127.0.0.1" placeholder="IP address" required>
+						</div>
+						<div>
+							<input type="text" name="port" value="2014" placeholder="TCP port" required>
+						</div>
+					</div>
+				</div>
+				<div>
+					<p>Username</p>
+					<input type="text" name="username" value="root" required>
+					<p id="comment"></p>
+				</div>
+				<div>
+					<p>Password</p>
+					<input type="password" name="password" value="root" required>
+				</div>
+				<input type="submit" value="Connect">
+			</form>
+			<h1>
+				<a href="/">
+					<img width="64" height="64" src="img/favicon.png">
+				</a>
+			</h1>
+		</section>
+		
+		<div class="bg_loading"></div>
+		
+		<script src="js/ITAhM.js"></script>
+		<script src="js/object.js"></script>
+		<script src="js/md5.js"></script>
+		<script>
+
+	var form = document.getElementById("form"),
+		comment = document.getElementById("comment");
+	
+	initialize();
+
+		</script>
+	
+	</body>
+	
+</html>

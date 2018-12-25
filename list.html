@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		
+		<title>List @ ITAhM</title>
+		
+		<style>
+@import "css/itahm.css";
+
+body {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	margin: 0; padding: 0;
+}
+
+article {
+	display: flex;
+	flex-direction: column;
+	margin: auto;
+	height: 99%;
+}
+
+aside {
+	margin: 1em 0;
+	display: flex;
+	justify-content: space-between;
+}
+
+#list {
+	flex: 1;
+	background-color: #fff;
+	overflow-y: auto;
+}
+
+header {
+	background-color: #000;
+	color: #fff;
+	font-weight: bold; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+	border-bottom: 4px solid #92a7af;
+	border-radius: 3px 3px 0 0;
+	padding: 0.5em 0;
+	text-shadow: 1px 1px 1px #00f;
+}
+
+#header img {
+	width: 24px; height: 24px;
+}
+
+#header >li {
+	display: flex; align-items: center; justify-content: center;
+}
+
+#header >li:nth-child(1) {
+	position: relative;
+}
+
+#header >li:not(:last-child) {
+	border-right-color: #ddd;
+}
+
+aside input,
+aside select {
+	padding: .5em;
+}
+
+form input[type="text"] {
+	flex: 1;
+	min-width: 0;
+}
+
+nav {
+	display: flex;
+	align-items: center;
+}
+
+nav> div {
+	margin-right: 5px;
+}
+
+nav >img {
+	cursor: pointer;
+}
+
+ul {
+	margin: 0; padding: 0;
+	list-style: none;
+	display: flex;
+}
+
+li {
+	border: 1px solid transparent;
+	padding: 0.5em;
+	width: 120px;
+	box-sizing: border-box;
+}
+
+#list li {
+	color: #373d3f;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+li:nth-child(1) {
+	flex: none;
+	width: 4em;
+}
+/*
+li:nth-child(1) >img {
+	display: block;
+	margin: auto;
+	width: 24px; height: 24px;
+	vertical-align: middle;
+}
+*/
+li:nth-child(2) {
+	width: 200px;
+}
+
+li:nth-child(3) {
+	width: 180px;
+}
+
+li:nth-child(4) {
+	width: 100px;
+}
+
+li:last-child {
+	flex: 1;
+}
+
+label {
+	color: #fff;
+}
+
+#list> ul {
+	border-bottom: 1px solid #c1c3d1;
+	padding: 0.5em;
+	cursor: pointer;
+}
+
+#list> ul >li:first-child {
+	background: center no-repeat;
+	background-size: 24px;
+}
+
+
+#list> ul[data-normal] >li:first-child {
+	background-image: url(img/normal.png);
+}
+
+#list> ul[data-critical=true] >li:first-child {
+	background-image: url(img/siren.png);
+}
+
+#list> ul[data-shutdown] >li:first-child {
+	background-image: url(img/warning.png);
+}
+
+#list> ul[data-disaled] >li:first-child {
+	background-image: url(img/disabled.png);
+}
+
+#list> ul[data-disabled] {
+	color: #999;
+}
+
+#list> ul:nth-child(odd) {
+	background-color: #ebebeb;
+}
+
+#list> ul> li:nth-child(3) {
+	background-size: 24px 24px;
+	background-repeat: no-repeat;
+	background-position: left center;
+}
+
+#list> ul> li:nth-child(3)::before {
+	content: attr(data-type);
+	display: inline-block;
+	margin-left: 30px;
+}
+
+#list >ul.selected {
+	background-color: #ffc;
+}
+
+#count {
+	font-size: 30px; font-weight: bold; color: #fff;
+	display: inline-block;
+	margin: 0 30px;
+}
+
+#action >img,
+.action >img {
+	width: 1.5em; height: 1.5em;
+	margin: 0 1em;
+}
+
+#action:not(.selected),
+#action:not(.snmp) >.snmp {
+	display: none;
+}
+
+.selector {
+	overflow: visible;
+}
+
+.selector div {
+	position: absolute; top: 100%; left: 0; width: 100%;
+	border: 1px inset gray;
+	box-sizing: border-box;
+	z-index: 1;
+	background-color: #fff;
+}
+
+.selector:not(:focus) div {
+	display: none;
+}
+
+.selector p {
+	padding: 3px; margin: 0;
+	text-align: center;
+}
+
+.selector p:not(:last-child) {
+	border-bottom: 1px solid #ccc;
+}
+
+.selector img {
+	pointer-events: none;
+}
+
+@keyframes grow {
+	from {
+		transform: scale(1);
+	}
+	to {
+		transform: scale(1.5);
+	}
+}
+
+body.normal #list> ul:not([data-normal]),
+body.critical #list> ul:not([data-critical=true]),
+body.shutdown #list> ul:not([data-shutdown]),
+body.disabled #list> ul:not([data-disabled]) {
+	display: none;
+}
+
+		</style>
+		
+		<script>
+// static function
+const REGEXP_IPV4 = new RegExp("^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\."
+	+ "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\."
+	+ "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\."
+	+ "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+
+function IP2Int(s) {
+	const o = REGEXP_IPV4.exec(s);
+	
+	if(o === null || o.length != 5) return 0xffffffff;
+	
+	var n = 0;
+	for(let i=1; i<5; i++) {
+		n <<= 8;
+		n |= o[i];
+	}
+	
+	return n >>> 0;
+}
+		</script>
+		
+		<script>
+function onEdit() {
+	top.showDialog.call(window, "/device_dialog.html", window.selectedID);
+}
+
+function onSetAlarm(){
+	top.showDialog.call(window, "/critical_dialog.html", top.getDB("device", window.selectedID).ip);
+}
+
+function onMap() {
+	window.location.href = "/map_edit.html?"+ encodeURI(window.selectedID);
+}
+
+function onShowStatus() {
+	top.showStatus(window.selectedID);
+}
+
+function initialize() {
+	if ("custom" in top.databases.config) {
+		var customs = top.databases.config.custom;
+		
+		if (customs) {
+			var df = document.createDocumentFragment();
+			
+			window.customs = customs.split(",");
+			
+			forEach(window.customs, function (custom) {
+				df.appendChild(document.createElement("li")).textContent = custom;
+			});
+			
+			window.header.insertBefore(df, window.header.lastElementChild);
+		}
+	}
+	
+	initList();
+
+	initLabel();
+}
+
+function initList() {
+	var deviceData = top.getDB("device"),
+		df = document.createDocumentFragment(),
+		monitorData = top.databases.monitor,
+		criticalData = top.databases.critical,
+		ipList = Object.keys(deviceData),
+		count = 0, device;
+	
+	ipList.sort(function (a, b) {
+		return IP2Int(deviceData[a].ip) - IP2Int(deviceData[b].ip);
+	});
+	
+	for (let i=0, _i=ipList.length, id; i<_i; i++) {
+		id = ipList[i];
+	
+		device = deviceData[id];
+	
+		if (device.group || device.application) {
+			continue;
+		}
+		
+		df.appendChild(createRow(id, device, monitorData[device.ip]));
+		
+		count++;
+	}
+	
+	document.getElementById("count").textContent = count;
+	
+	list.appendChild(df);
+	
+	document.body.classList.remove("loading");
+}
+
+function createRow(id, device, monitor) {
+	var critical = top.databases.critical[device.ip],
+		row = document.createElement("ul"),
+		type, labels, label;
+	
+	row.appendChild(document.createElement("li")); // N.1
+	
+	row.appendChild(document.createElement("li")).textContent = device.ip; // N.2
+	
+	type = document.createElement("li");
+	type.dataset.type = device.type;
+	type.style.backgroundImage = "url('"+ getIcon(device.type).src +"')";
+	
+	row.appendChild(type); // N.3
+	
+	row.appendChild(document.createElement("li")).textContent = monitor && monitor.protocol || ""; // N.4
+	
+	if (window.customs) {
+		forEach(window.customs, function (custom) {
+			row.appendChild(document.createElement("li")).textContent = device[custom] || "";
+		});
+	};
+	
+	row.appendChild(document.createElement("li")).textContent = device.name; // N.0
+	
+	window.deviceMapping[id] = row;
+	
+	if (device.label) {
+		labels = device.label.split(",");
+		
+		for (var i=0, length=labels.length; i<length; i++) {
+			label = labels[i];
+			
+			row.classList.add(label);
+			
+			window.labelData[label] = null;
+		}
+	}
+	
+	if (monitor) {
+		if (monitor.shutdown) {
+			row.dataset.shutdown = true;
+		}
+		else if (monitor.critical) {
+			row.dataset.critical = true;
+		}
+		else {
+			row.dataset.normal = true;
+		}
+	}
+	else {
+		row.dataset.disabled = true;
+	}
+	
+	row.onclick = onSelectDevice.bind(row, id, monitor);
+	
+	return row;
+}
+
+function selectDevice(row, id, monitor) {
+	if (window.selected) {
+		window.selected.classList.remove("selected");
+	}
+	
+	if (row) {
+		window.selected = row;
+		window.selectedID = id;
+		
+		window.action.className = "selected";
+		
+		if (monitor && monitor.protocol === "snmp") {
+			window.action.classList.add("snmp");
+		}
+		
+		row.classList.add("selected");
+	}
+	else {
+		window.selected = undefined;
+		window.action.className = "";
+	}
+}
+
+function onSelectDevice(id, monitor) {
+	selectDevice(this, id, monitor);	
+}
+
+function initLabel() {
+	var df = document.createDocumentFragment(),
+		option = document.createElement("option");
+
+	for (var label in window.labelData) {
+		option = document.createElement("option");
+		
+		option.text = label;
+		
+		df.appendChild(option);
+	}
+	
+	window.label.insertBefore(df, window.label.firstChild);
+}
+
+function clearDeviceList() {
+	var df = document.createDocumentFragment(),
+		row;
+	
+	while (row = list.firstChild) {
+		df.appendChild(row);
+	}
+	
+	return df;
+}
+
+function onReset(e) {
+	e.preventDefault();
+	
+	changeLabel();
+}
+
+function onChangeLabel(e) {
+	changeLabel();
+}
+
+function changeLabel() {
+	form.elements["keyword"].value = "";
+	
+	selectLabel(window.label.value);
+}
+
+// 선택 초기화 (키워드로 필터링)
+function onSearch(e) {
+	e.preventDefault();
+	
+	document.body.classList.add("loading");
+
+	selectLabel(window.label.value);
+	
+	selectDevice();
+	
+	const keyword = form.elements["keyword"].value;
+	var row = clearDeviceList().firstChild,
+		next, cols,
+		df = document.createDocumentFragment(),
+		device;
+	
+	let count = 0;
+	
+	while (row) {
+		next = row.nextSibling;
+		
+		cols = row.children;
+		
+		for (var i=0, length=cols.length; i<length; i++) {
+			if (cols[i].textContent.indexOf(keyword) !== -1) {
+				df.appendChild(row);
+				
+				count++;
+				
+				break;
+			}
+		}
+		
+		row = next;
+	}
+	
+	document.getElementById("count").textContent = count;
+	
+	list.appendChild(df);
+
+	document.body.classList.remove("loading");
+}
+
+// 선택 초기화 (라벨별로 필터링)
+function selectLabel(label) {
+	let df = document.createDocumentFragment(),
+		count = 0;
+	
+	selectDevice();
+	
+	for (var id in window.deviceMapping) {
+		df.appendChild(window.deviceMapping[id]);
+		
+		count++;
+	}
+	
+	if (window.label.selectedIndex < window.label.options.length -1) {
+		let condition = window.label.selectedIndex === window.label.options.length -2? "[data-unlabeled]": ("."+ label),
+			rows = [].slice.call(df.querySelectorAll(condition), 0);
+			
+		df = document.createDocumentFragment();
+		count = rows.length;
+		
+		for (var i=0; i<count; i++) {
+			df.appendChild(rows[i]);
+		}
+	}
+	
+	document.getElementById("count").textContent = count;
+	
+	list.appendChild(df);
+}
+
+// 선택 초기화 (상태별로 필터링)
+function onSelectStatus (src, className) {
+	selectDevice();
+	
+	document.body.classList.remove("normal", "critical", "shutdown", "disabled");
+	
+	if (className) {
+		document.body.classList.add(className);
+	}
+	
+	icon.src = src;
+	
+	window.selector.blur();
+}
+
+function getIcon(type) {
+	return top.databases.icon[type] || top.databases.local.icon[type];
+}
+
+function onSave() {
+	var devices = {},
+		etc = [],
+		row = [],
+		labels, label, device;
+	
+	row[0] = "label,name,type,ip";
+	
+	if (window.customs) {
+		forEach(window.customs, function (custom) {
+			row[0] += (","+ custom);
+		});
+	}
+	
+	top.forEachDB("device", function (id, device) {
+		if (device.group) {
+			return;
+		}
+		
+		if (device.label) {
+			label = device.label.split(",")[0];
+			
+			if (!(label in devices)) {
+				devices[label] = [];
+			}
+			
+			devices[label][devices[label].length] = device;
+		}
+		else {
+			etc[etc.length] = device;
+		}
+	});
+	
+	labels = Object.keys(devices).sort(function (a, b) {
+		return a > b? 1: -1;
+	});
+	
+	for (var i=0, _i=labels.length; i<_i; i++) {
+		label = labels[i];
+		
+		forEach(devices[label], function (device) {
+			var columns = [label, device.name, device.type, device.ip];
+			
+			if (window.customs) {
+				forEach(window.customs, function (custom) {
+					columns[columns.length] = device[custom] || "";
+				});
+			}
+			
+			row[row.length] = columns.join(",");
+		});
+	}
+	
+	forEach(etc, function (device) {
+		var columns = ["", device.name, device.type, device.ip];
+		
+		if (window.customs) {
+			forEach(window.customs, function (custom) {
+				columns[columns.length] = device[custom] || "";
+			});
+		}
+		
+		row[row.length] = columns.join(",");
+	});
+	
+	ITAhM.util.download(new Blob([row.join("\n")] ,{
+		type: "text/csv;charset=utf-8;"
+	}), "list.csv");
+}
+
+function forEach(a, f) {
+	for (var i=0, _i=a.length; i<_i; i++) {
+		f(a[i]);
+	}
+}
+
+		</script>
+		
+	</head>
+	
+	<body class="loading">
+		<article>
+			<aside>
+				<nav>
+					<i id="count"></i>
+					<div>
+						<select id="label">
+							<optgroup>
+								<option>미분류
+							</optgroup>
+							<optgroup>
+								<option selected>모두 보기
+							</optgroup>
+						</select>
+					</div>
+					<div class="action">
+						<img id="save" src="img/save2.png" title="CSV 파일로 저장">
+					</div>
+					<div id="action">
+						<img id="map" src="img/location.png" title="구성도에서 장비보기">
+						<img id="edit" src="img/edit.png" title="장비의 정보 편집">
+						<img id="status" class="snmp" src="img/chart.png" title="장비의 상태 보기">
+						<img id="alarm" class="snmp" src="img/alarm.png" title="장비의 성능 임계 설정">
+					</div>
+				</nav>
+				<form id="form">
+					<input type="text" name="keyword" placeholder="이름, 유형, IP주소 ">
+					<input type="submit" value="찾기">
+					<input type="reset" value="초기화">
+				</form>
+			</aside>
+			
+			<header>
+				<ul id="header">
+					<li class="selector" tabindex="0">
+						<img id="icon" src="img/all.png">
+						<div>
+							<p title="장애 장비 보기" id="shutdown">
+								<img src="img/warning.png">
+							</p>
+							<p title="임계 장비 보기" id="critical">
+								<img src="img/siren.png">
+							</p>
+							<p title="정상 장비 보기" id="normal">
+								<img src="img/normal.png">
+							</p>
+							<p title="비활성 장비 보기" id="disabled">
+								<img src="img/disabled.png">
+							</p>
+							<p title="모든 장비 보기" id="all">
+								<img src="img/all.png">
+							</p>
+						</div>
+					<li>IP
+					<li>Type
+					<li>Monitor
+					<li>Name
+				</ul>
+			</header>
+			
+			<div id="list"></div>
+		</article>
+		
+		<div class="bg_loading"></div>
+		
+		<script src="js/ITAhM.js"></script>
+		<script src="js/object.js"></script>
+		<script>
+
+var form = document.getElementById("form"),
+	header = document.getElementById("header"),
+	label = document.getElementById("label"),
+	list = document.getElementById("list"),
+	selector = document.querySelector(".selector"),
+	icon = document.getElementById("icon"),
+	action = document.getElementById("action"),
+	deviceMapping = {},
+	labelData = {},
+	customs, selected;
+
+label.addEventListener("change", onChangeLabel);
+
+window.form.addEventListener("submit", onSearch);
+window.form.addEventListener("reset", onReset);
+
+document.getElementById("shutdown").onclick = onSelectStatus.bind(window, "img/warning.png", "shutdown");
+document.getElementById("critical").onclick = onSelectStatus.bind(window, "img/siren.png", "critical");
+document.getElementById("normal").onclick = onSelectStatus.bind(window, "img/normal.png", "normal");
+document.getElementById("disabled").onclick = onSelectStatus.bind(window, "img/disabled.png", "disabled");
+document.getElementById("all").onclick = onSelectStatus.bind(window, "img/all.png", "");
+document.getElementById("save").onclick = onSave;
+document.getElementById("map").onclick = onMap;
+document.getElementById("edit").onclick = onEdit;
+document.getElementById("alarm").onclick = onSetAlarm;
+document.getElementById("status").onclick = onShowStatus;
+
+initialize();
+
+		</script>
+	
+	</body>
+	
+</html>

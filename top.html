@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Content-Script-Type" content="text/javascript">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<title>Top @ ITAhM</title>
+		
+		<style>
+@import "/css/itahm.css";
+
+body {
+	color: #fff;
+	animation: fall 1s cubic-bezier(0, 1.5, 1, 1);
+}
+
+@keyframes fall {
+	from {
+		transform: translateY(-100%);
+	}
+}
+
+.title {
+	padding: .5em 2em;
+	border-radius: 3px 3px 0 0;
+	border-bottom: none;
+	font-weight: bold;
+	color: #fff;
+	background-color: #000;
+	text-shadow: 1px 1px 1px #777;
+}
+
+ul {
+	list-style: none;
+	padding: 0; margin: 0;
+}
+
+.list {
+	padding: .5em 1em;
+}
+
+.list_item {
+	font-size: 12px;
+	display: flex;
+	border-bottom: 1px solid #777;
+	cursor: pointer;
+	padding: 1px;
+}
+
+.list_item:hover {
+	background-color: #fff;
+	color: #0084ff;
+	outline: 1px solid #0084ff;
+}
+
+.list_item> li {
+	flex: 1;
+	box-sizing: border-box;
+	overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+body:not(.name) .list_item> li:nth-child(1),
+body.name .list_item> li:nth-child(2) {
+	display: none;
+}
+
+.list_item> li:last-child {
+	text-align: right;
+	position: relative;
+	padding: 3px;
+	border: 2px solid transparent;
+	border-radius: 3px;
+}
+
+.list_item> li:last-child::after {
+	content: attr(data-value);
+}
+
+.list_item> li:last-child >div {
+	position: absolute; top: 0; bottom: 0; left: 0;
+	z-index: -1;
+	animation: gauge 2s;
+}
+
+@keyframes gauge {
+	0% {
+		width: 0;
+	}
+	50% {
+		width: 0;
+	}
+}
+
+.list_item> li:last-child.red {
+	border-color: #f00;
+}
+
+#top_list.pastel .list_item> li:last-child.red {
+	border-color: #8e24aa;
+}
+
+.list_item> li:last-child.red >div {
+	background: linear-gradient(to right, rgba(255, 0, 0, 0.5), #f00);
+}
+
+#top_list.pastel .list_item> li:last-child.red >div {
+	background: linear-gradient(to right, rgba(142, 36, 170, 0.5), #8e24aa);
+}
+
+.list_item> li:last-child.orange {
+	border-color: #ffa500;
+}
+
+#top_list.pastel .list_item> li:last-child.orange {
+	border-color: #f6bf26;
+}
+
+.list_item> li:last-child.orange >div {
+	background: linear-gradient(to right, rgba(255, 165, 0, 0.5), #ffa500);
+}
+
+#top_list.pastel .list_item> li:last-child.orange >div {
+	background: linear-gradient(to right, rgba(246, 191, 38, 0.5), #f6bf26);
+}
+
+.list_item> li:last-child.green {
+	border-color: #0f0;
+}
+
+#top_list.pastel .list_item> li:last-child.green {
+	border-color: #00897b;
+}
+
+.list_item> li:last-child.green >div {
+	background: linear-gradient(to right, rgba(0, 255, 0, 0.5), #0f0);
+}
+
+#top_list.pastel .list_item> li:last-child.green >div {
+	background: linear-gradient(to right, rgba(0, 137, 123, 0.5), #00897b);
+}
+
+#tmp_list {
+	display: none;
+}
+
+		</style>
+		
+		<script>
+
+function initialize() {
+	const df = document.createDocumentFragment();
+	let resource;
+	
+	if ("dashboard" in top.databases.config) {
+		var resources = top.databases.config.dashboard,
+			order = Object.keys(resources);
+		
+		[].sort.call(order, function (a, b) {
+			return parseInt(a) - parseInt(b);
+		})
+		
+		for (var i=0, _i=order.length; i<_i; i++) {
+			resource = resources[order[i]];
+
+			setTop(top.topList[resource], df.appendChild(document.getElementById(resource)));
+		}
+	}
+	else {
+		const list = document.getElementById("tmp_list");
+		let section;
+
+		while (section = list.firstElementChild) {
+			resource = section.id;
+
+			setTop(top.topList[resource], df.appendChild(section));
+		}
+	}
+
+	window.list.appendChild(df);
+}
+
+function toErrorString(value) {
+	return value;
+}
+
+function toMillsString(value) {
+	return value +"ms";
+}
+
+function toPercentageString(value) {
+	return value +"%";
+}
+
+function toBytesString(bytes) {
+	var unit = ["Bytes", "KBytes", "MBytes", "GBytes", "TBytes"];
+	
+	for(var i=0, _i=unit.length -1; i<_i; i++) {
+		if (bytes > 999) {
+			bytes /= 1024;
+		}
+		else {
+			break;
+		}
+	}
+	
+	return bytes.toFixed(2) + unit[i];
+}
+		
+function toBPSString(bandwidth) {
+	if (isNaN(bandwidth)) {
+		return "0bps";
+	}
+	
+	var unit = ["bps", "Kbps", "Mbps", "Gbps", "Tbps"];
+	
+	for(var i=0, _i=unit.length -1; i<_i; i++) {
+		if (bandwidth > 999) {
+			bandwidth /= 1000;
+		}
+		else {
+			break;
+		}
+	}
+	
+	return bandwidth.toFixed(2) + unit[i];
+}
+
+function setTop(topData, section) {
+	const
+		skipZero = section.dataset.zero,
+		sortByRate = section.dataset.rate,
+		toString = window[section.dataset.func],
+		list = Object.keys(topData).sort(function (a, b) {
+			if (sortByRate) {
+				return topData[b].rate - topData[a].rate;
+			}
+			else {
+				return topData[b].value - topData[a].value;
+			}
+		}),
+		max = "top" in top.databases.config? Math.min(top.databases.config.top, list.length): list.length;
+
+	for (let i=0, ip, value; i< max; i++) {
+		ip = list[i];
+		value = topData[ip];
+		
+		if (value.value || !skipZero) {
+			section.appendChild(createTopItem(ip, toString(value.value), value.rate, section.id, value.index));
+		}
+	}
+}
+
+function createTopItem(ip, value, rate, resource, index) {
+	var item = document.createElement("ul"),
+		id = top.getDeviceID(ip),
+		bar;
+
+	if (!id) {
+		console.log("서버와 동기화 실패 node: "+ ip);
+
+		return item;
+	}
+	
+	item.className = "list_item";
+	
+	item.appendChild(document.createElement("li")).textContent = top.getDB("device", id).name || ip;
+	item.appendChild(document.createElement("li")).textContent = ip;
+	
+	bar = item.appendChild(document.createElement("li"));
+	bar.dataset.value = value;
+			
+	bar.appendChild(document.createElement("div")).style.width = toPercentageString(rate);
+		
+	bar.classList.add(rate > 90? "red": rate > 70? "orange": "green");
+	
+	if (rate > -1) {
+		item.title = toPercentageString(rate);
+	}
+	
+	item.onclick = function () {
+		top.showStatus(id);
+	}
+	
+	bar.onclick = function (e) {
+		e.stopPropagation();
+		console.log(resource);
+		top.showStatus(id, resource, index);
+	}
+	
+	return item;
+}
+
+		</script>
+		
+	</head>
+	
+	<body class="name">
+		<div id="top_list"></div>
+		
+		<div id="tmp_list">
+			<section id="responseTime" data-func="toMillsString">
+				<div class="title">응답시간</div>
+				<div class="list"></div>
+			</section>
+			<section id="processor" data-func="toPercentageString">
+				<div class="title">프로세서 로드</div>
+				<div class="list"></div>
+			</section>
+			<section id="memory" data-func="toBytesString">
+				<div class="title">메모리 사용량</div>
+				<div class="list"></div>
+			</section>
+			<section id="memoryRate" data-func="toBytesString" data-rate="true">
+				<div class="title">메모리 사용율(%)</div>
+				<div class="list"></div>
+			</section>
+			<section id="storage" data-func="toBytesString">
+				<div class="title">저장공간 사용량</div>
+				<div class="list"></div>
+			</section>
+			<section id="storageRate" data-func="toBytesString" data-rate="true">
+				<div class="title">저장공간 사용율(%)</div>
+				<div class="list"></div>
+			</section>
+			<section id="throughput" data-func="toBPSString">
+				<div class="title">통신 사용량</div>
+				<div class="list"></div>
+			</section>
+			<section id="throughputRate" data-func="toBPSString" data-rate="true">
+				<div class="title">통신 사용율(%)</div>
+				<div class="list"></div>
+			</section>
+			<section id="throughputErr" data-func="toErrorString" data-zero="true">
+				<div class="title">통신 오류</div>
+				<div class="list"></div>
+			</section>
+			<section id="failureRate" data-func="toPercentageString" data-zero="true">
+				<div class="title">SNMP 오류</div>
+				<div class="list"></div>
+			</section>
+		</div>
+		
+		<script>
+
+var list = document.getElementById("top_list"),
+	rafID;
+
+(function (configData) {
+	if ("display" in configData && configData.display !== "name") {
+		document.body.classList.remove("name");
+	}
+
+	if ("color" in configData) {
+		window.list.classList.add(configData.color);
+	}
+}) (top.databases.config);
+
+initialize();
+
+function reload() {
+	const rafID = 
+	window.rafID = requestAnimationFrame(function reload(elapsed) {
+		if (elapsed > 8000) {
+			if (rafID == window.rafID) {
+				window.location.reload();
+			}
+		}
+		else {
+			requestAnimationFrame(reload);
+		}
+	});
+}
+
+window.list.onmouseenter = function () {
+	window.rafID = undefined;
+};
+
+window.list.onmouseleave = function () {
+	reload();
+};
+
+reload();
+
+		</script>
+	
+	</body>
+	
+</html>

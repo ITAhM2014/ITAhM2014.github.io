@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Cache-Control" content="No-Cache">
+
+	<title>Scrap</title>
+	<style>
+@import "css/itahm.css";
+
+body {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	margin: 0; padding: 0;
+	display: flex; flex-direction: column;
+}
+
+input {
+	font-family: arial, tahoma, "맑은 고딕";
+}
+
+header {
+	padding: 0.5em;
+	background-color: #efefef;
+	border-bottom: 1px solid #777;
+}
+
+article {
+	flex: 1;
+	display: flex;
+	background-color: #4d525a;
+}
+
+section {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+section >form {
+	background-color: #ddd;
+	text-align: center;
+	position: relative;
+}
+
+section >form >input[type=reset] {
+	position: absolute;
+	top: 0; right: 0;
+}
+
+.chart {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+}
+
+.chart::before {
+	position: absolute; top: 0; left: 0;
+	padding: 0.5em;
+	content: attr(data-title);
+	font-weight: bold;
+	color: #fff;
+}
+
+.chart >iframe {
+	box-sizing: border-box;
+	border: none; padding: 0;
+	width: 100%; height: 100%;
+	pointer-events: none;
+}
+
+div.dialog {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	margin: 0; padding: 0;
+	display: flex; justify-content: center; align-items: center;
+	background-color: rgba(0, 0, 0, 0.8);
+}
+
+div.dialog >form {
+	width: 500px;
+	height: 500px;
+	border-radius: 5px;
+	padding: 20px;
+	box-sizing: border-box;
+	background-color: #fff;
+	border-top: 3em solid #0084ff;
+	display: flex; flex-direction: column;
+}
+
+div.dialog >form >div:last-child {
+	flex: 1;
+	border: 1em solid transparent;
+	overflow-y: auto;
+}
+
+input.padding {
+	padding: 0.5em;
+}
+
+label {
+	display: block;
+}
+
+label::after {
+	content: attr(data-text);
+}
+
+label.title {
+	font-weight: bold;
+	margin: 0.5em;
+}
+
+label:not(.title) {
+	padding-left: 2em;
+}
+
+#dialog.selected #device::after {
+	display: inline-block;
+	margin-left: 1em;
+	content: attr(data-ip);
+}
+
+#dialog {
+	position: relative;
+}
+
+#close {
+	position: absolute; top: -2em; right: 1em;
+	font-size: 1em;
+	color: #fff;
+	cursor: pointer;
+}
+
+#close:hover {
+	font-weight: bold;
+	transform: scale(1.2, 1.2);
+}
+
+body:not(.dialog) .dialog,
+#dialog.selected .selector,
+#dialog:not(.selected) .confirm,
+#resources:not(.rt) >.rt,
+#resources:not(.pl) >.pl,
+#resources:not(.pm) >.pm,
+#resources:not(.su) >.su,
+#resources:not(.it) >.it,
+#resources:not(.ie) >.ie {
+	display: none;
+}
+
+@media print {
+	form {
+		display: none;
+	}
+}
+
+	</style>
+	<script>
+var draggable;
+
+function setDraggable(e) {
+	e.draggable = true;
+	
+	e.addEventListener("dragstart", function (e) {
+		e.stopPropagation();
+		
+		window.draggable = this;
+	});
+	
+	e.addEventListener("dragover", function (e) {
+		e.preventDefault();
+		
+		if (window.draggable === this) {
+			return;
+		}
+		
+		const isChart = window.draggable.classList.contains("chart");
+		
+		if (isChart === this.classList.contains("chart")) {
+			switch (window.draggable) {
+			case this.previousElementSibling:
+				this.parentNode.insertBefore(this, window.draggable);
+				
+				break;
+			default:
+				this.parentNode.insertBefore(window.draggable, this);
+			}
+		}
+		else if (isChart && window.draggable.parentNode != this) {
+			this.insertBefore(window.draggable, undefined);
+		}
+	});
+}
+
+function onAddColumn() {
+	var section = window.section;
+	
+	window.section = section.cloneNode(true);
+	
+	article.appendChild(section);
+	
+	setEvent(section);
+}
+
+function setValueAsDate(e, d) {
+	if ("valueAsDate" in e) {
+		d = new Date(d.getTime());
+		
+		d.setHours(9, 0, 0, 0);
+		
+		e.valueAsDate = d;
+	}
+	else {
+		var mm = d.getMonth() +1,
+			dd = d.getDate();
+		
+		e.value = [d.getFullYear(), mm > 9? mm: "0"+ mm, dd > 9? dd: "0"+ dd].join('-');
+	}
+}
+
+function getValueAsDate(e) {
+	var date;
+	
+	if ("valueAsDate" in e) {
+		date = e.valueAsDate;
+	}
+	else {
+		date = new Date(e.value);
+	}
+	
+	date.setHours(0, 0, 0, 0);
+	
+	return date;
+}
+
+function forOf(a, f) {
+	for (let i=0, _i=a.length; i<_i; i++) {
+		f(a[i]);
+	}
+	
+}
+
+function onScrap() {
+	window.ip = window.device.dataset.ip;
+	
+	forOf(window.resources.querySelectorAll("input[type=checkbox]"), function (checkbox) {
+		if(checkbox.checked && checkbox.dataset.resource) {
+			createChart(checkbox.dataset.resource, checkbox.dataset.index);
+		}
+	});
+	
+	closeDialog();
+}
+
+function onAddResource(e) {
+	e.preventDefault();
+	
+	window.currentSection = this;
+	
+	document.body.classList.add("dialog");
+}
+
+function onSelectDevice(e) {
+	e.preventDefault();
+	
+	selectDevice(window.device.dataset.ip = this.elements["ip"].value);
+}
+
+function onCancel(e) {
+	e.preventDefault();
+	
+	resetDialog();
+}
+
+function resetDialog() {
+	window.dialog.classList.remove("selected");
+	
+	clear(window.storage);
+	clear(window.throughput);
+	clear(window.error);
+	
+	forOf(window.resources.querySelectorAll("input[type=checkbox]"), function (checkbox) {
+		checkbox.checked = false;
+	});
+	
+	window.resources.className = "";
+}
+
+function closeDialog() {
+	document.body.classList.remove("dialog");
+	
+	resetDialog();
+}
+
+function selectDevice(ip) {
+	top.sendRequest({
+		command: "select",
+		ip: ip	
+	}, onSuccess, function (status, notice) {
+		if (status === 400) {
+			alert("스크랩 대상이 아닙니다.");
+		}
+		else {
+			notice(status);
+		}
+	});
+}	
+
+function onSuccess(snmp) {
+	window.dialog.classList.add("selected");
+	
+	window.resources.classList.add("rt");
+	
+	for (let index in snmp.hrProcessorEntry) {
+		window.resources.classList.add("pl");
+		
+		break;
+	}
+	
+	for (let index in snmp.hrStorageEntry) {
+		parseStorage(index, snmp.hrStorageEntry);
+	}
+	
+	for (let index in snmp.ifEntry) {
+		parseInterface(index, snmp.ifEntry);
+	}
+	
+	window.snmp = snmp;
+}
+
+
+function parseStorage(index, entry) {
+	var storage = entry[index];
+	
+	if (storage.hrStorageType === 4) {
+		window.resources.classList.add("su");
+		
+		window.storage.appendChild(createRscItem(storage.hrStorageDescr, "storage", index));
+	}
+	else if (storage.hrStorageType === 2) {
+		window.resources.classList.add("pm");
+		
+		window.memory.dataset.index = index;
+	}
+}
+
+function parseInterface(index, entry) {
+	var iFace = entry[index];
+	
+	window.resources.classList.add("it");
+	window.resources.classList.add("ie");
+	
+	window.throughput.appendChild(createRscItem(iFace.ifName, "throughput", index, iFace.ifDescr));
+	window.error.appendChild(createRscItem(iFace.ifName, "error", index, iFace.ifDescr));
+}
+
+function createRscItem(text, resource, index, descr) {
+	var label = document.createElement("label"),
+		checkbox = document.createElement("input");
+	
+	checkbox.type = "checkbox";
+	
+	label.appendChild(checkbox);
+	label.dataset.text = text;
+	
+	checkbox.dataset.index = index;
+	checkbox.dataset.resource = resource;
+	
+	if (descr) {
+		label.title = descr;
+	}
+	
+	return label;
+}
+
+function onCheckAll(e) {
+	const checked = e.currentTarget.checked;
+	
+	forOf(this.querySelectorAll("input"), function (checkbox) {
+		checkbox.checked = checked;
+	});
+}
+
+function clear(e) {
+	for (var child; child = e.firstChild; ) {
+		e.removeChild(child);
+	}
+}
+
+function createChart(resource, index) {
+	const div = document.createElement("div"),
+		frame = document.createElement("iframe");
+	
+	div.className = "chart";
+	div.dataset.title = window.ip;
+	
+	frame.onload = onLoadChart;
+	
+	div.appendChild(frame).src = "chart_"+ resource +".html?"+ index;
+	
+	setDraggable(div);
+	
+	window.currentSection.appendChild(div);
+}
+
+function onLoadChart() {
+	var from = getValueAsDate(window.control.elements["from"]).getTime(),
+		to = getValueAsDate(window.control.elements["to"]).getTime();
+	
+	this.contentWindow.initialize(from, to, from, to);
+}
+
+function onCloseSection() {
+	if (this.parentNode.querySelectorAll("section").length <= 1) {
+		return alert("적어도 하나의 스크랩이 필요합니다.\n삭제할 수 없습니다.");
+	}
+	
+	if (confirm("이 스크랩을 삭제하겠습니까?")) {
+		this.parentNode.removeChild(this);
+	}
+}
+
+function setEvent(section) {
+	var form = section.querySelector("form");
+	
+	form.onsubmit = onAddResource.bind(section);
+	form.onreset = onCloseSection.bind(section);
+	
+	setDraggable(section);
+}
+
+	</script>
+</head>
+<body>
+	<header>
+		<form id="control">
+		날짜선택
+		<input type="date" name="from" class="padding">
+		부터
+		<input type="date" name="to" class="padding">
+		까지
+		<input type="button" name="add" value="열 추가" class="padding">
+	</form>
+	</header>
+	<article>
+		<section>
+			<form>
+				<input type="submit" value="+">
+				<input type="reset" value="x">
+			</form>
+		</section>
+	</article>
+	
+	<div class="dialog">
+		<form id="dialog">
+			<span id="close">&#10006;</span>
+			<h3 id="device">IP Address</h3>
+			<div class="selector">
+				<input type="text" name="ip" placeholder="A.B.C.D" required value="127.0.0.1" class="padding">
+				<input type="submit" value="확인" class="padding">
+			</div>
+			<div class="confirm">
+				<input type="reset" value="취소" class="padding">
+				<input type="button" name="scrap" value="스크랩" class="padding">
+			</div>
+			<div id="resources">
+				<div class="rt">
+					<label class="title" data-text="Response Time"><input type="checkbox" data-resource="responseTime" data-index="0"></label>
+				</div>
+				<div class="pl">
+					<label class="title" data-text="Processor Load"><input type="checkbox" data-resource="processor" data-index="0"></label>
+				</div>
+				<div class="pm">
+					<label class="title" data-text="Physical Memory"><input type="checkbox" data-resource="memory"></label>
+				</div>
+				<div class="su">
+					<label class="title" data-text="Storage Usage"><input type="checkbox"></label>
+					<div></div>
+				</div>
+				<div class="it">
+					<label class="title" data-text="Interface Throughput"><input type="checkbox"></label>
+					<div></div>
+				</div>
+				<div class="ie">
+					<label class="title" data-text="Interface Error"><input type="checkbox"></label>
+					<div></div>
+				</div>
+			</div>
+		</form>
+	</div>
+	
+	<script>
+
+ 	var 
+ 		article = document.querySelector("article"),
+ 		section = document.querySelector("section"),
+ 		control = document.getElementById("control"),
+ 		device = document.getElementById("device"),
+ 		dialog = document.getElementById("dialog"),
+ 		close = document.getElementById("close"),
+ 		resources  = document.getElementById("resources"),
+ 		memory = document.querySelector("input[data-resource=memory]"),
+ 		storage = document.querySelector("#resources>div.su>div:last-child"),
+ 		throughput = document.querySelector("#resources>div.it>div:last-child"),
+ 		error = document.querySelector("#resources>div.ie>div:last-child"),
+ 		devivce;
+	
+	/**
+	event
+	**/
+	document.querySelector(".su>label.title>input").onclick = onCheckAll.bind(window.storage);
+	document.querySelector(".it>label.title>input").onclick = onCheckAll.bind(window.throughput);
+	document.querySelector(".ie>label.title>input").onclick = onCheckAll.bind(window.error);
+	
+	dialog.onsubmit = onSelectDevice;
+	dialog.onreset = onCancel;
+	close.onclick = closeDialog;
+	dialog.elements["scrap"].onclick = onScrap;
+	window.control.elements["add"].onclick = onAddColumn;
+	
+	/**
+	initialize
+	**/
+	(function (d) {
+		setValueAsDate(window.control.from, d);
+		
+		d.setDate(d.getDate() +1);
+		
+		setValueAsDate(window.control.to, d);
+	})(new Date());
+	
+	setEvent(section);
+	
+	section = section.cloneNode(true);
+	</script>
+</body>
+</html>

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Critical Dialog @ ITAhM</title>
+		
+		<style>
+@import "/css/style.css";
+@import "/css/dialog.css";
+
+body {
+	margin: 0; padding: 0;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+.dialog {
+	padding: 20px;
+	background-color: #fff;
+}
+
+section {
+	border: 1px solid #aaa;
+	padding: 1em;
+	margin: 1em 0;
+}
+
+ul {
+	list-style: none;
+	padding: 0; margin: 0;
+}
+
+h2 {
+	background-color: #0084ff;
+	padding: 10px; margin: 0;
+	color: #fff;
+}
+
+#name {
+	margin-left: 1em;
+}
+
+#ip {
+	display: block;
+	float: right;
+	font-size: 0.8em;
+}
+
+header> .item> li {
+	font-weight: bold;
+	text-align: center;
+}
+
+header> .item> li:last-child {
+	visibility: hidden;
+}
+
+.item {
+	display: flex;
+	cursor: pointer;
+	padding: .5em;
+	transition-duration: .3s;
+	height: 16px;
+}
+
+header> .item {
+	cursor: initial;
+}
+
+.item> li {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.item> li:first-child {
+	flex: 2;
+}
+
+.item> li:last-child {
+	flex: none;
+	width: 20px;
+	background: transparent url(img/remove.png) center no-repeat;
+	cursor: pointer;
+}
+
+#list {
+	max-height: 120px;
+	overflow: auto;
+	margin: 10px 0;
+	border-top: 1px solid #aaa;
+	border-bottom: 1px solid #aaa;
+}
+
+#list> .item> li {
+	text-align: right;
+}
+
+#list> .item> li:first-child {
+	text-align: left;
+}
+
+input:not([type="checkbox"]),
+select {
+	width: 100%;
+	box-sizing: border-box;
+	padding: .5em;
+}
+
+input[type="checkbox"] {
+	vertical-align: middle;
+}
+
+#list {
+	margin-bottom: 10px;
+}
+
+.form ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.form li {
+	display: inline-block;
+}
+
+.form li:first-child {
+	text-align: right;
+	padding: .5em;
+	width: 100px;
+}
+
+.form li:last-child {
+	width: 200px;
+}
+
+div.table {
+	margin: 1em 0;
+}
+
+.critical {
+	display: flex;
+}
+
+.critical input {
+	flex: 1;
+	text-align: right;
+}
+
+.critical span {
+	padding: .5em;
+}
+
+.layout {
+	display: none;
+}
+
+body:not(.edit) input[type=reset] {
+	display: none;
+}
+
+body:not(.processor) option[value=processor],
+body:not(.memory) option[value=memory],
+body:not(.storage) option[value=storage],
+body:not(.throughput) option[value=throughput] {
+	display: none;
+}
+
+		</style>
+		<script>
+
+function createOption(value, text, alias) {
+	var option = document.createElement("option");
+	
+	option.value = value;
+	option.text = text;
+	
+	if (alias) {
+		option.title = alias;
+	}
+	
+	return option;
+}
+
+function getResourceString(resource) {
+	switch(resource) {
+		case "processor":
+			return "Processor load";
+		
+		case "memory":
+			return "Physical memory";
+		
+		case "storage":
+			return "Storage usage";
+		
+		case "throughput":
+			return "Interface throughput";
+	}
+
+	return "";
+}
+
+		</script>
+	</head>
+	
+	<body class="loading">
+		<form autocomplete="off" id="form" class="dialog">
+			<i class="btn_close round" id="close"></i>
+			<h2>
+				<span id="ip">IP주소</span>
+				임계 설정
+			</h2>
+			<h3 id="name">이름</h3>
+			<div class="table">
+				<header>
+					<ul class="item">
+						<li class="resource">성능지표
+						<li class="index">구분
+						<li class="limit">임계값(%)
+						<li title="삭제">
+					</ul>
+				</header>
+				<div id="list"></div>
+				<div class="form">
+					<ul>
+						<li>성능 지표
+						<li>
+							<select name="resource" required>
+								<option value="processor">Processor load
+								<option value="memory">Physical memory
+								<option value="storage">Storage usage
+								<option value="throughput">Interface throughput
+							</select>
+					</ul>
+					<ul>
+						<li>구분
+						<li>
+							<select name="index" required></select>
+					</ul>
+					<ul>
+						<li>임계값(%)
+						<li class="critical">
+							<input name="limit" type="number" min="1" max="100" required>
+					</ul>
+				</div>
+				<div class="add">
+					<input type="submit" value="추가">
+				</div>
+			</div>
+			<footer>
+				<input type="reset" value="삭제" disabled>
+				<input type="button" name="apply" value="확인" disabled>
+			</footer>
+		</form>
+
+		<div class="bg_loading"></div>
+		
+		<script>
+
+document.getElementById("close").onclick = function () {
+	top.closeDialog(true);
+};
+
+if (top.getDB("local").level == 0) {
+	document.querySelector("input[type=reset]").disabled = false;
+	document.querySelector("input[name=apply]").disabled = false;
+}
+
+(function (form, devTable, cricTable, list, item) {
+	let
+		ip,
+		opener,
+		snmp,
+		criticalData;
+
+	form.onreset = function (e) {
+		e.preventDefault();
+
+		if (!confirm("임계 정보를 삭제하겠습니까?")) {
+			return;
+		}
+
+		document.body.classList.add("loading");
+
+		top.postRequest({
+			command: "put",
+			database: "critical",
+			key: ip,
+			value: null
+		}, function () {
+			switch(this.status) {
+			case 200:
+				save(null);
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				if (this.responseText) {
+					console.log(JSON.parse(this.responseText).error);
+				}
+			}
+
+			document.body.classList.remove("loading");
+		});
+	};
+	
+	form.elements["apply"].onclick = function (e) {
+		e.preventDefault();
+		
+		if (Object.keys(criticalData).length === 0) {
+			return alert("임계가 정보가 존재하지 않습니다.");
+		}
+
+		document.body.classList.add("loading");
+
+		top.postRequest({
+			command: "put",
+			database: "critical",
+			key: ip,
+			value: criticalData
+		}, function () {
+			switch(this.status) {
+			case 200:
+				save(criticalData);
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				if (this.responseText) {
+					console.log(JSON.parse(this.responseText).error);
+				}
+			}
+
+			document.body.classList.remove("loading");
+		});
+	};
+
+	form.onsubmit = function (e) {
+		e.preventDefault();
+
+		var index = form.elements["index"],
+			resource = form.elements["resource"];
+
+		if (!criticalData[resource.value]) {
+			criticalData[resource.value] = {};
+		}
+
+		criticalData[resource.value][index.value] = {
+			limit: form.elements["limit"].value,
+			description: index.disabled? undefined: index.options[index.selectedIndex].text
+		};
+
+		resetList();
+	};
+
+	form.elements["resource"].onchange = onSelectResource;
+	
+	function onSelectResource () {
+		var selectedIndex = -1;
+		
+		form.elements["index"].length = 0;
+		
+		form.elements["index"].disabled = false;
+		
+		switch(form.elements["resource"].value) {
+		case "processor":
+			form.elements["index"].appendChild(createOption(0, "N/A"));
+			form.elements["index"].disabled = true;
+			
+			selectedIndex = 0;
+			
+			break;
+		case "memory":
+			var entry = snmp["hrStorageEntry"],
+				storage;
+				
+			for (var index in entry) {
+				storage = entry[index];
+				
+				if (storage.hrStorageType === 2) {
+					form.elements["index"].appendChild(createOption(index, "N/A"));
+					form.elements["index"].disabled = true;
+				}
+			}
+			
+			selectedIndex = 0;
+			
+			break;
+		case "storage":
+			var entry = snmp["hrStorageEntry"],
+				storage;
+			
+			for (let index in entry) {
+				storage = entry[index];
+				
+				if(storage.hrStorageType === 4) {
+					form.elements["index"].appendChild(createOption(index, storage.hrStorageDescr));
+				}
+			}
+		
+			break;
+		case "throughput":
+			var entry = snmp["ifEntry"],
+				throughput;
+			
+			for (var index in entry) {
+				throughput = entry[index];
+				
+				if (throughput.ifSpeed !== 0) {
+					form.elements["index"].appendChild(createOption(index, throughput.ifName, throughput.ifAlias));
+				}
+			}
+		
+			break;
+			
+		default:
+			
+		}
+		
+		form.elements["index"].selectedIndex = selectedIndex;
+		form.elements.limit.value = "";
+	};
+
+	window.initialize = function () {
+		ip = arguments[0];
+		opener = this && this.location;
+
+		if (ip) {
+			document.getElementById("ip").textContent = ip;
+			document.getElementById("name").textContent = devTable[top.getDeviceID(ip)].name;
+
+			criticalData = cricTable[ip];
+		}
+
+		if (criticalData) {
+			criticalData = JSON.parse(JSON.stringify(criticalData))
+
+			document.body.classList.add("edit");
+		}
+		else {
+			criticalData = {};
+		}
+		
+		form.elements["resource"].selectedIndex = -1;
+
+		resetList();
+	
+		top.postRequest({
+			command: "select",
+			ip: ip
+		}, function () {
+			switch (this.status) {
+			case 200:
+				snmp = JSON.parse(this.responseText);
+				
+				if ("hrProcessorEntry" in snmp) {
+					document.body.classList.add("processor");
+				}
+
+				if ("hrStorageEntry" in snmp) {
+					const entry = snmp.hrStorageEntry;
+
+					for (let index in entry) {
+						if (entry[index].hrStorageType === 2) {
+							document.body.classList.add("memory");
+						}
+						else {
+							document.body.classList.add("storage");
+						}
+					}
+				}
+
+				if ("ifEntry" in snmp) {
+					document.body.classList.add("throughput");
+				}
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+			}
+			
+			document.body.classList.remove("loading");
+		});
+	}
+
+	function createItem(resource, index, criticalData) {
+		const clone = item.cloneNode(true);
+		
+		clone.children[0].textContent = getResourceString(resource);
+		clone.children[1].textContent = criticalData.description || "";
+		clone.children[2].textContent = criticalData.limit;
+		clone.children[3].onclick = onRemove.bind(clone, resource, index);
+		
+		clone.onclick = onSelectCritical.bind(undefined, resource, index, criticalData.limit);
+		
+		return clone;
+	}
+
+	function onSelectCritical(resource, index, limit) {
+		form.elements["resource"].value = resource;
+		
+		onSelectResource();
+		
+		form.elements["index"].value = index;
+		form.elements["limit"].value = limit;
+	}
+
+	function onRemove(resource, index, e) {
+		e.stopPropagation();
+
+		delete criticalData[resource][index];
+		
+		if (Object.keys(criticalData[resource]).length === 0) {
+			delete criticalData[resource];
+		}
+
+		resetList();
+	}
+
+	function resetList() {
+		var df = document.createDocumentFragment(),
+			o, limit;
+
+		for (let e; e=list.firstChild;) {
+			list.removeChild(e);
+		}
+
+		for (let resource in criticalData) {
+			o = criticalData[resource];
+			
+			for (let index in o) {
+				df.appendChild(createItem(resource, index, o[index]));
+			}
+		}
+
+		list.appendChild(df);
+	}
+
+	function save(criticalData) {
+		top.getDB("monitor", ip).critical = false;
+		top.putDB("critical", ip, criticalData);		
+			
+		opener && opener.reload();
+
+		top.closeDialog();
+	}
+
+}) (document.querySelector("form")
+, top.getDB("device")
+, top.getDB("critical")
+, document.getElementById("list")
+, document.querySelector(".item"));
+
+		</script>
+	
+	</body>
+	
+</html>

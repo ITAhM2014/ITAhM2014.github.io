@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>dialog</title>
+		
+		<style>
+@import "css/itahm.css";
+
+body {
+	margin: 0; padding: 0;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+.dialog {
+	width: 300px;
+	padding: 20px;
+	background-color: #fff;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="submit"],
+input[type="reset"],
+select {
+	width: 100%;
+	box-sizing: border-box;
+	padding: .5em;
+}
+
+input[type="checkbox"] {
+	vertical-align: middle;
+}
+
+div.table {
+	border: 1px solid #aaa;
+	padding: 1em;
+	margin-bottom: 5px;
+}
+
+div.table ul {
+	display: flex;
+	align-items: center;
+	list-style: none;
+	padding: 1px;
+	margin: 0;
+}
+
+div.table li:first-child {
+	text-align: right;
+	padding: .5em;
+	flex: 2;
+}
+
+div.table li:last-child {
+	flex: 3;
+}
+
+body:not(.v2c) .v2c,
+body:not(.v3) .v3 {
+	display: none;
+}
+
+footer {
+	display: flex;
+	margin-top: 1em;
+}
+
+footer> input {
+	flex: 1;
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: .2em solid transparent;
+	padding: .5em;
+}
+
+footer> input:hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+body:not(.removable) .remove,
+body:not(.warning) .warning {
+	display: none;
+}
+
+		</style>
+		
+		<script>
+
+function onFocusNumber() {
+	this.value = this.value.split("-").join("");
+}
+
+function onCheckNumber() {
+	var ps = toPhoneString(this.value);
+	
+	if (ps) {
+		this.value = ps;
+	}
+	else {
+		this.onfocus = undefined;
+		
+		this.select();
+		
+		this.onfocus = onFocusNumber;
+	}
+}
+
+function toPhoneString(num) {
+	var match = num.match(/(^010)([0-9]{4})([0-9]{4}$)/) || num.match(/(^01[1-9])([0-9]{3})([0-9]{4}$)/);
+	
+	if (match) {
+		return [match[1], match[2], match[3]].join("-");
+	}
+	
+	return "";
+}
+
+function toPhoneNumber(num) {
+	var match = num.match(/(^010)-([0-9]{4})-([0-9]{4}$)/) || num.match(/(^01[1-9])-([0-9]{3})-([0-9]{4}$)/);
+	
+	if (match) {
+		return [match[1], match[2], match[3]].join("");
+	}
+	
+	return "";
+}
+
+function onApply(e) {
+	e.preventDefault();
+	
+	var id = form.elements["id"].value,
+		number = toPhoneNumber(form.elements["number"].value);
+	
+	if (!number) {
+		return;
+	}
+	
+	sendRequest(id, {
+		id: id,
+		name: form.elements["name"].value,
+		number: number
+	});
+}
+
+function onRemove(e) {
+	if (confirm("SMS 수신 목록에서 삭제하겠습니까?")) {
+		sendRequest(form.elements["id"].value, null);
+	}
+	else {
+		this.checked = false;
+	}	
+}
+
+function onCancel(e) {
+	top.closeDialog(true);
+}
+
+function initialize(id) {
+	window.opener = this && this.location;
+	
+	if (id) {
+		window.sms = top.databases.sms[id];
+		
+		form.elements["id"].value = id;
+		form.elements["id"].disabled = true;
+		form.elements["name"].value = sms.name;
+		form.elements["number"].value = toPhoneString(sms.number);
+		
+		document.body.classList.add("removable");
+	}
+	else {
+		form.elements["id"].focus();
+	}
+}
+
+function sendRequest(id, sms) {
+	document.body.classList.add("loading");
+	
+	top.sendRequest({
+		command: "put",
+		database: "sms",
+		key: id,
+		value: sms
+	}, function (data) {
+		top.databases.sms = data;
+		
+		if (window.opener) {
+			window.opener.reload();
+		}
+		
+		top.closeDialog();
+	});
+}
+
+		</script>
+	</head>
+	
+	<body>
+	
+		<div class="dialog rounded">
+			<form autocomplete="off">
+				<div class="table">
+					<ul>
+						<li>User ID 
+						<li>
+							<input type="text" name="id" class="table text"
+								placeholder="" required autofocus>
+						
+					</ul>
+					<ul>
+						<li>User name 
+						<li>
+							<li><input type="text" name="name" class="table text"
+								placeholder="홍길동" required>
+					</ul>
+					<ul>
+						<li>Phone number 
+						<li><input type="text" name="number" class="table text"
+								placeholder="기호(-) 없이 숫자 11자리" required>
+							
+					</ul>
+				</div>
+				<label class="remove"><input type="checkbox" name="remove" disabled>remove</label>
+				<footer>
+					<input type="reset" value="cancel">
+					<input type="submit" value="apply" disabled>
+				</footer>
+			</form>
+		</div>
+		
+		<script>
+
+var form = document.querySelector("form");
+
+if (top.databases.local.level === 0) {
+	form.addEventListener("submit", onApply);
+	form.elements["remove"].onclick = onRemove;
+	form.elements["remove"].disabled = false;
+	document.querySelector("input[type=submit]").disabled = false;
+}
+
+form.onreset = onCancel;
+form.elements["number"].onfocus = onFocusNumber;
+form.elements["number"].onblur = onCheckNumber;
+
+
+		</script>
+	
+	</body>
+	
+</html>

@@ -1,0 +1,46 @@
+@charset "utf-8";
+
+.dialog {
+  position: relative;
+}
+
+#close {
+	font-size: 20px;
+	position: absolute; top: 5px; right: 5px;
+	border: 3px solid transparent;
+}
+
+#close:hover {
+	border-color: #c68e17;
+}
+
+#close::before, #close::after {
+	background-color: #c68e17;
+}
+
+footer {
+	display: flex;
+}
+
+footer> input {
+	flex: 1;
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: .2em solid transparent;
+	padding: .5em;
+}
+
+footer> input:disabled {
+	background-color: #999;
+}
+
+footer> input:not(:disabled):hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+footer >input:disabled {
+	cursor: not-allowed;
+}

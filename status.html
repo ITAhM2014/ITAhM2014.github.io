@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Cache-Control" content="No-Cache">
+		
+		<title>Status @ ITAhM</title>
+
+		<style>
+@import "css/itahm.css";
+
+body {
+	background-color: #4d525a;
+	color: #fff;
+}
+
+article {
+	page-break-inside: avoid;
+}
+
+article:first-child {
+	display: flex;
+	justify-content: space-between;
+	flex-wrap: wrap;
+}
+
+h2 {
+	margin: 0;
+	text-align: center;
+}
+
+nav {
+	position: absolute; top: 1em; right: 1em;
+	display: none;
+}
+
+nav img {
+	cursor: pointer;
+}
+
+section {
+	padding: 5px; margin: 5px;
+	/*border: 3px solid #0084ff;*/
+	border-radius: 5px;
+	background-color: #424242;
+}
+
+section.resource:hover {
+	outline:3px dotted #ddd;
+}
+
+section.processor:hover,
+section.memory:hover,
+section.response_time {
+	cursor: pointer;
+}
+
+div.bar {
+	position: relative;
+	display: inline-block;
+}
+
+svg.bar {
+	width: 100px;
+	height: 100px;
+	border-radius: 50%;
+	box-sizing: border-box;
+	border: 3px solid #0f0;
+	overflow: hidden;
+}
+
+div.memory +div {
+	display: inline-block;
+}
+
+rect[height].bar {
+	animation: vbar 1s;
+}
+
+#memory_total {
+	font-weight: bold;
+	font-size: 1.2em;
+}
+
+div.bar::after {
+	content: attr(data-value);
+	position: absolute; top: 50%; left: 50%;
+	transform: translateX(-50%) translateY(-50%);
+	font-size: 15px;
+	font-weight: bold;
+}
+
+.bar.memory {
+	border-radius: 50%;
+	border: 3px solid transparent;
+	box-sizing: border-box;
+	width: 100px; height: 100px;
+	overflow: hidden;
+}
+
+.bar.memory >div {
+	position: absolute; bottom: 0;
+	width: 100%;
+	animation: vbar 1s;
+	transform-origin: bottom;
+}
+
+.bar.memory.green {
+	border-color: #0f0;
+}
+
+.bar.memory.green >div {
+	background-image: linear-gradient(to top, rgba(0, 255, 0, 0.5), #0f0);
+}
+
+.bar.memory.orange {
+	border-color: #ffa500;
+}
+
+.bar.memory.orange >div {
+	background-image: linear-gradient(to top, rgba(255, 165, 0, 0.5), #ffa500);
+}
+
+.bar.memory.red {
+	border-color: #f00;
+}
+
+.bar.memory.red >div {
+	background-image: linear-gradient(to top, rgba(255, 0, 0, 0.5), #f00);
+}
+
+/* processor*/
+section.processor {
+	position: relative;
+}
+
+section.processor::after {
+	content: "";
+	position: absolute; top: 1em; left: 1em;
+	display: inline-block;
+	width: 1em; height: 1em;
+	border-radius: 50%;
+	background-color: #0f0;
+}
+
+section.processor.critical::after {
+	background-color: #ffa500;
+}
+
+.processor_item {
+	margin: 10px;
+}
+
+.circular_bar {
+	position: relative;
+	display: inline-block;
+}
+
+.circular_bar::after {
+	color: #fff;
+}
+
+.circular_bar:nth-of-type(1)::after {
+	content: "min";
+}
+
+.circular_bar:nth-of-type(2)::after {
+	content: "avg";
+}
+
+.circular_bar:nth-of-type(3)::after {
+	content: "max";
+}
+
+.circular_bar> svg {
+	width: 100px;
+	height: 100px;
+	display: block;
+}
+
+.circular_bar .bar {
+	fill: none;
+	stroke-width: 10;
+	stroke: rgba(128, 128, 128, .5);
+	stroke-linecap: round;
+}
+
+.circular_bar .progress.bar {
+	transition: stroke-dashoffset .5s ease-out;
+}
+
+.circular_bar.green {
+	color: #0f0;
+}
+
+.circular_bar.red {
+	color: #f00;
+}
+
+.circular_bar.orange {
+	color: #ffa500;
+}
+
+.circular_bar.green .progress.bar {
+	stroke: #0f0;
+}
+
+.circular_bar.red .progress.bar {
+	stroke: #f00;
+}
+
+.circular_bar.orange .progress.bar {
+	stroke: #ffa500;
+}
+
+.circular_bar::before {
+	content: attr(data-value);
+	position: absolute; top: 50px; left: 50px;
+	transform: translateX(-50%) translateY(-50%);
+	font-size: 15px;
+	font-weight: bold;
+}
+
+ul {
+	list-style: none;
+	margin: 0; padding: 0;
+}
+
+section {
+	white-space: nowrap;
+	flex: 1 1 0;
+	text-align: center;
+}
+
+section.response_time {
+	display: flex; flex-direction: column;
+	flex: 1 1 200px;
+	min-height: 150px;
+}
+
+section.memory {
+	flex: 1 1 200px;
+	text-align: center;
+	position: relative;
+}
+
+section.memory::after {
+	content: "";
+	position: absolute; top: 1em; left: 1em;
+	display: inline-block;
+	width: 1em; height: 1em;
+	border-radius: 50%;
+	background-color: #0f0;
+}
+
+section.memory.critical::after {
+	background-color: #ffa500;
+}
+
+div.tbody {
+	text-align: initial;
+}
+
+/*
+interface, storage 공통
+*/
+.item {
+	display: flex;
+	align-items: center;
+	margin: 3px 0;
+}
+
+.item >li {
+	padding: 3px 0.5em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.item >li.right {
+	text-align: right;
+}
+
+.item >li.bar {
+	border: 3px solid #0f0;
+	padding: 0;
+	box-sizing: border-box;
+	position: relative;
+}
+
+.item >li.bar >div {
+	display: block;
+	height: 2em;
+	background: linear-gradient(to right, rgba(0, 255, 0, 0.5), #0f0);
+}
+
+.item.red >li {
+	border-color: #f00;
+}
+
+.item.red >li >div {
+	background: linear-gradient(to right, rgba(255, 0, 0, 0.5), #f00);
+}
+
+.item.orange >li {
+	border-color: #ffa500;
+}
+
+.item.orange >li >div {
+	background: linear-gradient(to right, rgba(255, 165, 0, 0.5), #ffa500);
+}
+
+.title {
+	padding: 0.5em 0;
+	border-bottom: 1px solid #ddd;
+	margin-bottom: 3px;
+}
+
+.title >li {
+	text-align: center;
+	font-weight: bold;
+	margin: 0.5em 0;
+}
+
+.title >li:not(:last-of-type) {
+	border-right: 1px solid #555;
+}
+
+.item >li.bar::after {
+	content: attr(data-value);
+	position: absolute; top: 50%; left: 50%;
+	transform: translateX(-50%) translateY(-50%);
+}
+
+.item >li.bar >div {
+	animation: hbar 1s;
+	transform-origin: left;
+}
+
+/*
+interface
+*/
+
+.throughput >li {
+	box-sizing: border-box;
+	flex: 1;
+}
+
+.throughput >li.status {
+	flex: none;
+	width: 3em;
+}
+
+.throughput >li.monitor {
+	flex: none;
+	padding: 0;
+}
+
+.throughput >li.bandwidth {
+	flex: none;
+	width: 9em;
+}
+
+.throughput >li.error {
+	flex: none;
+	width: 3em;
+}
+
+.throughput.title >li.fixed {
+	flex: none;
+	width: 25em;
+}
+
+.throughput.item >li.fixed {
+	flex: none;
+	width: 9em;
+}
+
+.throughput.item >li.bar {
+	flex: none;
+	width: 16em;
+}
+
+.throughput.item >li.status {
+	position: relative;
+	overflow: visible;
+}
+
+.throughput.item:not(.no_select) li:last-child:hover {
+	background-color: #555;
+}
+
+.throughput.item >li.status::after {
+	content: "";
+	position: absolute; top: 50%; left: 50%;
+	display: inline-block;
+	width: 1em; height: 1em;
+	border-radius: 50%;
+	transform: translateX(-50%) translateY(-50%);
+	background-color: #0f0;
+}
+
+.throughput.item.critical li.status::after {
+	background-color: #ffa500; 
+}
+
+.throughput.item.shutdown li.status::after {
+	background-color: #f00; 
+}
+
+.throughput.item.disabled li.status::after {
+	background-color: #ddd; 
+}
+
+.throughput.item.disabled {
+	color: #aaa;
+}
+
+/*
+storage
+*/
+.storage >li {
+	box-sizing: border-box;
+	flex: 1;
+}
+
+.storage >li.status {
+	flex: none;
+	width: 3em;
+	position: relative;
+	overflow: visible;
+}
+
+.storage >li.size,
+.storage >li.fixed {
+	flex: none;
+	width: 9em;
+}
+
+.storage.item >li.status::after {
+	content: "";
+	position: absolute; top: 50%; left: 50%;
+	display: inline-block;
+	width: 1em; height: 1em;
+	border-radius: 50%;
+	transform: translateX(-50%) translateY(-50%);
+	background-color: #0f0;
+}
+
+ul.storage.item.critical >li.status::after {
+	background-color: #ffa500;
+}
+/**/
+
+.layout {
+	display: none;
+}
+
+.storage.item:hover,
+.throughput.item:not(.no_select):hover {
+	outline: solid 3px #0084ff;
+	cursor: pointer;
+}
+
+.title {
+	display: flex;
+}
+
+#response {
+	position: relative;
+	flex: 1;
+}
+
+#response iframe {
+	position: absolute; top: 0; right: 0; bottom:0; left: 0;
+	width: 100%; height: 100%;
+	border: none; 
+}
+
+#realtime_response {
+	pointer-events: none;
+}
+
+section.information ul {
+	display: flex;
+}
+
+section.information li {
+	padding: 5px;
+}
+
+section.information li:first-child {
+	width: 80px;
+	border-right: 1px solid #ddd;
+	text-align: right;
+}
+
+#status::before {
+	font-weight: bold;
+	color: #0f0;
+	content: "정상 ";
+}
+
+label.filter,
+#set_monitor {
+	float: right;
+	font-weight: normal;
+	font-size: 12px;
+}
+
+label.filter {
+	float: right;
+}
+
+#set_monitor {
+	float: left;
+}
+
+div.flex {
+	display: flex;
+}
+
+div.flex span {
+	flex: 1;
+}
+
+@media print {
+	body {
+		color: #000;
+	}
+	
+	label.filter,
+	#reset,
+	nav {
+		display: none;
+	}
+}
+
+body.shutdown #status::before {
+	color: #f00;
+	content: "응답 없음 ";
+}
+
+body.filter .throughput.item.disabled {
+	display: none;
+}
+
+.throughput.item.no_select {
+	cursor: not-allowed;
+}
+
+div.frame {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	background-color: #4d525a;
+	display: flex;
+	flex-direction: column;
+}
+
+div.frame >header {
+	text-align: right;
+	background-color: #ccc;
+	border-bottom: 1px solid #fff;
+	color: #777;
+}
+
+div.frame >header span {
+	display: inline-block;
+	padding: 3px 10px;
+	font-weight: bold;
+}
+
+div.frame >header span:hover {
+	cursor: default;
+	color: #fff;
+	background-color: #0084ff;
+}
+
+div.frame >div {
+	flex: 1;
+}
+
+div.frame >div >iframe {
+	width: 100%; height: 100%;
+	border: none;
+}
+
+#process {
+	width: 100px;
+	height: 100px;
+	border: 3px solid #ddd;
+	box-sizing: border-box;
+	border-radius: 50%;
+	position: relative;
+	overflow: hidden;
+	display: inline-block;
+}
+
+#process::after {
+	font-size: 2em;
+	transition: font-size 0.3s ease-in;
+	font-weight: bold;
+	content: attr(data-value);
+	position: absolute; top: 50%; left: 50%;
+	transform: translateX(-50%) translateY(-50%);
+}
+
+#dialog {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	padding: 0;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+}
+
+body:not(.processor) section.processor,
+body:not(.storage) section.storage,
+body:not(.memory) section.memory,
+body:not(.throughput) section.throughput,
+body:not(.process) section.process,
+body:not(.frame) .frame,
+body.frame article,
+body:not(.debug) .throughput >li.debug,
+.application,
+body:not(.dialog) #dialog {
+	display: none;
+}
+
+@keyframes vbar {
+	0% {
+		transform: scale(1, 0);
+	}
+	100% {
+		transform: scale(1, 1);
+	}
+}
+
+@keyframes hbar {
+	0% {
+		transform: scale(0, 1);
+	}
+	100% {
+		transform: scale(1, 1);
+	}
+}
+		</style>
+		
+		<script>
+		
+function createProcGauge(value) {
+	var circularBar = document.querySelector(".circular_bar").cloneNode(true);
+	
+	if (parseInt(value) > 90) {
+		circularBar.classList.add("red");
+	}
+	else if (parseInt(value) > 70) {
+		circularBar.classList.add("orange");
+	}
+	else {
+		circularBar.classList.add("green");
+	}
+	
+	circularBar.dataset.value = value +"%";
+	
+	window.processorArea.appendChild(circularBar);
+
+	window.setTimeout(function() {
+		circularBar.children[0].childNodes[1].childNodes[3].setAttribute("stroke-dashoffset", 2* Math.PI*(1 - value /100)*45);
+	}, 100);
+}
+
+function createStorageGuage(used, size, label) {
+	var clone = storageGauge.cloneNode(true),
+		usage = (100* used / size).toFixed(2);
+	
+	if (usage > 90) {
+		clone.classList.add("red");
+	}
+	else if (usage > 70) {
+		clone.classList.add("orange");
+	}
+	else {
+		clone.classList.add("green");
+	}
+	
+	usage = usage +"%";
+	
+	clone.children[1].textContent = label;
+	clone.children[2].textContent = ITAhM.util.toBytesString(size);
+	clone.children[3].textContent = ITAhM.util.toBytesString(used);
+	clone.children[4].dataset.value = usage;
+	
+	clone.children[4].children[0].style.width = usage;
+	
+	return clone;
+}
+
+function createIFaceItem(admin, oper, index, name, descr, alias, type, bandwidth, monitor, inBPS, outBPS, error) {
+	const item = iFaceItem.cloneNode(true),
+		barIn = item.children[7],
+		barOut = item.children[9];
+	
+	let usageIn, usageOut;
+	
+	if (admin != 1) {
+		item.classList.add("disabled");
+	}
+	else if (oper !== 1) {
+		item.classList.add("shutdown");
+	}
+	
+	usageIn = 100* inBPS / bandwidth;
+	usageOut = 100* outBPS / bandwidth;
+	
+	usageIn = (isNaN(usageIn)? 0: usageIn).toFixed(2);
+	usageOut = (isNaN(usageOut)? 0: usageOut).toFixed(2);
+	
+	if (usageIn > 90) {
+		barIn.classList.add("red");
+	}
+	else if (usageIn > 70) {
+		barIn.classList.add("orange");
+	}
+	
+	if (usageOut > 90) {
+		barOut.classList.add("red");
+	}
+	else if (usageOut > 70) {
+		barOut.classList.add("orange");
+	}
+	
+	usageIn = usageIn +"%";
+	usageOut = usageOut +"%";
+	
+	item.dataset.index = index;
+
+	item.children[1].children[0].checked = monitor? true: false;
+	item.children[2].textContent = name;
+	item.children[3].textContent = alias;
+	item.children[4].textContent = type + "("+ ITAhM.snmp.ifType[type] +")";
+	item.children[5].textContent = ITAhM.util.toBPSString(bandwidth);
+	item.children[6].textContent = ITAhM.util.toBPSString(inBPS);
+	item.children[8].textContent = ITAhM.util.toBPSString(outBPS);
+	barIn.dataset.value = usageIn; 
+	barOut.dataset.value = usageOut;
+	item.children[10].textContent = error;
+	barIn.children[0].style.width = usageIn;
+	barOut.children[0].style.width = usageOut;
+	
+	item.title = descr;
+	
+	if (bandwidth > 0) {
+		item.onclick = function (index, e) {
+			if (e.target.nodeName.toUpperCase() !== "INPUT") {
+				onSelectResource("throughput", index);
+			}
+		}.bind(window, index);
+		
+		item.children[9].onclick = function (index, e) {
+			onSelectResource("error", index);
+			
+			e.stopPropagation();
+		}.bind(undefined, index);
+	}
+	else {
+		item.classList.add("no_select");
+	}
+	
+	return item;
+}
+
+function initialize() {
+	const critical = window.databases.critical[window.ip];
+	
+	var entry;
+	
+	document.title = window.ip + (window.snmp.sysName? " ["+ window.snmp.sysName +"]": "");
+	
+	document.getElementById("reset").onclick = function () {
+		sendRequest({
+			command: "extra",
+			extra: "reset",
+			ip: window.ip
+		}, function () {
+			window.location.reload();
+		});
+	};
+	
+	document.getElementById("sys_name").textContent = window.snmp.sysName;
+	document.getElementById("sys_name").title = window.snmp.sysDescr;
+	document.getElementById("sys_enterprise").textContent = ITAhM.util.enterpriseFromOID(window.snmp.sysObjectID);
+	document.getElementById("sys_enterprise").title = window.snmp.sysObjectID;
+	document.getElementById("ip").textContent = window.ip;
+	document.getElementById("failure").textContent = 100 - window.snmp.failure;
+	document.getElementById("last_response").textContent = toDateString(window.snmp.lastResponse);
+	
+	if (window.databases.monitor[window.ip].shutdown || window.snmp.failure === 100) {
+		document.body.classList.add("shutdown");
+	}
+	else {
+		window.rtFrame.onload = function () {
+			this.contentWindow.initialize(window.ip);
+		};
+		
+		window.rtFrame.src = "realtime_response.html"
+	}
+	
+	(function(entry, section, critical) {
+		var max, min, avg = 0, load, count = 0;
+
+		for (let index in entry) {
+			load = entry[index];
+
+			if (isNaN(max)) {
+				max = min = avg = load;
+			}
+			else {
+				max = Math.max(max, load);
+				min = Math.min(min, load);
+				avg += load;
+			}
+
+			count++;
+		}
+
+		if (count > 0) {
+			createProcGauge(min);
+			createProcGauge(avg / count);
+			createProcGauge(max);
+
+			document.body.classList.add("processor");
+
+			section.onclick = onSelectResource.bind(window, "processor");
+			
+			if (critical && critical["0"] && critical["0"].critical) {
+				section.classList.add("critical");
+			}
+		}
+
+	})(window.snmp.hrProcessorEntry, document.querySelector("section.processor"), critical && critical["processor"]);
+	
+	(function (entry) {
+		var storage;
+
+		for (let index in entry) {
+			storage = entry[index];
+
+			switch(storage.hrStorageType) {
+			case 4:
+				if (storage.hrStorageSize > 0) {
+					initStorage(storage, index, critical && critical["storage"]);
+				}
+				
+				break;
+			case 2:
+				initMemory(storage, index, critical && critical["memory"]);
+				
+				break;
+			}
+		}
+	}) (window.snmp.hrStorageEntry);
+	
+	
+	entry = window.snmp.ifEntry;
+	for (let index in entry) {
+		initIFace(entry[index], index, window.device.ifSpeed && window.device.ifSpeed[index], critical && critical["throughput"]);
+	}
+	
+	if ("hrSWRunName" in window.snmp && Object.keys(window.snmp.hrSWRunName).length > 0) {
+		document.body.classList.add("process");
+	
+		document.getElementById("process").dataset.value
+			= Object.keys(window.snmp.hrSWRunName).length;
+	}
+	
+	document.body.classList.remove("loading");
+}
+
+function toDateString(millis) {
+	var date = new Date(millis),
+		ar = [date.getFullYear()],
+		mdh = [date.getMonth() +1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()];
+	
+	for (let i=0, _i=mdh.length, d; i<_i; i++) {
+		d = mdh[i];
+		
+		ar[ar.length] = (d < 10? "0": "")+ d;
+	}
+	
+	return ar[0] +"-"+ ar[1] +"-"+ ar[2] +" "+ ar[3] +":"+ ar[4] +":"+ ar[5];
+}
+
+function initStorage(storage, index, critical) {
+	const item = storageArea.appendChild(
+		createStorageGuage(storage.hrStorageUsed * storage.hrStorageAllocationUnits
+			, storage.hrStorageSize * storage.hrStorageAllocationUnits, storage.hrStorageDescr));
+
+	item.onclick = onSelectResource.bind(window, "storage", index);
+	
+	if (critical && critical[index] && critical[index].critical) {
+		item.classList.add("critical");
+	}
+
+	document.body.classList.add("storage");
+}
+
+function initMemory(memory, index, critical) {
+	var section = document.querySelector("section.memory"),
+		used = memory.hrStorageUsed * memory.hrStorageAllocationUnits,
+		size = memory.hrStorageSize * memory.hrStorageAllocationUnits,
+		usage = Math.round(100* used / size),
+		bar = document.querySelector("div.memory.bar"),
+		color = "green";
+
+	if (usage > 90) {
+		color = "red";
+	}
+	else if (usage > 70) {
+		color = "orange";
+	}
+	
+	usage += "%";
+	
+	bar.classList.add(color);
+	bar.dataset.value = usage; 
+	
+	document.getElementById("memory").style.height = usage;
+	
+	document.getElementById("memory_total").textContent = ITAhM.util.toBytesString(size);
+	document.getElementById("memory_used").textContent = ITAhM.util.toBytesString(used);
+
+	section.onclick = onSelectResource.bind(window, "memory", index);
+
+	if (critical && critical[index] && critical[index].critical) {
+		section.classList.add("critical");
+	}
+
+	document.body.classList.add("memory");
+}
+
+function initIFace(iFace, index, ifSpeed, critical) {
+	const item = interfaceArea.appendChild(
+		createIFaceItem(
+			iFace.ifAdminStatus,
+			iFace.ifOperStatus,
+			index,
+			iFace.ifName,
+			iFace.ifDescr,
+			iFace.ifAlias,
+			iFace.ifType,
+			ifSpeed || iFace.ifHighSpeed || iFace.ifSpeed,
+			iFace.monitor,
+			iFace.ifInBPS || 0,
+			iFace.ifOutBPS || 0,
+			(iFace.ifInErrors || 0) + (iFace.ifOutErrors || 0)
+			));
+	
+	if (critical && critical[index] && critical[index].critical) {
+		item.classList.add("critical");
+	}
+
+	document.body.classList.add("throughput");
+}
+
+function onSelectResource(resource, index) {
+	chartFrame.onload = function () {
+		this.contentWindow.initialize(resource, index);
+	}
+	
+	chartFrame.src = "chart.html";
+	
+	document.body.classList.add("frame");
+}
+
+//public
+function getIFSpeed(index) {
+	return window.device.ifSpeed && window.device.ifSpeed[index];
+}
+
+//public
+function setIFSpeed(f, index, speed) {
+	if (!("ifSpeed" in window.device)) {
+		window.device.ifSpeed = {};
+	}
+	
+	if (speed) {
+		window.device.ifSpeed[index] = speed;
+	}
+	else {
+		delete window.device.ifSpeed[index];
+	}
+	
+	sendRequest({
+		command: "put",
+		database: "device",
+		key: window.ip,
+		value: window.device
+	}, function () {
+		f();
+	});	
+}
+
+// public
+function showDialog() {
+	var opener = this,
+		url = [].shift.call(arguments),
+		args = arguments;
+	
+	window.dialog.onload = function () {
+		this.contentWindow.initialize.apply(opener, args);
+		
+		document.body.classList.add("dialog");
+	};
+	
+	window.dialog.src = url;
+}
+
+// public
+function closeDialog() {
+	document.body.classList.remove("dialog");
+}
+
+		</script>
+	</head>
+
+	<body class="loading filter">
+		
+		<article>
+		
+			<section class="information">
+				<ul>
+					<li>장비명
+					<li id="sys_name">
+				</ul>
+				<ul>
+					<li>공급자
+					<li id="sys_enterprise">
+				</ul>
+				<ul>
+					<li>IP 주소
+					<li id="ip">
+				</ul>
+				<ul>
+					<li>마지막 응답
+					<li id="last_response">
+				</ul>
+				<ul>
+					<li>상태
+					<li id="status">(<span id="failure"></span>%) <input type="button" id="reset" value="초기화">
+				</ul>
+			</section>
+			
+			<section class="process">
+				<h2>
+					프로세스
+				</h2>
+				<div id="process"></div>
+			</section>
+			
+			<section class="application resource">
+				<h2>앱 모니터</h2>
+				<div id="application">
+					<img class="" src="/img/app_true.png" width="100" height="100">
+					<img src="/img/app_false.png" width="100" height="100">
+				</div>
+			</section>
+
+			<section class="processor resource">
+				<h2>프로세서 로드</h2>
+				<div>
+					<div id="processor"></div>
+				</div>
+			</section>
+			
+			<section class="memory resource">
+				<h2>물리적 메모리</h2>
+				<div>
+					<div class="memory bar">
+						<div id="memory"></div>
+					</div>
+					<div>
+						<p id="memory_total">용량</p>
+						<p id="memory_used">사용</p>
+					</div>
+				</div>
+			</section>
+			
+			<section class="response_time resource">
+				<h2>응답 속도</h2>
+				<div id="response">
+					<iframe id="realtime_response"></iframe>
+				</div>
+			</section>
+			
+		</article>
+		
+		<article>
+			
+			<section class="storage resource">
+				<h2>스토리지</h2>
+				<div>
+					<ul class="title storage">
+						<li class="status">상태
+						<li >이름
+						<li class="size">크기
+						<li class="fixed">사용량
+						<li>사용률
+					</ul>
+					<div id="storage" class="tbody">
+					</div>
+				</div>
+			</section>
+			
+		</article>
+		
+		<article>
+			<section class="throughput resource">
+				<h2>통신
+					<label class="filter">
+						<input id="filter" type="checkbox" checked>
+						<span>비활성 인터페이스 감추기</span>
+					</label>
+					<input id="set_monitor" type="button" value="모니터 적용" title="선택된 인터페이스의 Up/Down을 모니터링 합니다.">
+				</h2>
+				<div>
+					<ul class="title throughput">
+						<li class="status">상태
+						<li class="monitor">
+							<input type="checkbox" id="monitor" title="모니터 전체 선택/해제">
+						<li>이름
+						<li>설명
+						<li class="debug">종류
+						<li class="bandwidth">대역폭
+						<li class="input fixed">수신
+						<li class="output fixed">송신
+						<li class="error">에러
+					</ul>
+					<div id="throughput"  class="tbody"></div>
+				</div>
+			</section>
+		</article>
+		
+		<nav>
+			<img id="print" src="img/printer.png" width="16" height="16" title="인쇄">
+			<img id="refresh" src="img/refresh.png" width="16" height="16" title="새로고침">
+		</nav>
+		
+		<div class="frame">
+			<header>
+				<span>&#10006;</span>
+			</header>
+			<div>
+				<iframe id="chart"></iframe>
+			</div>
+		</div>
+		
+		<iframe id="dialog"></iframe>
+
+		<div class="bg_loading"></div>
+		
+		<div class="layout">
+			<canvas width="100" height="100" class="processor_item"></canvas>
+			
+			<div class="circular_bar" data-value="0%">
+				<svg>
+					<g transform = "translate(50, 50) rotate(-90)">
+						<circle class="bar" cx="0" cy="0" r="45" />
+						<circle class="progress bar" cx="0" cy="0" r="45"
+							stroke-dasharray="282.74333882308139146163790449516"
+							stroke-dashoffset="282.74333882308139146163790449516" />
+					</g>
+				</svg>
+			</div>
+			
+			<ul class="storage item">
+				<li class="status">
+				<li >
+				<li class="size right">
+				<li class="fixed right">
+				<li class="bar">
+					<div></div>
+			</ul>		
+	
+			<ul class="throughput item">
+				<li class="status">
+				<li class="monitor">
+					<input type="checkbox">
+				<li>
+				<li>
+				<li class="debug">
+				<li class="bandwidth right">
+				<li class="fixed right">
+				<li class="bar">
+					<div></div>
+				<li  class="fixed right">
+				<li class="bar">
+					<div></div>
+				<li class="error right">
+			</ul>
+		</div>
+	
+		<script src="js/ITAhM.js"></script>
+		<script src="js/snmp.js"></script>
+		<script type="text/javascript">
+	
+var ip, snmp, ifSpeed,
+	origin = "status",
+	sendRequest = opener.top.sendRequest,
+	postRequest = opener.top.postRequest,
+	databases = opener.top.databases,
+	getDB = opener.top.getDB,
+	getMessage = opener.top.getMessage,
+	dialog = document.getElementById("dialog"),
+	processorArea = document.getElementById("processor"),
+	storageArea = document.getElementById("storage"),
+	interfaceArea = document.getElementById("throughput"),
+	gauge = document.querySelector(".gauge"),
+	storageGauge = document.querySelector(".storage.item"),
+	iFaceItem = document.querySelector(".throughput.item"),
+	chartFrame = document.getElementById("chart"),
+	rtFrame = document.getElementById("realtime_response");
+
+document.querySelector(".response_time").onclick = onSelectResource.bind(window, "responseTime");
+
+document.getElementById("filter").onclick = function () {
+	document.body.classList[this.checked? "add": "remove"]("filter");
+};
+
+document.getElementById("print").onclick = function () {
+	window.print();	
+};
+
+document.getElementById("refresh").onclick = function () {
+	window.location.reload();
+};
+
+document.querySelector(".frame span").onclick = function () {
+	document.body.classList.remove("frame");;
+};
+
+document.getElementById("monitor").onclick = function (e) {
+	const checked = this.checked;
+
+	[].forEach.call(window.throughput.querySelectorAll("[type=checkbox]"), function (input) {
+		input.checked = checked;
+	});
+};
+
+document.getElementById("set_monitor").onclick = function (e) {
+	const ifMonitor = {};
+
+	[].forEach.call(window.throughput.querySelectorAll("[type=checkbox]"), function (input) {
+		ifMonitor[input.parentNode.parentNode.dataset.index] = input.checked;
+	});
+
+	document.body.classList.add("loading");
+
+	postRequest({
+		command: "extra",
+		extra: "monitor",
+		ip: window.ip,
+		monitor: ifMonitor	
+	}, function () {
+		switch(this.status) {
+		case 200:
+			alert("인터페이스의 모니터 설정 변경 사항을 적용하였습니다.");
+
+			break;
+		default:
+			const message = this.responseText? JSON.parse(this.responseText).error: "";
+
+			if (message) {
+				console.log(message);
+			}
+
+			alert(getMessage(this.status));
+		}
+	
+		document.body.classList.remove("loading");
+	});
+};
+
+(function (device) {
+	window.ip = device.ip;
+	window.device = device;
+	
+	sendRequest({
+		command: "select",
+		ip: device.ip	
+	}, function (snmp) {
+		window.snmp = snmp;
+
+		initialize();
+	});
+})(window.databases.device[window.name]);
+
+if (location.search.substring(1) === "debug") {
+	document.body.classList.add("debug");
+}
+
+		</script>
+	
+	</body>
+</html>

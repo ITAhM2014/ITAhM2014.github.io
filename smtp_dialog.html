@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>dialog</title>
+		
+		<style>
+@import "css/itahm.css";
+
+body {
+	margin: 0; padding: 0;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+.dialog {
+	width: 300px;
+	padding: 20px;
+	background-color: #fff;
+}
+
+h2 {
+	margin: 0; padding: 10px;
+	background-color: #0084ff;
+	color: #fff;
+}
+
+input[type="text"],
+input[type="submit"],
+input[type="reset"],
+select {
+	width: 100%;
+	box-sizing: border-box;
+	padding: .5em;
+}
+
+input[type="checkbox"] {
+	vertical-align: middle;
+}
+
+div.table {
+	margin: 1em 0;
+}
+
+div.table ul {
+	display: flex;
+	align-items: center;
+	list-style: none;
+	padding: 1px;
+	margin: 0;
+}
+
+div.table li:first-child {
+	text-align: right;
+	padding: .5em;
+	flex: 2;
+}
+
+div.table li:last-child {
+	flex: 3;
+}
+
+footer {
+	display: flex;
+	margin-top: 1em;
+}
+
+footer> input {
+	flex: 1;
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: .2em solid transparent;
+	padding: .5em;
+}
+
+footer> input:hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+body:not(.removable) .remove {
+	display: none;
+}
+
+		</style>
+
+	</head>
+	
+	<body>
+	
+		<div class="dialog rounded">
+			<form autocomplete="off">
+				<h2>수신자 정보</h2>
+				<div class="table">
+					<ul>
+						<li>메일 주소 
+						<li>
+							<input type="email" name="user" class="table text"
+								placeholder="홍길동@example.com" required autofocus>
+						
+					</ul>
+				</div>
+				<label class="remove"><input type="checkbox" name="remove" disabled>remove</label>
+				<footer>
+					<input type="reset" value="cancel">
+					<input type="submit" value="apply" disabled>
+				</footer>
+			</form>
+		</div>
+		
+		<script>
+
+(function (form) {
+
+	let opner;
+
+	form.elements["remove"].onclick = function(e) {
+		if(!confirm("수신자 정보를 삭제하겠습니까?")) {
+			return;
+		}
+
+		const user = form.elements["user"].value;
+
+		document.body.classList.add("loading");
+
+		top.postRequest({
+			command: "put",
+			database: "smtp",
+			key: user,
+			value: null
+		}, function () {
+			switch (this.status) {
+			case 200:
+				top.putDB("smtp", user, null);
+				
+				if (window.opener) {
+					window.opener.reload();
+				}
+				
+				top.closeDialog();
+
+				break;
+
+			default:
+				alert(top.getMessage(this.status));
+			}
+		});
+	};
+
+	form.onreset = function () {
+		top.closeDialog(true);
+	};
+
+	form.onsubmit = function (e) {
+		e.preventDefault();
+	
+		const user = form.elements["user"].value,
+			data = {
+				user: user
+			};
+	
+		document.body.classList.add("loading");
+
+		top.postRequest({
+			command: "put",
+			database: "smtp",
+			key: user,
+			value: data
+		}, function () {
+			switch (this.status) {
+			case 200:
+				top.putDB("smtp", user, data);
+				
+				if (window.opener) {
+					window.opener.reload();
+				}
+				
+				top.closeDialog();
+
+				break;
+			
+			default:
+				alert(top.getMessage(this.status));
+			}
+		});
+	};
+
+	window.initialize = function (user) {
+		opener = this && this.location;
+	
+		if (user) {
+			const userData = top.getDB("smtp", user),
+				input = form.elements["user"];
+			
+			input.value = userData.user;
+			input.disabled = true;
+
+			document.body.classList.add("removable")
+		}
+	};
+
+	if (top.getDB("local", "level") === 0) {
+		form.elements["remove"].disabled = false;
+		document.querySelector("input[type=submit]").disabled = false;
+	}
+
+}) (document.querySelector("form"));
+
+		</script>
+	
+	</body>
+	
+</html>

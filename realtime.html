@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Cache-Control" content="No-Cache">
+		
+		<title>ITAhM</title>
+		
+		<style>
+@import "/css/itahm.css";
+
+body {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	margin: 0; padding: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+h2, h3 {
+	text-align: center;
+}
+
+svg {
+	flex: 1;
+	width: 100%; height: 100%;
+}
+
+#graph path {
+	stroke: #0084ff;
+	fill: none;
+}
+
+#grid path {
+	stroke: #777;
+	stroke-width: .5;
+}
+
+#max_text,
+#min_text {
+	text-anchor: end;
+}
+
+#point {
+	fill: #0084ff;
+}
+
+#point2 {
+	fill: #f60;
+}
+
+body.throughput #point {
+	fill: #7d7;
+}
+
+body.throughput #graph path:nth-child(1) {
+	stroke: #7d7;
+	fill: rgba(119, 221, 119, .5);
+}
+
+body.throughput #graph path:nth-child(2) {
+	stroke: #f60;
+}
+
+body:not(.throughput) #cur_text2,
+body:not(.throughput) #point2 {
+	display: none;
+}
+
+		</style>
+		<script>
+
+function RealtimeData(period) {
+	this.initialize(period);
+}
+
+RealtimeData.prototype = {
+	initialize: function (period) {
+		this.period = period;
+		this.valueArray = [];
+		this.dateArray = [];
+	},
+	put: function (value) {
+		var mills = new Date().getTime();
+		
+		this.dateArray.push(mills);
+		this.valueArray.push(value);
+		
+		mills -= this.period;
+		
+		while (this.dateArray[0] < mills) {
+			this.dateArray.shift();
+			this.valueArray.shift();
+		}
+		
+		this.max = Math.max.apply(undefined, this.valueArray);
+		this.min = Math.min.apply(undefined, this.valueArray);
+			
+		if (this.max === this.min) {
+			this.max++;
+			this.min--;
+		}
+	},
+	each: function (handler) {
+		for (var i=0, length=this.dateArray.length; i<length; i++) {
+			handler(this.dateArray[i], this.valueArray[i]);
+		}
+	}
+};
+
+		</script>		
+	</head>
+	
+	<body>
+
+		<h2><span id="resource"></span></h2>
+		<h3 id="index"></h3>
+		<svg id="chart">
+			<text id="max_text">max</text>
+			<text id="cur_text">cur</text><text id="cur_text2">cur</text>
+			<text id="min_text">min</text>
+			<g id="grid"></g>
+			<g id="graph" transform="translate(0) scale(1 -1)"></g>
+			<circle id="point" r="5" /><circle id="point2" r="5" />
+		</svg>
+		
+		<script src="js/ITAhM.js"></script>
+		<script src="js/object.js"></script>
+		<script>
+
+var OX = 200,
+	OY = 50,
+	INTERVAL = 5000,
+	PERIOD = 5;
+
+var chart = document.getElementById("chart"),
+	graph = document.getElementById("graph"),
+	translate = graph.transform.baseVal.getItem(0),
+	line = new ITAhM.Path(graph),
+	point = document.getElementById("point"),
+	point2 = document.getElementById("point2"),
+	maxText = document.getElementById("max_text"),
+	curText = document.getElementById("cur_text"),
+	curText2 = document.getElementById("cur_text2"),
+	minText = document.getElementById("min_text")
+	grid = new ITAhM.Path(document.getElementById("grid")),
+	realtimeData = new RealtimeData(PERIOD * 60000),
+	request = {
+		command: "select",
+		ip: opener.top.ip
+	};
+
+(function (search) {
+	window.resource = search[0].split("=")[1],
+	window.index =  search[1].split("=")[1];
+})(window.location.search.substring(1).split("&"));
+
+document.title = opener.top.ip;
+
+window.addEventListener("resize", function() {
+	if (window.timeout) {
+		clearTimeout(window.timeout);
+	}
+	
+	window.timeout = setTimeout(onResize, 500);
+});
+
+switch(window.resource) {
+case "responseTime":
+	window.onResponse = onRTResponse;
+	window.format = toMSString;
+	
+	document.getElementById("resource").textContent = "Response time";
+	
+	break;
+	
+case "processor":
+	window.onResponse = onPLResponse;
+	window.format = toPercentString;
+	
+	document.getElementById("resource").textContent = "Processor load";
+	
+	break;
+	
+case "memory":
+	window.onResponse = onPMResponse;
+	window.format = ITAhM.util.toBytesString;
+	
+	document.getElementById("resource").textContent = "Physical memory";
+	
+	break;
+	
+case "storage":
+	window.onResponse = onSUResponse;
+	window.format = ITAhM.util.toBytesString;
+	
+	document.getElementById("resource").textContent = "Storage usage";
+	document.getElementById("index").textContent = "loading...";
+	
+	break;
+	
+case "throughput":
+	window.onResponse = onITResponse;
+	window.realtimeData2 = new RealtimeData(window.PERIOD * 60000);
+	window.line2 = new ITAhM.Path(graph),
+	window.format = ITAhM.util.toBPSString;
+	window.draw = drawIT;
+	
+	document.body.classList.add("throughput");
+	
+	document.getElementById("resource").textContent = "Interface throughput";
+	document.getElementById("index").textContent = "loading...";
+	
+	break;
+case "error":
+	window.onResponse = onIEResponse;
+	window.realtimeData2 = new RealtimeData(window.PERIOD * 60000);
+	window.line2 = new ITAhM.Path(graph),
+	window.format = toString;
+	window.draw = drawIT;
+	
+	document.body.classList.add("throughput");
+	
+	document.getElementById("resource").textContent = "Interface error";
+	document.getElementById("index").textContent = "loading...";
+	
+	break;
+}
+
+resize();
+
+sendRequest();
+
+window.schedule = setInterval(sendRequest, INTERVAL);
+
+function onResize() {
+	window.schedule = undefined;
+	
+	resize();
+	
+	draw();
+}
+
+function resize() {
+	var rect = chart.getBoundingClientRect(),
+		x = rect.width;
+		y = rect.height,
+		width = x -window.OX;
+	
+	window.x = x;
+	window.y = y;
+	
+	window.height = y - window.OY *2;
+	
+	window.grid.beginPath();
+	window.grid.moveTo(width -.5, 0);
+	window.grid.lineTo(width -.5, y);
+	window.grid.moveTo(0, window.OY -.5);
+	window.grid.lineTo(x, window.OY -.5);
+	window.grid.moveTo(0, y - window.OY -.5);
+	window.grid.lineTo(x, y - window.OY -.5);
+	window.grid.draw();
+	
+	window.tpp = (window.PERIOD * 60000) / width;
+	window.height = y - window.OY *2;
+	
+	translate.setTranslate(0, height + window.OY);
+	
+	window.maxText.setAttribute("x", width -20);
+	window.maxText.setAttribute("y", window.OY -6);
+	
+	window.curText.setAttribute("x", width +20);
+	window.curText2.setAttribute("x", width +20 + window.OX /2);
+	
+	window.minText.setAttribute("x", width -20);
+	window.minText.setAttribute("y", y - window.OY +20);
+	
+	point.setAttribute("cx", width);
+	point2.setAttribute("cx", width);
+}
+
+function sendRequest() {
+	try {
+		opener.top.sendRequest(window.request, window.onResponse);
+	}
+	catch (e) {
+		clearInterval(window.schedule);
+	}
+}
+
+function onRTResponse(response) {
+	parseData(response.responseTime);
+}
+
+function onPLResponse(response) {
+	var entry = response.hrProcessorEntry,
+		max = 0;
+	
+	for (var index in entry) {
+		max = Math.max(max, entry[index]);
+	}
+	
+	parseData(max);
+}
+
+function onPMResponse(response) {
+	var entry = response.hrStorageEntry[window.index];
+	
+	parseData(entry.hrStorageAllocationUnits * entry.hrStorageUsed);
+}
+
+function onSUResponse(response) {
+	var entry = response.hrStorageEntry[window.index];
+
+	document.getElementById("index").textContent = entry.hrStorageDescr;
+	
+	parseData(entry.hrStorageAllocationUnits * entry.hrStorageUsed);
+}
+
+function onITResponse(response) {
+	var entry = response.ifEntry[window.index];
+	
+	document.getElementById("index").textContent = entry.ifName;
+	
+	parseITData(entry.ifInBPS, entry.ifOutBPS);
+}
+
+function onIEResponse(response) {
+	var entry = response.ifEntry[window.index];
+	
+	document.getElementById("index").textContent = entry.ifName;
+	
+	parseITData(entry.ifInErrors, entry.ifOutErrors);
+}
+
+function toMSString(value) {
+	return value +"ms";
+}
+
+function toPercentString(value) {
+	return value +"%";
+}
+
+function toString(value) {
+	return value;
+}
+
+function parseData(value) {
+	window.realtimeData.put(value);
+	
+	window.max = window.realtimeData.max;
+	window.min = window.realtimeData.min;
+	
+	window.maxText.textContent = format(window.max);
+	window.minText.textContent = format(window.min);
+	
+	window.curText.textContent = format(value);
+	
+	draw();
+}
+
+function parseITData(value1, value2) {
+	window.realtimeData.put(value1);
+	window.realtimeData2.put(value2);
+	
+	window.max = Math.max(window.realtimeData.max, window.realtimeData2.max);
+	window.min = Math.min(window.realtimeData.min, window.realtimeData2.min);
+	
+	window.maxText.textContent = format(window.max);
+	window.minText.textContent = format(window.min);
+	
+	window.curText.textContent = format(value1);
+	window.curText2.textContent = format(value2);
+	
+	draw();
+}
+
+function draw() {
+	var valueRatio = window.height / (window.max - window.min),
+		initialized = false,
+		date = new Date(),
+		start = date.setMinutes(date.getMinutes() -window.PERIOD),
+		mills, y;
+	
+	window.line.beginPath();
+	
+	window.realtimeData.each(function (mills, value) {
+		if (initialized) {
+			window.line.lineTo((mills - start) / window.tpp, y = (value - window.min) * valueRatio);
+		}
+		else {
+			window.line.moveTo((mills - start) / window.tpp, y = (value - window.min) * valueRatio);
+			
+			initialized = true;
+		}
+	});
+	
+	window.line.draw();
+	
+	y = window.height + window.OY - y;
+	
+	window.curText.setAttribute("y", y);
+	window.point.setAttribute("cy", y);
+}
+
+function drawIT() {
+	var valueRatio = window.height / (window.max - window.min),
+		initialized = false,
+		initialized2 = false,
+		date = new Date(),
+		start = date.setMinutes(date.getMinutes() -window.PERIOD),
+		mills, x, y;
+	
+	window.line.beginPath();
+	window.line2.beginPath();
+	
+	window.realtimeData.each(function (mills, value) {
+		x = (mills - start) / window.tpp;
+		y = (value - window.min) * valueRatio;
+		
+		if (initialized) {
+			window.line.lineTo(x, y);
+		}
+		else {
+			window.line.moveTo(x, 0);
+			window.line.lineTo(x, y);
+			
+			initialized = true;
+		}
+	});
+	
+	window.line.lineTo(x, 0);
+	//window.line.closePath();
+	
+	window.line.draw();
+	
+	y = window.height + window.OY - y;
+	
+	window.curText.setAttribute("y", y);
+	window.point.setAttribute("cy", y);
+	
+	window.realtimeData2.each(function (mills, value) {
+		y = (value - window.min) * valueRatio;
+		
+		if (initialized2) {
+			window.line2.lineTo((mills - start) / window.tpp, y);
+		}
+		else {
+			window.line2.moveTo((mills - start) / window.tpp, y);
+			
+			initialized2 = true;
+		}
+	});
+	
+	window.line2.draw();
+	
+	y = window.height + window.OY - y;
+	
+	window.curText2.setAttribute("y", y);
+	window.point2.setAttribute("cy", y);
+}
+
+		</script>
+	
+	</body>
+	
+</html>

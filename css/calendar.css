@@ -1,0 +1,82 @@
+@charset "utf-8";
+
+.calendar {
+	width: 180px;
+}
+
+.calendar * {
+	font-size: 13px;
+}
+
+.calendar .selected {
+	background-color: #aaa;
+}
+
+.calendar .today {
+	background-color: rgba(0, 132, 255, .2);
+}
+
+/*header*/
+.calendar>div:first-child {
+	display: flex;
+	justify-content:space-between;
+}
+
+/*date*/
+.calendar>div:first-child>div:first-child:after {
+	content: "월";
+}
+
+.calendar>div:first-child>div:first-child>span:after {
+	content: "년";
+}
+
+/*body*/
+.calendar>div:last-child {
+}
+
+.calendar>div:last-child>ul:first-child {
+	background-color: #0084ff;
+	color: #fff;
+}
+
+.calendar ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+}
+
+.calendar li {
+	flex: 1;
+	padding: .3em;
+	text-align: center;
+}
+
+.calendar li.valid:hover {
+	background-color: #ddd;
+	cursor: pointer;
+}
+
+.calendar nav span {
+	display: inline-block;
+	border: .5em solid transparent;
+	margin: 3px;
+}
+
+.calendar nav span:hover {
+	outline: 2px solid gray;
+}
+
+.calendar nav span:first-child {
+	border-right-color: #0084ff;
+}
+
+.calendar nav span:nth-child(2) {
+	border-radius: 1em;
+	border-color: #0084ff;
+}
+
+.calendar nav span:nth-child(3) {
+	border-left-color: #0084ff;
+}

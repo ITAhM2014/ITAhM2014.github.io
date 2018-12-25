@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>dialog</title>
+		
+		<style>
+@import "css/itahm.css";
+
+body {
+	margin: 0; padding: 0;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+form {
+	width: 300px;
+	padding: 20px;
+	background-color: #fff;
+	/*box-shadow: 0px 0px 10px 10px #777;*/
+	position: relative;
+}
+
+.preview {
+	position: absolute; top: 20px; right: 20px;
+}
+
+div.table {
+	margin-bottom: 5px;
+}
+
+div.table ul {
+	display: flex;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+div.table li:first-child {
+	flex: 1;
+	padding: .5em;
+	text-align: right;
+}
+
+div.table li:last-child {
+	flex: 4;
+}
+
+div.table input[type="text"] {
+	width: 100%;
+	box-sizing: border-box;
+	padding: .5em;
+}
+
+footer {
+	display: flex;
+	margin-top: 1em;
+}
+
+footer> input {
+	flex: 1;
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: .2em solid transparent;
+	padding: .5em;
+}
+
+footer> input:hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+input[type="checkbox"] {
+	vertical-align: middle;
+}
+
+body:not(.customized) .customizable {
+	display: none;
+}
+
+		</style>
+		
+	</head>
+	
+	<body>
+	
+		<form class="rounded" autocomplete="off">
+			<div class="preview">
+				<img id="image" width="40px" height="40px">
+				<img id="disabled" width="40px" height="40px">
+			</div>
+			<h2>icon</h2>
+			<div class="table">
+				<ul>
+					<li>type
+					<li><input type="text" name="type" placeholder="type of device">
+				</ul>
+				<ul>
+					<li>group
+					<li><input type="text" name="group" placeholder="group name">
+				</ul>
+				<ul>
+					<li>image
+					<li><input type="text" name="url" placeholder="http://my.image.com/image.svg">
+				</ul>
+				<ul>
+					<li>disabled
+					<li><input type="text" name="disabled" placeholder="http://my.image.com/image.svg">
+				</ul>
+				<label class="customizable"><input type="checkbox" name="reset" disabled>reset</label>
+			</div>
+			<footer>
+				<input type="reset" value="Cancel">
+				<input type="submit" value="Apply" disabled>
+			</footer>
+		</form>
+		
+		<script>
+
+var form = document.querySelector("form");
+
+form.addEventListener("reset", onCancel);
+
+if (top.databases.local.level === 0) {
+	form.addEventListener("submit", onApply);
+	document.querySelector("input[type=submit]").disabled = false;
+}
+
+ function onApply(e) {
+	e.preventDefault();
+	
+	put(form.elements.type.value, {
+			group: form.elements.group.value,
+			src: form.elements.url.value,
+			disabled: form.elements.disabled.value
+		});
+}
+
+function onReset(e) {
+	e.preventDefault();
+	
+	if (!confirm("아이콘 설정을 초기화 하겠습니까?")) {
+		return;
+	}
+	
+	put(form.elements.type.value, null);
+}
+ 
+function onCancel(e) {
+	top.closeDialog();
+}
+
+window.initialize = function (type) {
+	window.opener = this && this.location;
+	
+	if (type) {
+		window.icon = top.databases.icon[type];
+		
+		if (window.icon) {
+			document.body.classList.add("customized");
+		}
+		else {
+			window.icon = top.databases.local.icon[type];
+		}
+		
+		document.getElementById("image").src = icon.src;
+		document.getElementById("disabled").src = icon.disabled;
+		
+		form.elements.type.value = type;
+		form.elements.group.value = icon.group;
+		form.elements.url.value = icon.src;
+		form.elements.disabled.value = icon.disabled;
+		
+		if (top.databases.local.level === 0) {
+			form.elements.reset.onclick = onReset;
+			form.elements.reset.disabled = false;
+		}
+	}
+	
+	form.elements.type.select();
+};
+
+function put(name, icon) {
+	document.body.classList.add("loading");
+	
+	top.sendRequest({
+		command: "put",
+		database: "icon",
+		key: name,
+		value: icon
+	}, function (data) {
+		top.databases.icon = data;
+		
+		if (window.opener) {
+			window.opener.reload();
+		}
+		
+		top.closeDialog();
+	});
+}
+		</script>
+	
+	</body>
+	
+</html>

@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Cache-Control" content="No-Cache">
+		
+		<title>ITAhM</title>
+		
+		<style>
+@import url("css/itahm.css");
+
+body {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+}
+
+#chart {
+	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+	width: 100%;
+	height: 100%;
+}
+
+#graph >path {
+	stroke-width: 4px;
+	fill-opacity: 0.5;
+	animation: grow2 0.5s;
+}
+
+#graph >path.line {
+	stroke-width: 3px;
+	fill: none;
+	stroke: #fff;
+	animation: grow 0.5s;
+}
+
+.balloon {
+	position: absolute;
+	padding: 5px;
+	box-sizing: border-box;
+	font-weight: bold;
+	color: #fff;
+	font-weight: bold;
+	pointer-events: none;
+	transition: top .5s;
+	white-space: nowrap;
+}
+
+.balloon.value {
+	font-size: 16px;
+}
+
+#value_max {
+	transform: translateY(1em);
+}
+
+#value_avg {
+	transform: translateX(-100%);
+}
+
+#hover_date {
+	transform: translateX(-50%);
+}
+
+text {
+	fill: #fff;
+	font-size: 9pt;
+}
+
+#grid path {
+	stroke: #ddd;
+	stroke-width: .5;
+	fill: none;
+}
+
+#axis_left text {
+	text-anchor: end;
+}
+
+#axis_date text {
+	text-anchor: middle;
+}
+
+#axis_date text:first-child {
+	text-anchor: start;
+}
+
+#axis_date text:last-child {
+	text-anchor: end;
+}
+
+#date_text tspan:first-child,
+#date_text tspan:last-child {
+	font-weight: bold;
+	fill: #0084ff;
+	cursor: pointer;
+}
+
+#date_text tspan:first-child:hover {
+	cursor: pointer;
+}
+
+#hover line {
+	stroke-width: 3px;
+	stroke-dasharray: 3, 3;
+	stroke: #ccc;
+}
+
+nav {
+	position: fixed; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: space-between;
+}
+
+nav img {
+	background-color: #fff;
+}
+
+nav label {
+	position:relative;
+}
+
+nav input[type="checkbox"] {
+	position:absolute;
+	visibility: hidden;
+}
+
+nav input[type="checkbox"]:not(:checked) ~img:not(.lock),
+nav input[type="checkbox"]:checked ~img.lock {
+	display: none;
+}
+
+@media print {
+	text {
+		fill: #000;
+	}
+}
+
+@keyframes grow {
+	from {
+		transform: scale(1, 0);
+	}
+	to {
+		transform: scale(1, 1);
+	}
+}
+
+@keyframes grow2 {
+	from {
+		transform: scale(1, 0);
+		transform-origin: 0 50%;
+	}
+	to {
+		transform: scale(1, 1);
+		transform-origin: 0 50%;
+	}
+}
+
+		</style>
+		<script>
+		
+function onResize() {
+	if (!window.summaryData) {
+		return;
+	}
+	
+	resize();
+	
+	drawChart();
+		
+	if (window.detailData && window.detailKeys) {
+		drawDetail();
+	}
+}
+
+function resize() {
+	var rect = window.chart.getBoundingClientRect(),
+		width = rect.width - MARGIN *2,
+		height = rect.height - MARGIN *2 - DATE_AXIS_HEIGHT,
+		reset = false;
+	
+	if (rect.width === 0 || rect.height === 0) {
+		return false;
+	}
+	
+	window.graph.transform.baseVal.getItem(0).setTranslate(0, height);
+	
+	window.rect.height = height;
+	window.rect.width = width;
+	
+	drawGrid();
+	
+	hoverV.setAttribute("y2", height);
+	hoverHMax.setAttribute("x2", width);
+	hoverHAvg.setAttribute("x2", width);
+	hoverHMin.setAttribute("x2", width);
+	
+	hoverDate.style.top = "0";
+	
+	return true;
+}
+
+function drawGrid() {
+	var path = new ITAhM.Path(window.grid),
+		height = window.rect.height,
+		width = window.rect.width,
+		countXarr = [],
+		countX, countY;
+
+	clear(window.grid);
+	
+	for (var i=0, arr=[24, 12, 8, 6, 4, 3, 2, 1]; i<arr.length; i++) {
+		countX = arr[i];
+		
+		if (countX *MIN_AXIS_HSPACE < width) {
+			break;
+		}
+	}
+	
+	window.blockWidth = width / countX;
+	
+	for (var x = 0, i=0; i<=countX; i++, x += blockWidth) {
+		path.moveTo(x, 0).lineTo(Math.round(x) -.5, height);
+	}
+	
+	countY = Math.max(1, Math.floor(height / MIN_AXIS_VSPACE));
+	
+	window.blockHeight = height / countY;	
+	
+	for (var y = 0, i=0, roundedY ; i <= countY; i++, y += blockHeight) {
+		roundedY = Math.round(y) -.5;
+		
+		path.moveTo(0, roundedY).lineTo(width, roundedY);
+	}
+	
+	path.draw();
+}
+
+function clear(svgElement) {
+	var element;
+	
+	while(element = svgElement.firstChild) {
+		svgElement.removeChild(element);
+	}
+}
+
+function createDateText(x, y, date, pY, pM, pD) {
+	var svgText = document.createElementNS(svgNS, "text"),
+		yy = date.getFullYear(),	
+		m = date.getMonth(),
+		d = date.getDate(),
+		h = date.getHours(),
+		b, svgText;
+	
+	if (yy !== pY) {
+		yy = yy.toString().substring(2) +"년";
+	}
+	else {
+		yy = "";
+	}
+	
+	if (m != pM) {
+		m += 1;
+		
+		if (m < 10) {
+			m = "0"+ m;
+		}
+		
+		m += "월";
+	}
+	else {
+		m = "";
+	}
+	
+	if (d != pD) {
+		if (d < 10) {
+			d = "0"+ d;
+		}
+		
+		d += "일";
+	}
+	else {
+		d = "";
+	}
+	
+	if (h === 0) {
+		h = "";
+	}
+	else {
+		if (h < 10) {
+			h = "0"+ h;
+		}
+		
+		h += "시";
+	}
+	
+	svgText.setAttribute("x", x);	
+	svgText.setAttribute("y", y);
+	svgText.textContent = yy + m + d + h;
+	
+	return svgText;
+}
+
+function drawGraph() {
+	if (!window.chartSummary) {
+		return;
+	}
+	
+	
+	var area = new Test(),
+		strokeAvg = new ITAhM.Path(window.graph),
+		high = window.chartSummary.high,
+		blocks = window.chartSummary.keys,
+		dateArray, date, mills, yAvg, yMax, yMin;
+	
+	window.low = window.chartSummary.low,
+	window.yRatio = window.rect.height / (high - window.low);
+	
+	area.color = window.color;
+	
+	strokeAvg.set("class", "line");
+	
+	strokeAvg.beginPath();
+	
+	for (var i=0, _i=blocks.length; i<_i; i++) {
+		dateArray = blocks[i];
+	
+		mills = dateArray[0];
+		
+		x = (mills - window.start) / window.tpp;
+		y = window.summaryData.get(mills);
+	
+		yAvg = (y.avg - window.low) * window.yRatio;
+		yMax = (y.max - window.low) * window.yRatio;
+		yMin = (y.min - window.low) * window.yRatio;
+		
+		area.initialize(x, yMax, yMin);
+				
+		strokeAvg.moveTo(x, yAvg);
+		
+		for (var j=1,_j=dateArray.length; j<_j; j++) {
+			mills = dateArray[j];
+			
+			x = (mills - window.start) / window.tpp;
+			y = window.summaryData.get(mills);
+			
+			strokeAvg.lineTo(x, yAvg);
+			
+			yMax = (y.max - window.low) * window.yRatio;
+			yMin = (y.min - window.low) * window.yRatio;
+			yAvg = (y.avg - window.low) * window.yRatio;
+			
+			strokeAvg.lineTo(x, yAvg);
+			
+			area.add(x, yMax, yMin);
+		}
+		
+		date = new Date(mills);
+	
+		x = (date.setHours(date.getHours() +1) - window.start) / window.tpp;
+		
+		strokeAvg.lineTo(x, yAvg);
+		
+		this.graph.appendChild(area.draw(x, yMin));
+		
+		strokeAvg.draw();
+	}
+}
+
+function Test(x, max, min) {
+	this.initialize(x, max, min);
+}
+
+Test.prototype = {
+	initialize: function (x, fY, bY) {
+		this.o = [x, fY];
+		this.f = [];
+		this.b = [["V", bY, "H", x].join("")];
+	},
+	add: function (x, fY, bY) {
+		this.f[this.f.length] = ["H", x, "V", fY].join("");
+		this.b[this.b.length] = ["V", bY, "H", x].join("");
+	},
+	draw: function (x, y) {
+		const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+		
+		this.b.reverse();
+		
+		path.setAttribute("d", 
+			["M", this.o.join(" ")].join("")
+			+ this.f.join("")
+			+ ["H", x].join("")
+			+ ["V", y].join("")
+			+ this.b.join("") +"z");
+		
+		if (this.color) {
+			path.setAttribute("fill", this.color);
+			path.setAttribute("stroke", this.color);
+		}
+		
+		return path;
+	}
+};
+
+function drawDateAxis() {
+	var text, date, h, pY, pM, pD;
+	
+	for (var x = 0; Math.floor(x) <= window.rect.width; x += window.blockWidth) {
+		date = new Date(window.start + Math.round(x * window.tpp));
+		
+		window.dateAxis.appendChild(createDateText(x, 0, date, pY, pM, pD));
+		
+		pY = date.getFullYear();
+		pM = date.getMonth();
+		pD = date.getDate();
+	}
+	
+	window.dateAxis.transform.baseVal.getItem(0).setTranslate(0, rect.height + MARGIN);
+}
+
+/**
+ * private
+ */
+function createValueText(x, y, value) {
+	var svgText = document.createElementNS(svgNS, "text");		
+	
+	svgText.setAttribute("x", x);
+	svgText.setAttribute("y", y);
+	svgText.textContent = value;
+	
+	return svgText;
+}
+
+function drawValueAxis() {
+	if (!window.chartSummary) {
+		return;
+	}
+	
+	var diff = (window.chartSummary.high - window.chartSummary.low) * window.blockHeight / window.rect.height,
+		value;
+	
+	for (var y = 0, grow = 0; y <= window.rect.height; y += window.blockHeight, grow += diff) {
+		value = window.chartSummary.high - grow;
+		
+		leftAxis.appendChild(createValueText(0, y, onValueToString(value === 0? 0: value)));
+		
+		if (window.max) {
+			rightAxis.appendChild(createValueText(0, y, (value *100 / window.max).toFixed(2) + "%"));
+		}
+	}
+	
+	leftAxis.transform.baseVal.getItem(0).setTranslate(leftAxis.getBBox().width, 0);
+	rightAxis.transform.baseVal.getItem(0).setTranslate(window.rect.width - rightAxis.getBBox().width, 0);
+}
+
+/**
+ * public
+ */
+function draw(start, end) {
+	window.start = start;
+	window.end = end;
+	
+	window.detailData = undefined;
+	
+	return drawChart();
+}
+
+/**
+ * private
+ */
+function drawChart() {
+	if (!window.rect.width) {
+		return false;
+	}
+	
+	var x, y, dateArray, date;
+
+	window.chartSummary = window.summaryData.parseData(window.start, window.end);
+	
+	window.tpp = (window.end - window.start) / window.rect.width;
+	
+	clear(window.dateAxis);
+	
+	drawDateAxis();
+	
+	clear(window.graph);
+	
+	clear(window.leftAxis);
+	clear(window.rightAxis);
+	
+	drawGraph();
+	
+	drawValueAxis();
+	
+	return window.chartSummary? true: false;
+}
+
+/**
+ * public
+ */
+// dataOnly: if true do not draw
+function detail(detailData, dataOnly) {
+	window.detailData = detailData;
+	window.detailKeys = window.detailData.parseData(window.start, window.end);
+	
+	if (!dataOnly) {
+		drawDetail();
+	}
+}
+
+function drawDetail() {
+	var path = new ITAhM.Path(window.graph),
+		mills, y;
+	
+	path.set("class", "line");
+	path.beginPath();
+	
+	mills = window.detailKeys[0];
+	
+	path.moveTo(Math.round((mills - window.start) / window.tpp)
+			,Math.round((window.detailData.get(mills) - window.low) * window.yRatio));
+	
+	for (var i=0, _i=window.detailKeys.length; i<_i; i++) {			
+		mills = window.detailKeys[i];
+		
+		path.v(y = Math.round((window.detailData.get(mills) - window.low) * window.yRatio));
+		path.moveTo(Math.round((mills - window.start) / window.tpp), y);
+		
+	}
+	
+	path.draw();
+}
+
+
+/**
+ * public
+ */
+function initialize(summaryData, max, color, onValueToString) {
+	window.summaryData = summaryData;
+	window.max = max;
+	window.color = color;
+	window.onValueToString = onValueToString;
+	
+	fragment.appendChild(window.hover);
+	fragment.appendChild(window.hoverDate);
+	fragment.appendChild(window.valueMax);
+	fragment.appendChild(window.valueMin);
+	fragment.appendChild(window.valueAvg);
+	
+	resize();
+	
+	window.group.transform.baseVal.getItem(0).setTranslate(MARGIN, MARGIN);
+	
+	document.body.classList.remove("loading");
+}
+
+function beforePrint() {
+	var r = window.chart.getBoundingClientRect();
+	
+	window.chart.setAttribute("viewBox", [0, 0, r.width, r.height].join(" "));
+}
+
+function afterPrint() {
+	window.chart.removeAttribute("viewBox");
+}
+
+/**
+ * abstract
+ */
+function onValueToString(value) {
+	return value;
+}
+
+		</script>
+	</head>
+	
+	<body class="loading">
+		<svg id="chart">
+			<g transform="translate(0, 0)" id="group">
+		        <g transform="translate(0, 0)" id="axis_date" />
+		        <g transform="translate(0, 0) scale(1 -1)" id="graph" />
+		        <g transform="translate(0, 0)" id="axis_left" />
+				<g transform="translate(0, 0)" id="axis_right" />
+		        <g transform="translate(0, 0)" id="grid" />
+		        <g id="hover">
+		        	<line id="hover_v" x1="0" y1="0" x2="0" y2="0" />
+		        	<line id="hover_h_max" x1="0" y1="0" x2="0" y2="0"/>
+		        	<line id="hover_h_avg" x1="0" y1="0" x2="0" y2="0"/>
+		        	<line id="hover_h_min" x1="0" y1="0" x2="0" y2="0"/>
+		        </g>
+		    </g>
+		</svg>
+		
+		<span id="hover_date" class="balloon"></span>
+		<span id="value_max" class="balloon value"></span>
+		<span id="value_min" class="balloon value"></span>
+		<span id="value_avg" class="balloon value"></span>
+		
+		<div class="bg_loading"></div>
+		
+		<script src="js/ITAhM.js"></script>
+		<script src="js/object.js"></script>
+		<script>
+		
+var svgNS = "http://www.w3.org/2000/svg",
+	xlinkNS = "http://www.w3.org/1999/xlink",
+	MONTH_NAME = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+	MIN_AXIS_VSPACE = 50,
+	MIN_AXIS_HSPACE = 100,
+	DATE_AXIS_HEIGHT = 6,
+	MARGIN = 20,
+	MARGIN_BOTTOM = 20;
+
+var chart = document.getElementById("chart"),
+	group = document.getElementById("group"),
+	leftAxis = document.getElementById("axis_left"),
+	rightAxis = document.getElementById("axis_right"),
+	dateAxis = document.getElementById("axis_date"),
+	graph = document.getElementById("graph"),
+	grid = document.getElementById("grid"),
+	hover = document.getElementById("hover"),
+	hoverV = document.getElementById("hover_v"),
+	hoverHMax = document.getElementById("hover_h_max"),
+	hoverHAvg = document.getElementById("hover_h_avg"),
+	hoverHMin = document.getElementById("hover_h_min"),
+	hoverDate = document.getElementById("hover_date"),
+	valueMax = document.getElementById("value_max"),
+	valueAvg = document.getElementById("value_avg"),
+	valueMin = document.getElementById("value_min"),
+	fragment = document.createDocumentFragment(),
+	summaryData, chartSummary, detailData, chartDetail,
+	rect = {};
+
+// resize
+(function (delay) {
+	var running = false,
+		start;
+	
+	function optimize(timestamp) {
+		if (timestamp - start > delay) {
+			onResize();
+			
+			start = undefined;
+		}
+		else {
+			requestAnimationFrame(optimize);
+		}
+	}
+	
+	window.addEventListener("resize", function() {
+		if (running) {
+			return;
+		}
+			
+		running = true;
+	
+		requestAnimationFrame(function(timestamp) {
+			if (isNaN(start)) {
+				start = timestamp;
+				
+				requestAnimationFrame(optimize);
+			}
+			else {
+				start = timestamp;
+			}
+			
+			running = false;
+		});
+	});
+})(300);
+
+window.chart.addEventListener("mouseleave", function (e) {
+	fragment.appendChild(window.hover);
+	fragment.appendChild(window.hoverDate);
+	fragment.appendChild(window.valueMax);
+	fragment.appendChild(window.valueMin);
+	fragment.appendChild(window.valueAvg);
+});
+
+window.chart.addEventListener("mousemove", function (e) {
+	var x = e.clientX - MARGIN;
+	
+	if (!window.summaryData || x < 0 || window.rect.width < x) {
+		return;
+	}
+	
+	var date = new Date(window.start + x * window.tpp),
+		mills = date.setMinutes(0, 0, 0),
+		value = summaryData.get(mills);
+	
+	if (!value) {
+		return;
+	}
+
+	// TODO 안정화 되면 지워도 됨.
+	if (isNaN(value.max) || isNaN(value.min)) {
+		return;
+	}
+	
+	hoverV.setAttribute("x1", x);
+	hoverV.setAttribute("x2", x);
+	
+	var y = window.rect.height - (value.max - window.low) * window.yRatio;
+	
+	hoverHMax.setAttribute("y1", y);
+	hoverHMax.setAttribute("y2", y);
+	valueMax.style.top = y + "px";
+	valueMax.textContent = onValueToString(value.max);
+	
+	y = window.rect.height - (value.avg - window.low) * window.yRatio;
+	
+	hoverHAvg.setAttribute("y1", y);
+	hoverHAvg.setAttribute("y2", y);
+	valueAvg.style.top = y + "px";
+	valueAvg.textContent = onValueToString(value.avg);
+	
+	y = window.rect.height - (value.min - window.low) * window.yRatio;
+	
+	hoverHMin.setAttribute("y1", y);
+	hoverHMin.setAttribute("y2", y);
+	valueMin.style.top = y + "px";
+	valueMin.textContent = onValueToString(value.min);
+	
+	var d = date.getDate(),
+		h = date.getHours();
+	
+	x = (x + MARGIN) + "px";
+	hoverDate.style.left = x;
+	hoverDate.textContent = (d>9? "": "0")+ d +"일 "+ (h>9? "": "0")+ h +"시";
+	
+	valueMax.style.left = x;
+	valueAvg.style.left = x;
+	valueMin.style.left = x;
+	
+	window.group.appendChild(window.hover);
+	document.body.appendChild(fragment);
+});
+
+		</script>
+	
+	</body>
+	
+</html>

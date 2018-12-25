@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Cache-Control" content="No-Cache">
+		
+		<title>ITAhM</title>
+		
+		<style>
+		
+@import "css/itahm.css";
+
+body {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	margin: 0; padding: 0;
+	display: flex;
+	flex-direction: column;
+	color: #fff;
+}
+
+body >div {
+	flex: 1;
+}
+
+iframe {
+	width: 100%; height: 100%;
+	border: none;
+}
+
+h2 {
+	text-align: center;
+	margin: 5px;
+}
+
+#legend {
+	text-align: right;
+}
+
+@media print {
+	body {
+		color: #000;
+	}
+}
+
+		</style>
+		<script>
+		
+/**
+ * public
+ */
+function initialize(from, to, start, end, index) {
+	top.sendRequest({
+		command: "query",
+		ip: top.ip,
+		summary: true,
+		database: "responseTime",
+		index: 0,
+		start: from,
+		end: to
+	}, onSummaryResponse);
+	
+	window.start = start;
+	window.end = end;
+}
+
+/**
+ * private
+ */
+function onSummaryResponse(data) {
+	window.chartWindow.initialize(new ITAhM.ChartSummaryData(data), window.max, "#0084ff", onValueToString);
+	
+	drawResponse();
+}
+
+/**
+ * private
+ */
+function onDetailResponse(data) {
+	window.chartWindow.detail(new ITAhM.ChartData(data));
+}
+
+/**
+ * private
+ */
+function onValueToString(value) {
+	return value.toFixed(0) +"ms";
+}
+
+/**
+ * private
+ */
+function buildSummaryFile() {
+	var summaryData = window.chartWindow.summaryData,
+		chartSummary = window.chartWindow.chartSummary,
+		blocks = chartSummary.keys,
+		date = new Date(window.start),
+		row, block, date, mills, value, k = 0;
+	
+	row = ["index,date,max,avg,min"];
+	
+	if (chartSummary) {
+		for (var i=0, _i=blocks.length; i<_i; i++) {
+			block = blocks[i];
+			
+			for (var j=0, _j=block.length; j<_j; j++) {
+				mills = block[j];
+				value = summaryData.get(mills);
+				
+				date = new Date(mills);
+				
+				row[row.length] = [k++, ITAhM.util.toDateTimeString(date), value.max, value.avg, value.min].join(",");
+			}
+		}
+	}
+	
+	return row;
+}
+
+/**
+ * private
+ */
+function buildDetailFile() {
+	var detailData = window.chartWindow.detailData,
+		detailKeys = window.chartWindow.detailKeys
+		row = ["index,date,response time(ms)"];
+	
+	for (var i=0, _i=detailKeys.length, j=0, mills; i<_i; i++, j++) {
+		mills = detailKeys[i];
+		
+		row[row.length] = [j, ITAhM.util.toDateTimeString(new Date(mills)), detailData.get(mills)].join(",");
+	}
+	
+	return row;
+}
+
+/**
+ * public
+ */
+function drawResponse() {
+	var date = new Date(window.start);
+	
+	if (window.chartWindow.draw(window.start, window.end) && date.setDate(date.getDate() +1) === window.end) {
+		window.detailRequest.start = window.start;
+		window.detailRequest.end = window.end;
+		
+		top.sendRequest(window.detailRequest, onDetailResponse);
+	}
+}
+
+/**
+ * public
+ */
+function draw(start, end) {
+	window.start = start;
+	window.end = end;
+	
+	drawResponse();
+}
+
+/**
+ * public
+ */
+function getFile() {
+	var rowArray;
+	
+	if (window.chartWindow.detailData) {
+		rowArray = buildDetailFile();
+	}
+	else {
+		rowArray = buildSummaryFile();
+	}
+	
+	ITAhM.util.download(new Blob([rowArray.join("\n")] ,{
+		type: "text/csv;charset=utf-8;"
+	}), "chart_responsetime.csv");
+}
+
+/**
+ * public
+ */
+(function(print) {
+	window.print = function() {
+		window.chartWindow.beforePrint();
+		
+		print();
+		
+		window.chartWindow.afterPrint();
+	};
+})(window.print);
+
+		
+		</script>
+	</head>
+	
+	<body>
+	
+		<header>
+			<h2><i>"</i> Response Time <i>"</i></h2>
+			<div id="legend">max</div>
+		</header>
+		
+		<div>
+			<iframe id="chart" src="chart_base.html"></iframe>
+		</div>
+		
+		<script src="js/ITAhM.js"></script>	
+		<script src="js/object.js"></script>
+		<script>
+
+var chart = document.getElementById("chart"),
+	chartWindow = chart.contentWindow,
+	cursor = document.getElementById("cursor"),
+	max = 10000,
+	detailRequest = {
+		ip: top.ip,
+		command: "query",
+		summary: false,
+		database: "responseTime",
+		index: 0
+	};
+
+document.getElementById("legend").textContent = "Timeout : "+ max +"ms";
+
+		</script>
+	
+	</body>
+	
+</html>

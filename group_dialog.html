@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Cache-Control" content="no-cache">
+		
+		<title>dialog</title>
+		
+		<style>
+@import "/css/style.css";
+
+body {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+form {
+	width: 300px;
+	padding: 20px;
+	background-color: #fff;
+	position: relative;
+}
+
+h2 {
+	margin: 0; padding: 10px;
+	background-color: #0084ff;
+	color: #fff;
+}
+
+.table {
+	border: 1px solid #aaa;
+	padding: 1em;
+	margin: 1em 0;
+}
+
+.table ul {
+	list-style: none;
+	padding: 0; margin: 3px 0;
+	display: flex;
+	align-items: center;
+}
+
+.table li {
+	flex: 1;
+}
+
+.table li:first-child {
+	padding: .5em;
+	text-align: right;
+}
+
+.table li:last-child {
+	flex: 3;
+}
+
+.table li input[type="text"],
+.table li select {
+	padding: .5em;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+input[type="checkbox"] {
+	margin: .5em;
+	vertical-align: middle;
+}
+
+#profile:hover {
+	cursor: default;
+	text-decoration: underline;
+}
+
+u {
+	cursor: default;
+}
+
+footer {
+	display: flex;
+	margin-top: 1em;
+}
+
+footer> input {
+	flex: 1;
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: .2em solid transparent;
+	padding: .5em;
+}
+
+footer> input:hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+#close {
+	font-size: 20px;
+	position: absolute; top: 5px; right: 5px;
+	border: 3px solid transparent;
+}
+
+#close:hover {
+	border-color: #c68e17;
+}
+
+#close::before, #close::after {
+	background-color: #c68e17;
+}
+
+form:not(.edit) input[type=reset] {
+	display: none;
+}
+
+		</style>
+		
+		<script>
+		
+function buildType() {
+	var df = document.createDocumentFragment(),
+		option,
+		typeData = {},
+		group = {},
+		icon, iconData, type;
+	
+	iconData = top.databases.local.icon;
+	for (type in iconData) {
+		typeData[type] = iconData[type];
+	}
+	
+	iconData = top.databases.icon;
+	for (type in iconData) {
+		typeData[type] = iconData[type];
+	}
+	
+	for (type in typeData) {
+		icon = typeData[type];
+		
+		if (icon.group !== "group") {
+			continue;
+		}
+		
+		if (!group[icon.type]) {
+			(group[icon.type] = df.appendChild(document.createElement("option"))).text = type;
+		}
+	}
+	
+	return df;
+}
+
+function saveGroup(id, group) {
+	top.putDB("device", id, group);
+	
+	if (window.opener) {
+		window.opener.reload();
+	}
+	
+	top.closeDialog();
+}
+		
+		</script>
+	</head>
+	
+	<body class="loading">
+	
+		<form class="rounded" autocomplete="off">
+			<i class="btn_close round" id="close"></i>
+			<h2>그룹</h2>
+			<div class="table">
+				<ul>
+					<li>이름
+					<li>
+						<input type="text" name="name" placeholder="그룹 이름" autofocus required>
+				</ul>
+				<ul>
+					<li>아이콘
+					<li>
+						<select name="type" required></select>
+					
+				</ul>
+			</div>
+			
+			<footer>
+				<input type="reset" value="삭제">
+				<input type="submit" value="확인" disabled>
+			</footer>
+			
+		</form>
+		
+		<div class="bg_loading"></div>
+		
+		<script>
+
+var form = document.querySelector("form"),
+	group;
+
+if (top.getDB("local", "level") === 0) {
+	document.querySelector("input[type=reset]").disabled = false;
+	document.querySelector("input[type=submit]").disabled = false;
+}
+
+document.getElementById("close").onclick = function () {
+	top.closeDialog(true);
+};
+
+(function (form) {
+	form.elements["type"].appendChild(buildType());
+
+	/* group을 삭제했을때는 device와 마찬가지로 연결되어 있는 link를 끊어주고
+	이 group을 parent로 갖는 device의 pos 정보도 수정해 주어야 한다.*/
+	form.onreset = function (e) {
+		if (!confirm("선택한 그룹을 삭제하겠습니까?")) {
+			return;
+		}
+
+		document.body.classList.add("loading");
+		
+		top.sendRequest({
+			command: "put",
+			database: "device",
+			key: window.id,
+			value: null
+		}, function () {
+			var posData = top.databases.position;
+			
+			// group 정보 삭제
+			top.putDB("device", window.id, null);
+			
+			// group을 parent로 갖는 device의 pos 정보 갱신
+			for (let id in posData) {
+				if(posData[id].parent === window.id) {
+					delete posData[id].parent;
+				}
+			}
+			
+			// 연관 link 정보 삭제
+			if (posData[window.id]) {
+				const ifEntry = posData[window.id].ifEntry;
+				
+				for (let id in ifEntry) {
+					if (posData[id]) {
+						delete posData[id].ifEntry[window.id];
+					}
+				}
+			}
+			
+			// group의 position 정보 삭제
+			delete posData[window.id];
+			
+			document.body.classList.remove("loading");
+			
+			window.opener.reload();
+			
+			top.closeDialog();
+		});	
+	};
+
+	form.onsubmit = function (e) {
+		e.preventDefault();
+	
+		const group = window.id? top.getDB("device", window.id): {
+				group: true
+			},
+			posData = top.databases.position;
+		
+		group.name = form.elements["name"].value;
+		group.type = form.elements["type"].value;
+		
+		if (!window.id) {
+			top.sendRequest({
+				command: "put",
+				database: "device",
+				key: "",
+				value: group
+			}, function (data) {
+				const id = Object.keys(data)[0];
+				
+				top.databases.position[id] = {
+					x: 0,
+					y: 0,
+					ifEntry: {},
+					parent: top.databases.local.parent
+				}; 
+				
+				saveGroup(id, group);
+			});
+		}
+		else {
+			top.sendRequest({
+				command: "put",
+				database: "device",
+				key: window.id,
+				value: group
+			}, function () {
+				saveGroup(window.id, group);
+			});
+		}
+	};
+
+	// public
+	window.initialize = function (id) {
+		window.opener = this && this.location;
+		window.id = id;
+		
+		if (id) {
+			const group = top.getDB("device", id);
+			
+			form.elements.name.value = group.name;
+			form.elements.type.value = group.type;
+			
+			document.body.classList.add("edit");
+		}
+		else {
+			form.elements.type.value = "group";
+		}
+
+		document.body.classList.remove("loading");
+	};
+}) (document.querySelector("form"));
+
+	</script>
+	
+	</body>
+	
+</html>

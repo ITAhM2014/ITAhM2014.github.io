@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>ITAhM Console</title>
+		
+		<style>
+
+body  {
+	font-family: arial, tahoma, "맑은 고딕";
+	font-size: 10pt;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	padding: 0; margin: 0;
+	background-color: #4d525a;
+}
+
+body >article {
+	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+}
+
+article.itahm {
+	display: flex;
+	flex-direction: column;
+}
+
+article.signin {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: #f9f9f9;
+}
+
+header {
+	color: #fff;
+	display: flex;
+	position: absolute; top: 0; right: 0; left: 0; height: 80px;
+	transition: height .5s;
+	background-color: #4d525a; 
+}
+
+body.auto header {
+	height: 0;
+}
+
+div.frame {
+	position: absolute; top: 80px; right: 0; bottom: 0; left: 0;
+}
+
+body.auto div.frame {
+	top: 0;
+}
+
+body.auto header::after {
+	content: "";
+	position: absolute; bottom: -1em; left: 50%;
+	width: 2em; height: 1em;
+	box-sizing: border-box;
+	background-color: red;
+	border-bottom-right-radius: 1em;
+	border-bottom-left-radius: 1em;
+	transform: translateX(-50%);
+}
+
+body.auto header::before {
+	content: "";
+	position: absolute; right: 0; left: 0; bottom: 0;
+	height: 3px;
+	background-color: #ccc;
+}
+
+body.auto header:hover {
+	height: 80px;
+}
+
+header a {
+	display: inline-block;
+	height: 100%;
+	cursor: pointer;
+}
+
+header a:visited,
+header a:link,
+header a:active,
+header a:hover {
+	color: inherit;
+	text-decoration: none;
+}
+
+nav {
+	width: 1024px; height: 100%;
+	margin: auto;
+	position: relative;
+	display: flex;
+	overflow: hidden;
+	align-items: center;
+	justify-content: space-between;
+}
+
+nav >i {
+	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 2em;
+	color: rgba(200, 200, 200, 0.5);
+}
+
+nav >i:not(:empty)::before {
+	content: "라이선스가";
+}
+
+nav >i:not(:empty)::after {
+	content: " 에 만료됩니다.";
+}
+
+nav >ul {
+	list-style: none;
+	padding: 0;
+	display: flex;
+	position: relative;
+}
+
+nav >ul:first-of-type a {
+	text-shadow: 1px 1px 1px #000;
+	padding: 0.2em 1em;
+	border-radius: 1em;
+	position: relative;
+}
+
+nav >ul:first-of-type a:hover {
+	color: #4d525a;
+	text-shadow: none;
+	background-color: #fff;
+}
+
+nav ul:first-of-type a:hover::after {
+	content: "";
+	position: absolute;
+	top: 100%; left: 50%;
+	transform: translateX(-50%);
+	border: 10px solid transparent;
+	border-top-color: #fff;
+}
+
+nav ul:last-of-type {
+	color: #999;
+}
+
+nav ul:last-of-type a:hover {
+	color: #fff;
+}
+
+nav h1 {
+	color: #fff;
+	font-size: 16px;
+}
+
+nav ul:last-of-type li {
+	margin: 5px;
+}
+
+#frame {
+	flex: 1;
+	width: 100%; height: 100%;
+	border: none;
+	background-color: #4d525a;
+}
+
+#dialog {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	padding: 0;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+}
+
+#status {
+	position: absolute; top: 0; right: 0; bottom: 0; width: 100px;
+	list-style: none; padding: 0; margin: 0;
+	display: flex; flex-direction: column;
+}
+
+#status >li {
+	flex: 1;
+	margin: 1px;
+	border: 1px solid #ddd; border-radius: 3px;
+	display: flex; align-items: center; justify-content: center;
+}
+
+#status >li.normal {
+	background-color: #0f0;
+	color: #097829;
+}
+
+#status >li.status {
+	background-color: #ffa500;
+	color: #ba4800;
+}
+
+#status >li.shutdown {
+	background-color: #666;
+	color: #272727;
+}
+
+#status >li:empty {
+	display: none;
+}
+
+div.log {
+	position: fixed; right: 10px; top: 10px;
+	cursor: pointer;
+}
+
+div.log span {
+	display: inline-block;
+	font-weight: bold;
+	background-color: #ffa500;
+	color: #fff;
+}
+
+#count {
+	width: 2em; height: 2em;
+	box-sizing: border-box;
+	padding: .5em;
+	border-radius: 1em;
+	text-align: center;
+}
+
+#log {
+	padding: .5em .5em .5em 1em;
+	margin-left: 1em;
+	border-radius: 1em 0 0 1em;
+}
+
+/** signin **/
+div.signin {
+	width: 320px;
+}
+
+p, input {
+	font-size: 13px;
+}
+
+h1 {
+	text-align: center;
+}
+
+h1 img {
+	vertical-align: middle;
+}
+
+form {
+	padding: 20px;
+	border: 1px solid #ddd;
+	background-color: #fff;
+}
+
+input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 3px 3px 3px 3px;
+}
+
+input.button {
+	margin-top: 20px;
+	background-image: linear-gradient(#7af, #0084ff);
+	border: 1px solid #07f;
+	font-weight: bold;
+	color: #fff;
+}
+
+.flex {
+	display: flex;
+}
+
+.flex >input {
+	flex: 1;
+}
+
+input[name="ip"] {
+	background: url("img/home.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="tcp"] {
+	background: transparent url("img/port.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="username"] {
+	background: transparent url("img/user.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="password"] {
+	background: transparent url("img/lock.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+.bg_loading {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	background: #4d525a url("/img/loading.gif") no-repeat center;
+	background-size: 32px 32px;
+	opacity: .5;
+}
+
+body:not(.ready) article.signin,
+body.authorized article.signin,
+body:not(.authorized) article.itahm,
+body:not(.loading) .bg_loading,
+body.set form.set,
+body:not(.set) form.account,
+body:not(.log) .log,
+body:not(.dialog) #dialog {
+	display: none;
+}
+
+		</style>
+		<script src="js/google.js"></script>
+
+		<script>
+//public
+function showStatus(id, resource, index) {
+	var	statusWindow = window.statusWindow[id];
+
+	if (statusWindow && !statusWindow.closed) {
+		statusWindow.close();
+	}
+	
+	statusWindow = window.open("/status.html", id);
+	
+	window.statusWindow[id] = statusWindow;
+	
+	if (resource) {
+		statusWindow.onload = function () {
+			statusWindow.onSelectResource(resource, index);
+		};
+	}
+	
+	statusWindow.focus();
+}
+
+function setHeader() {
+	setMenu(window.databases.config.menu? true: false);
+	
+	const config = window.databases.config;
+	
+	if ("expire" in config && config.expire > 0 && !config.license) {
+		document.getElementById("expire").textContent = toDateString(window.databases.config.expire);
+	}
+}
+
+// public
+function setMenu(b) {
+	if ("expire" in window.databases.config && databases.config.expire > 0) {
+		document.body.classList.remove("auto");
+	}
+	else {
+		document.body.classList[b? "remove": "add"]("auto");
+	}
+} 
+
+//public
+function getDeviceID(ip) {
+	return window.IDMap[ip];
+}
+
+// public
+function showDialog() {
+	var opener = this,
+		url = [].shift.call(arguments),
+		args = arguments;
+	
+	window.dialog.onload = function () {
+		this.contentWindow.initialize.apply(opener, args);
+		
+		document.body.classList.add("dialog");
+	};
+	
+	window.dialog.src = url;
+}
+
+// public
+function closeDialog() {
+	document.body.classList.remove("dialog");
+}
+
+function clearLog() {
+	window.logCount = 0;
+	
+	document.body.classList.remove("log");
+}
+
+function getMessage(status) {
+	switch(status) {
+	case 401:	
+		return "세션이 만료되었습니다.";
+	
+		break;
+	case 409:		
+		return "다른 관리자 계정이 데이터베이스를 수정하였습니다.\n"
+			+"콘솔을 다시 시작합니다.";
+		
+	case 400:
+		return "잘못된 요청입니다.";
+		
+	case 503:
+		return "서버가 올바르게 동작하지 않습니다.";
+		
+	default:
+		return "에이전트가 응답하지 않습니다.";
+	}
+}
+
+function notice(status, message) {
+	message = "\n"+ (message || "");
+
+	switch(status) {
+	case 401:	
+		alert("세션이 만료되었습니다.");
+	
+		window.location.reload();
+		
+		break;
+	case 409:		
+		alert("다른 관리자 계정이 데이터베이스를 수정하였습니다.\n"
+			+"콘솔을 다시 시작합니다.\n"+ message);
+		
+		window.location.reload();
+		
+		break;
+	case 400:
+		alert("잘못된 요청입니다"+ message);
+		
+		break;
+	case 503:
+		alert("서버가 올바르게 동작하지 않습니다."+ message);
+		
+		break;
+		
+		default:
+			alert("에이전트가 응답하지 않습니다.\n"+ "status: "+ status + message);
+	}
+}
+
+function toDateString(m) {
+	const d = new Date(m),
+		a = [d.getFullYear()];
+	let n = d.getMonth() +1;
+	
+	a[a.length] = "년 ";
+	a[a.length] = n > 9? n: ("0"+ n);
+	a[a.length] = "월 ";
+	
+	n = d.getDate();
+	
+	a[a.length] = n > 9? n: ("0"+ n);
+	a[a.length] = "일";
+	
+	return a.join("");
+}
+
+function putDevice(id, device) {
+	window.databases.device[id] = device;
+
+	if (device.ip) {
+		window.IDMap[device.ip] = id;
+	}
+}
+
+function forEachDB(name, f) {
+	const database = window.databases[name];
+	
+	for (let key in database) {
+		f(key, database[key]);
+	}
+}
+
+function putDB(name) {
+	switch(arguments.length) {
+		case 3:
+			const
+				key = arguments[1],
+				value = arguments[2];
+
+			if (value === null) {
+				const value = window.databases[name][key];
+				
+				delete window.databases[name][key];
+
+				if (name === "device" && value.ip) {
+					delete window.IDMap[value.ip];
+				}
+			}
+			else {
+				window.databases[name][key] = value;
+
+				if (name === "device" && value.ip) {
+					window.IDMap[value.ip] = key;
+				}
+			}
+
+			break;
+		case 2:
+			const database = arguments[1];
+
+			window.databases[name] = database;
+			
+			break;
+	}
+}
+
+function getDB(name, key) {
+	const database = window.databases[name];
+
+	switch(arguments.length) {
+		case 2:
+			return database && database[key];
+
+		case 1:
+			return database;
+	}
+}
+
+function onInitialize() {
+	// TODO ITAhM의 시작.
+	setHeader();
+	
+	// old 버전 호환, indexing
+	var device;
+	
+	const deviceData = window.databases.device;
+	
+	for (let id in deviceData) {
+		device = deviceData[id];
+		
+		if (device.ip) {
+			window.IDMap[device.ip] = id;
+		}
+
+		if (!device.group) {
+			continue;
+		}
+		
+		if (!("id" in device)) {
+			device.id = id;
+		}
+	}
+	
+	update();
+	
+	listen();
+}
+
+function onUpdate() {
+	if (this.status === 200) {
+		
+
+		window.topList = JSON.parse(this.responseText);
+		
+		if (!window.initialized) {
+			window.initialized = true;
+			
+			window.frame.src = "/dashboard.html";
+		}
+	}
+	
+	setStatus(new Date().getTime() - window.updateStart, this.status);
+	
+	setTimeout(update, 10000);
+}
+
+function update() {
+	const xhr = new XMLHttpRequest();
+	
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	
+	xhr.onloadend = onUpdate;
+	
+	window.updateStart = new Date().getTime();
+
+	xhr.send(JSON.stringify({
+		command: "extra",
+		extra: "top",
+		count: window.databases.config.top || undefined
+	}));
+}
+
+function onInitResponse(table, q) {
+	if (this.status == 200) {
+		window.databases[table] = JSON.parse(this.responseText);
+	}
+	else if (table === "smtp") {
+		window.databases["smtp"] = {};
+	}
+	else {
+		alert("데이터베이스를 초기화 할 수 없습니다.\n상태: "+ this.status);
+		
+		window.location.href = "/console.html";
+
+		return;
+	}
+
+	table = q.pop();
+	
+	if (table) {
+		sendInitRequest(table, q);
+	}
+	else {
+		onInitialize();
+	}
+}
+
+function getDeviceName(ip) {
+	if (!ip) {
+		return "";
+	}
+
+	const id = getDeviceID(ip),
+		device = id && top.getDB("device", id);
+
+	return device? device.name +" ": "";
+}
+
+function sendInitRequest(table, q) {
+	const xhr = new XMLHttpRequest();
+	
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	
+	xhr.onloadend = onInitResponse.bind(xhr, table, q);
+	
+	xhr.send(JSON.stringify({
+		command: "pull",
+		database: table
+	}));
+}
+
+function isCritical(critical) {
+	let isCritical = false,
+		resource;
+
+	loop: for (let key in critical) {
+		resource = critical[key];
+		for (let key in resource) {
+			if (resource[key].critical) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+function onEvent(e) {
+	e.stopPropagation();
+	
+	if (this.status === 200) {
+		const event = JSON.parse(this.responseText);
+		
+		window.listener.index = parseInt(event.index) +1;
+		
+		window.logCount++;
+		
+		window.count.textContent = window.logCount > 9? "9+": window.logCount;
+
+		("origin" in event? function () {
+			var monitor = window.databases.monitor[event.ip],
+				critical = window.databases.critical[event.ip];
+
+			switch(event.origin) {
+			case "critical":	
+				const value = window.getDB("critical", event.ip)[event.resource][event.rIndex];
+				
+				value.critical = event.critical;
+				value.rate = event.rate;
+
+				if (event.critical) {
+					window.sound.play();
+
+					monitor.critical = true;
+				}
+				else {
+					monitor.critical = isCritical(critical);
+				}
+
+				break;
+
+			case "shutdown":	
+				if (event.shutdown) {
+					window.sound.play();
+				}
+
+				monitor.shutdown = event.shutdown;
+
+				break;
+
+			case "monitor":
+
+				if (!event.monitor) {
+					window.sound.play();
+				}
+
+				break;
+
+			case "test":
+				if (event.test) {
+					monitor = {
+						shutdown: false,
+						critical: false
+					};
+					
+					if (event.protocol === "snmp") {
+						monitor.profile = event.profile;
+						monitor.protocol = "snmp";
+
+						// 자동탐색인 경우 device 생성해 주어야함
+						if (!getDB("device", event.id)) {
+							putDB("device", event.id, {
+								ip: event.ip,
+								name: "",
+								label: "",
+								type: "unknown",
+								ifSpeed: {}
+							});
+						}
+					}
+					else {
+						monitor.protocol = "icmp";
+					}
+					
+					putDB("monitor", event.ip, monitor);
+				}
+
+				if (!("message" in event)) {
+					event.message = event.ip +" "+ event.protocol +" 등록 "+ (event.test? "성공": "실패");
+				}
+
+				break;
+
+			case "system":
+				break;
+
+			case "warning": // 저장소 상태 변화가 감지 되었을때
+				break;
+				
+			case "error": // snmp status가 오류 상태일때
+				sendRequest({
+					command: "put",
+					database: "monitor",
+					key: event.ip,
+					value: null
+				}, function (data) {
+					putDB("monitor", data);
+				});	
+				
+				break;
+			}
+
+			window.log.textContent = getDeviceName(event.ip) + event.message;
+
+			try {
+				window.frame.contentWindow.onEvent(event);
+			} catch(e) {}
+		} : function () {
+			const id = "ip" in event && getDeviceID(event.ip);
+
+			window.log.textContent = (id && window.databases.device[id].name || "")  +" "+ event.message;
+
+			if (!event.status) {
+				window.sound.play();
+			}
+
+			sendRequest({
+				command: "pull",
+				database: "monitor"
+			}, function (data) {
+				window.databases.monitor = data;
+				
+				try {
+					window.frame.contentWindow.onEvent(event);
+				} catch(e) {}
+			});	
+		}) ();
+		
+		document.body.classList.add("log");
+		
+		listen();
+	}
+	else {
+		setStatus(0, this.status);
+		
+		setTimeout(listen, 3000);
+	}
+}
+
+function listen() {
+	const xhr = new XMLHttpRequest();
+
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	
+	xhr.onloadend = onEvent;
+	
+	xhr.send(JSON.stringify(window.listener));
+}
+
+function initialize (account) {
+	document.body.classList.add("authorized");
+	
+	document.getElementById("signout").textContent = account.username;
+
+	putDB("local", "level", account.level);
+	
+	sendInitRequest("config", ["gcm", "sms", , "icon", "profile", "account", "device", "position", "monitor", "critical", "smtp"]);
+}
+
+function onClose(e) {
+	for (let ip in window.statusWindow) {
+		window.statusWindow[ip].close();
+	}
+	
+	// listen 중인 세션이 종료되면서 onEvent notice 가 발생함
+	window.notice = new Function();
+}
+		</script>
+		<script>
+/** signin **/
+ 
+// private
+function onConnect(e) {
+	e.preventDefault();
+	
+	const ip = this.elements["ip"];
+	
+	/* domain 일 수도
+	if (!isIPv4(ip.value)) {
+		return ip.select();
+	}*/
+	
+	const tcp = this.elements["tcp"];
+	
+	if (isNaN(tcp.value) || tcp.value < 0 || tcp.value > 65535) {
+		return tcp.select();
+	}
+	
+	const agent = ip.value +":" +tcp.value;
+	
+	window.agent = "http://"+ agent;
+	
+	document.body.classList.add("loading");
+	
+	echo(function (status) {
+		switch(status) {
+		case 200:
+		case 400:
+			window.location.href = "console.html?"+ agent;
+			
+			break;
+		default:
+			alert("에이전트가 응답하지 않습니다. 상태: "+ status);
+		
+			ip.select();
+		}
+		
+		document.body.classList.remove("loading");
+	});
+}
+
+function onCancel(e) {
+	e.preventDefault();
+	
+	cancel(); 
+}
+
+function postRequest(request, onResponse, timeout) {
+	const xhr = new XMLHttpRequest();
+	
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	xhr.onloadend = onResponse.bind(xhr);
+	
+	if (timeout) {
+		xhr.timeout = timeout;
+	}
+	
+	xhr.send(JSON.stringify(request));
+}
+
+// private
+function parseResponse(onResponse, custom) {
+	const response = this.responseText && JSON.parse(this.responseText) || undefined;
+	
+	if (this.status === 200) {
+		onResponse(response);
+	}
+	else if (custom) {
+		custom(this.status, notice);
+	}
+	else {
+		notice(this.status, response && response.error);
+	}
+}
+
+function sendRequest(request, onResponse, custom) {
+	const xhr = new XMLHttpRequest();
+	
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	xhr.onloadend = parseResponse.bind(xhr, onResponse, custom);
+	
+	xhr.send(JSON.stringify(request));
+}
+
+function onSignIn(e) {
+	e.preventDefault();
+	
+	const form = this;
+	
+	document.body.classList.add("loading");
+	
+	window.username = this.elements["username"].value;
+
+	postRequest({
+		command: "signin",
+		username: window.username,
+		password: hex_md5(this.elements["password"].value)
+	}, function () {
+		document.body.classList.remove("loading");
+		
+		switch(this.status) {
+		case 200:
+			initialize(JSON.parse(this.responseText));
+			
+			break;
+		case 401:
+			alert("계정이 존재하지 않거나 비밀번호가 일치하지 않습니다.");
+			
+			form.elements["username"].select();
+			
+			break;
+		default:
+			alert("에이전트가 응답하지 않습니다. 상태: "+ this.status);
+			
+			cancel();
+		}
+	}, 10000);
+}
+
+function echo(f) {
+	postRequest({
+		command: "signin"
+	}, function () {
+		f(this.status, this.responseText && JSON.parse(this.responseText) || undefined);
+	}, 10000);
+}
+
+function trySignIn(username) {
+	document.body.classList.add("loading");
+	
+	echo(function (status, data) {
+		switch(status) {
+		case 200:
+			initialize(data);
+			
+			break;
+		
+		case 400:
+			document.body.classList.add("set");
+			
+			break;
+		default:
+			alert("에이전트가 응답하지 않습니다. 상태: "+ status);
+			
+			cancel();	
+		}
+		
+		document.body.classList.add("ready");
+		document.body.classList.remove("loading");
+		
+		username.select();
+	});
+}
+
+function onSignOut() {
+	if (confirm("로그아웃 하겠습니까?")) {
+		postRequest({
+			command: "signout"
+		}, function () {
+			window.location.reload();
+		}, 10000);
+	}
+}
+
+function cancel() {
+	window.location.href = "console.html";
+}
+
+		</script>
+	</head>
+	
+	<body>
+		<article class="itahm">
+			<div class="frame">
+				<iframe id="frame" name="main"></iframe>
+			</div>
+			<header>
+				<nav>
+					<i id="expire"></i>
+					<ul>
+						<li><h1><a href="/dashboard.html" target="main">대시보드</a></h1>
+						<li><h1><a href="list.html" target="main">장비목록</a></h1>
+						<li><h1><a href="event.html" target="main">이벤트</a></h1>
+						<!--li><h1><a href="scrap.html" target="main">스크랩</a></h1-->
+					</ul>
+					<ul>
+						<li><a id="signout" title="로그아웃">로그아웃</a>
+						<li><a href="setting.html" target="main">설정</a>
+						<li><a href="icon.html" target="main">아이콘</a>
+					</ul>
+				</nav>
+				<ul id="status">
+					<li class="normal"></li>
+					<li></li>
+					<li></li>
+				</ul>
+			</header>
+		</article>
+		<article class="signin">
+			<div class="signin">
+				<h1>Connect to agent</h1>
+				<form id="connect" class="set">
+					<p>IP Address</p>
+					<input type="text" name="ip" placeholder="IP address" autofocus required>
+					<p>TCP Port</p>
+					<input type="text" name="tcp" placeholder="TCP port" required>
+					<input type="submit" value="Connect" class="button">
+				</form>	
+				<form id="signin" class="account">
+					<p>Username</p>
+					<input type="text" name="username" value="root" required>
+					<p>Password</p>
+					<input type="password" name="password" value="root" required>
+					<div class="flex">
+						<input type="reset" value="Cancel" class="button">
+						<input type="submit" value="Sign in" class="button">
+					</div>
+				</form>
+				<h1>
+					<a href="/">
+						<img width="64" height="64" src="/img/favicon.png">
+					</a>
+				</h1>
+			</div>
+		</article>
+		
+		<div class="log">
+			<a href="event.html" target="main">
+				<span id="count">99</span>
+				<span id="log">message</span>
+			</a>
+		</div>
+		
+		<iframe id="dialog"></iframe>
+		
+		<div class="bg_loading"></div>
+		
+		<script src="js/ITAhM.js"></script>
+		<script src="js/object.js"></script>
+		<script src="js/icon.js"></script>
+		<script src="js/md5.js"></script>
+		<script>
+
+var agent,
+	initialized = false,
+	frame = document.getElementById("frame"),
+	IDMap = {},
+	databases = {
+		local: {
+			scale: 1,
+			icon: ITAhM.iconData
+		}
+	},
+	listener = {
+		command: "listen"
+	},
+	count = document.getElementById("count"),
+	dialog = document.getElementById("dialog"),
+	log = document.getElementById("log"),
+	statusWindow = {},
+	sound = new Audio("siren.mp3"),
+	logCount = 0;
+
+(function (container) {
+	window.setStatus = function (elapse, status) {
+		var item = container.firstElementChild;
+
+		if (!item.classList.contains("normal")) {
+			item = container.insertBefore(container.lastElementChild, item);
+		}
+
+		switch(status) {
+		case 200:
+			item.textContent = elapse + " ms";
+			item.className = "normal";
+			
+			break;
+
+		case 0:
+		item.textContent = "지연";
+			item.className = "shutdown";
+
+			break;
+		
+		default:
+			item.textContent = "상태 "+ status;
+			item.className = "status";
+		}
+
+		item.title = new Date().toLocaleString();
+	};
+
+}) (document.getElementById("status"));
+
+(function (agent) {
+	const connect = document.getElementById("connect"),
+		signin = document.getElementById("signin");
+	
+	signin.addEventListener("reset", onCancel);
+	signin.addEventListener("submit", onSignIn);
+	
+	connect.addEventListener("submit", onConnect);
+	
+	if (agent) {
+		const args = agent.split(":");
+		
+		if (args.length === 2) {
+			connect.elements["ip"].value = args[0];
+			
+			if (!isNaN(args[1]) && args[1] > -1 && args[1] < 65536) {
+				connect.elements["tcp"].value = args[1];
+				
+				window.agent = "http://" + agent;
+				
+				return trySignIn(signin.elements["username"]);
+			}
+		}
+		
+		cancel();
+	}
+	else {
+		document.body.classList.add("ready");
+	}
+})(window.location.search && window.location.search.substring(1));
+
+
+document.getElementById("signout").addEventListener("click", onSignOut);
+window.addEventListener("unload", onClose);
+
+		</script>
+	
+	</body>
+	
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>dialog</title>
+		
+		<style>
+@import "css/itahm.css";
+
+body {
+	margin: 0; padding: 0;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+.dialog {
+	width: 300px;
+	padding: 20px;
+	background-color: #fff;
+}
+
+.dialog  h2 {
+	margin: 0; padding: 10px;
+	background-color: #0084ff;
+	color: #fff;
+}
+
+.dialog input[type=reset] {
+	display: block;
+	float: right;
+}
+
+.dialog .table {
+	margin: 1em 0;
+}
+
+.dialog ul {
+	display: flex;
+	align-items: center;
+	list-style: none;
+	padding: 0;
+}
+
+.dialog li {
+	flex: 1;
+	text-align: center;
+}
+
+		</style>
+
+	</head>
+	
+	<body>
+	
+		<div class="dialog rounded">
+			<form autocomplete="off">
+				<h2>
+					노드 추가
+					<input type="reset" value="&#10006;">
+				</h2>
+				<ul class="table">
+					<li><input type="image" src="/img/node_btn.png" width="80" height="80"></li>
+					<li><input type="image" src="/img/group_btn.png" width="80" height="80"></li>
+					<li><input type="image" src="/img/app_btn.png" width="80" height="80"></li>
+				</ul>
+			</form>
+		</div>
+		
+		<script>
+
+(function (form) {
+
+	let opener;
+
+	form.onreset = function () {
+		top.closeDialog(true);
+	};
+
+	form.onsubmit = function (e) {
+		e.preventDefault();
+	};
+
+	window.initialize = function () {
+		opener = this && this.location;
+	};
+
+	if (top.getDB("local", "level") === 0) {
+	}
+
+}) (document.querySelector("form"));
+
+		</script>
+	
+	</body>
+	
+</html>

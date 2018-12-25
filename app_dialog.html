@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>dialog</title>
+		
+		<style>
+@import "css/style.css";
+
+body {
+	font-family: arial, tahoma, "맑은 고딕"; font-size: 10pt;
+	margin: 0; padding: 0;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+form {
+	width: 300px;
+	padding: 20px;
+	background-color: #fff;
+	position: relative;
+}
+
+h2 {
+	margin: 0; padding: 10px;
+	background-color: #0084ff;
+	color: #fff;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="submit"],
+input[type="reset"] {
+	width: 100%;
+	box-sizing: border-box;
+	padding: .5em;
+}
+
+input[type="checkbox"] {
+	vertical-align: middle;
+}
+
+div.table {
+	margin: 1em 0;
+}
+
+div.table ul {
+	display: flex;
+	align-items: center;
+	list-style: none;
+	padding: 1px;
+	margin: 0;
+}
+
+div.table li:first-child {
+	text-align: right;
+	padding: .5em;
+	flex: 2;
+}
+
+div.table li:last-child {
+	flex: 3;
+}
+
+footer {
+	margin-top: 1em;
+	display: flex;
+}
+
+footer> input {
+	flex: 1;
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: .2em solid transparent;
+	padding: .5em;
+}
+
+footer> input:hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+#close {
+	font-size: 20px;
+	position: absolute; top: 5px; right: 5px;
+	border: 3px solid transparent;
+}
+
+#close:hover {
+	border-color: #c68e17;
+}
+
+#close::before, #close::after {
+	background-color: #c68e17;
+}
+
+form:not(.edit) input[type=reset] {
+	display: none;
+}
+
+		</style>
+
+		<script>
+		
+function isIPv4(s) {
+    return s.match(/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/)? true: false;
+}
+
+		</script>
+
+	</head>
+	
+	<body class="loading">
+	
+		<form autocomplete="off">
+			<i class="btn_close round" id="close"></i>
+			<h2>응용프로그램</h2>
+			<div class="table">
+				<ul>
+					<li>IP 주소
+					<li>
+						<input type="text" name="ip" class="table text"
+							pattern="(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
+							title = "IPv4 x.x.x.x"
+							placeholder="127.0.0.1" required autofocus>
+					
+				</ul>
+				<ul>
+					<li>TCP 포트
+					<li>
+						<input type="number" max="65535" min="1" name="tcp" class="table text"
+							placeholder="1 ~ 65535" required>
+					
+				</ul>
+				<ul>
+					<li>응용프로그램명
+					<li>
+						<input type="text" name="name" class="table text"
+							placeholder="">
+					
+				</ul>
+			</div>
+			<footer>
+				<input type="reset" value="삭제" disabled>
+				<input type="submit" value="확인" disabled>
+			</footer>
+		</form>
+		
+		<div class="bg_loading"></div>
+		<script>
+
+var posTable = top.getDB("position");
+
+if (top.getDB("local", "level") === 0) {
+	document.querySelector("input[type=reset]").disabled = false;
+	document.querySelector("input[type=submit]").disabled = false;
+}
+
+(function (form) {
+
+	let opener;
+
+	function save(id, appData) {
+		top.putDB("device", id, appData);
+
+		if (opener) {
+			opener.reload();
+		}
+
+		top.closeDialog();
+	}
+
+	form.onreset = function(e) {
+		e.preventDefault();
+
+		if(!confirm("응용프로그램 정보를 삭제하겠습니까?")) {
+			return;
+		}
+
+		document.body.classList.add("loading");
+
+		// 삭제
+		top.postRequest({
+			command: "put",
+			database: "device",
+			key: window.id,
+			value: null
+		}, function () {
+			switch (this.status) {
+			case 200:				
+				// Monitor 삭제
+
+				// 연관 link 정보 삭제
+				if (window.posTable[window.id]) {
+					for (let id in window.posTable[window.id].ifEntry) {
+						if (window.posTable[id]) {
+							delete window.posTable[id].ifEntry[window.id];
+						}
+					}
+				}				
+				
+				// device의 position 정보 삭제
+				delete window.posTable[window.id];
+
+				// Device 삭제
+				save(window.id, null);
+
+				break;
+
+			default:
+				alert(top.getMessage(this.status));
+			}
+		});
+	};
+
+	document.getElementById("close").onclick = function () {
+		top.closeDialog(true);
+	};
+
+	form.onsubmit = function (e) {
+		e.preventDefault();
+	
+		document.body.classList.add("loading");
+
+		// 생성
+		if(!window.id) {
+			const
+				ip = form.elements["ip"].value,
+				tcp = form.elements["tcp"].value.toString(),
+				appData = {
+					application: true,
+					address: ip +":"+ tcp,
+					name: form.elements["name"].value
+				},
+				monData = top.getDB("monitor", ip);
+
+			if (monData && "tcp" in monData && tcp in monData.tcp) {
+				alert("이미 존재하는 응용프로그램 입니다.");
+
+				form.elements["ip"].select();
+
+				return;
+			}
+			
+			top.postRequest({
+				command: "put",
+				database: "device",
+				key: "",
+				value: appData
+			}, function () {
+				switch (this.status) {
+				case 200:
+					const
+						response = JSON.parse(this.responseText),
+						pos = {
+							x: 0,
+							y: 0,
+							ifEntry: {}
+						},
+						parent = top.getDB("local", "parent");
+					
+					for (let id in response) {
+						save(id, response[id]);
+
+						top.putDB("position", id, pos);
+
+						break;
+					}
+					
+					if (parent) {
+						pos.parent = parent;
+					}
+
+					break;
+				
+				default:
+					alert(top.getMessage(this.status));
+				}
+
+				document.body.classList.remove("loading");
+			});
+		}
+		// 수정
+		else {
+			const appData = JSON.parse(JSON.stringify(window.appData));
+
+			appData.name = form.elements["name"].value;
+
+			top.postRequest({
+				command: "put",
+				database: "device",
+				key: window.id,
+				value: appData
+			}, function () {
+				switch (this.status) {
+				case 200:
+					save(window.id, appData);
+
+					break;
+				
+				default:
+					alert(top.getMessage(this.status));
+				}
+
+				document.body.classList.remove("loading");
+			});
+		}
+	};
+
+	window.initialize = function (id) {
+		opener = this && this.location;
+	
+		if (id) {
+			const
+				appData = top.getDB("device", id);
+
+			if (!appData) {
+				throw "application not found.";
+			}
+
+			const
+				ip = form.elements["ip"],
+				tcp = form.elements["tcp"],
+				name = form.elements["name"],
+				address = appData.address.split(":");
+			
+			ip.value = address[0];
+			ip.disabled = true;
+
+			tcp.value = address[1];
+			tcp.disabled = true;
+
+			name.value = appData.name;
+			name.select();
+
+			form.classList.add("edit");
+
+			window.appData = appData;
+		}
+
+		window.id = id;
+
+		document.body.classList.remove("loading");
+	}
+}) (document.querySelector("form"));
+
+		</script>
+	
+	</body>
+	
+</html>

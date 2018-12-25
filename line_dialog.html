@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Dialog @ Line</title>
+		
+		<style>
+@import "/css/style.css";
+
+body {
+	margin: 0; padding: 0;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+h2 {
+	margin: 0; padding: 10px;
+	background-color: #0084ff;
+	color: #fff;
+}
+
+.dialog {
+	position: relative;
+	width: 400px;
+	padding: 20px;
+	background-color: #fff;
+}
+
+input[type="checkbox"] {
+	vertical-align: middle;
+}
+
+.layout {
+	display: flex;
+	margin: 1em 0; padding: 1em;
+	border: 1px solid #aaa;
+}
+
+.layout_top {
+	height: 70px;
+}
+
+.layout_box {
+	position: relative;
+	padding: 10px;
+	box-sizing: border-box;
+	width: 180px;
+}
+
+.layout_bottom {
+	display: flex;
+	align-items: center;
+}
+
+.layout_bottom >input {
+	width: 2em;
+	vertical-align: middle;
+}
+
+.layout_bottom >div {
+	flex: 1;
+}
+
+.layout_bottom >div >select {
+	padding: .5em;
+	box-sizing: border-box;
+	width: 100%;
+}
+
+.name {
+	overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+input[name=option]:not(:checked) ~ul {
+	display: none;
+}
+
+footer {
+	display: flex;
+	margin-top: 1em;
+}
+
+footer input {
+	flex: 1;
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: .2em solid transparent;
+	padding: .5em;
+}
+
+footer input:hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+.loading_mask {
+	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+	background: rgba(255, 255, 255, .5) url(/img/loading.gif) no-repeat center;
+	background-size: 32px 32px;
+}
+
+#close {
+	font-size: 20px;
+	position: absolute; top: 5px; right: 5px;
+	border: 3px solid transparent;
+}
+
+#close:hover {
+	border-color: #c68e17;
+}
+
+#close::before, #close::after {
+	background-color: #c68e17;
+}
+
+body.application .layout {
+	display: none;
+}
+
+.layout_box:not(.loading)> .loading_mask {
+	display: none;
+}
+
+body:not(.edit) input[type=reset] {
+	display: none;
+}
+
+		</style>
+		
+		<script>
+
+function initPort(e, ifEntry) {
+	var df = document.createDocumentFragment(),
+		opt, port, count = 0;
+	
+	for (var index in ifEntry) {
+		port = ifEntry[index];
+		
+		if (!port || !port.ifName) {
+			continue;
+		}
+		
+		opt = df.appendChild(document.createElement("option"));
+		
+		opt.value = index;
+		opt.text = port.ifName;
+		opt.title = port.ifDescr;
+		
+		count++;
+	}
+	
+	if (count > 0) {
+		e.appendChild(df);
+		e.selectedIndex = -1;
+	}
+}
+
+function setPort(device, id, peerID, e1, e2, box, check, select) {
+	const monitorData = top.databases.monitor;
+	
+	e1.textContent = device.ip;
+	e2.textContent = device.name;
+	
+	if (device.ip && device.ip in monitorData && monitorData[device.ip].protocol === "snmp") {
+		box.classList.add("loading");
+		
+		top.sendRequest({
+			command: "select",
+			ip: device.ip
+		}, function (node) {
+			if (node) {
+				const ifEntry = top.databases.position[id].ifEntry;
+				
+				initPort(select, node.ifEntry);
+				
+				if (ifEntry[peerID]) {
+					select.value = ifEntry[peerID].index;
+				}
+				
+				select.disabled = false;
+				check.checked = true;
+			}
+
+			box.classList.remove("loading");
+		});
+	}
+
+	check.onclick = function () {
+		if (this.checked) {
+			if (select.length > 0) {
+				select.disabled = false;
+			}
+			else {
+				this.checked = false;
+			}
+		}
+		else {
+			select.disabled = true;
+		}
+	};
+}
+
+// public
+function initialize(id, peerID) {
+	const
+		device = top.getDB("device", id),
+		peer = top.getDB("device", peerID);
+
+	window.opener = this && this.location;
+	window.id = id;
+	window.peerID = peerID;
+	
+	if (device.application || peer.application) {
+		document.body.classList.add("application");
+	}
+	else {
+		setPort(device, id, peerID,
+			document.getElementById("ip"),
+			document.getElementById("name"),
+			document.querySelector(".layout_box.left"),
+			window.lCheck,
+			window.lSelect);
+		
+		setPort(peer, peerID, id,
+			document.getElementById("peer_ip"),
+			document.getElementById("peer_name"),
+			document.querySelector(".layout_box.right"),
+			window.rCheck,
+			window.rSelect);
+	}
+
+	const ifEntry = top.databases.position[id].ifEntry;
+
+	if (ifEntry && peerID in ifEntry) {
+		document.body.classList.add("edit");
+
+		const data = ifEntry[peerID];
+
+		if (data) {
+			const option = data.option;
+
+			if (option) {
+				document.getElementById("option").checked = true;
+
+				window.form.elements["color"].value = option.color;
+				window.form.elements["width"].value = option.width;
+			}
+		}		
+	}
+
+	document.body.classList.remove("loading");
+}
+
+		</script>
+	</head>
+	
+	<body class="loading">
+	
+		<form class="dialog" autocomplete="off">
+			<i class="btn_close round" id="close"></i>
+			<h2>Line</h2>
+			
+				<div class="layout">
+					<div class="layout_box left">
+						<div class="layout_top">
+							<h3 id="name" class="name"></h3>
+							<i id="ip"></i>
+						</div>
+						<div class="layout_bottom">
+							<input type="checkbox" id="left_check">
+							<div>
+								<select id="left_select" required disabled></select>
+							</div>
+							
+						</div>
+						<div class="loading_mask"></div>
+					</div>
+					<div class="layout_box right">
+						<div class="layout_top">
+							<h3 id="peer_name" class="name"></h3>
+							<i id="peer_ip"></i>
+						</div>
+						<div class="layout_bottom">
+							<input type="checkbox"  id="right_check">
+							<div>
+								<select id="right_select" required disabled></select>
+							</div>
+						</div>
+						<div class="loading_mask"></div>
+					</div>
+				</div>
+				
+				<input type="checkbox" name="option" id="option">
+				<label for="option">고급</label>
+				<ul>
+					<li>
+						색상: <input type="color" name="color" value="#a17f1a">
+					</li>
+					<li>
+						굵기: <input type="number" name="width" value="1" min="1">
+					</li>
+				</ul>
+				<br>
+				<footer>
+					<input type="reset" value="삭제">
+					<input type="submit" value="확인" disabled>
+				</footer>
+		</form>
+		
+		<div class="bg_loading"></div>
+
+		<script>
+
+var form = document.querySelector("form"),
+	lCheck = document.getElementById("left_check"),
+	rCheck = document.getElementById("right_check"),
+	lSelect = document.getElementById("left_select"),
+	rSelect = document.getElementById("right_select");
+
+if (top.databases.local.level === 0) {
+	document.querySelector("input[type=reset]").disabled = false;
+	document.querySelector("input[type=submit]").disabled = false;
+}
+
+document.getElementById("close").onclick = function () {
+	top.closeDialog(true);
+};
+
+(function (form) {
+	form.onsubmit = function (e) {
+		e.preventDefault();
+
+		const
+			left = {},
+			right = {};
+
+		if (this.elements["option"].checked) {
+			left.option = {};
+			right.option = {};
+
+			left.option.color = right.option.color = this.elements["color"].value;
+			left.option.width = right.option.width = Math.max(this.elements["width"].value, 1);
+		}
+
+		if (!window.lSelect.disabled) {
+			left.index = window.lSelect.value;
+			left.name = window.lSelect.options[window.lSelect.selectedIndex].text;
+		}
+
+		if (!window.rSelect.disabled) {
+			right.index = window.rSelect.value;
+			right.name = window.rSelect.options[window.rSelect.selectedIndex].text;
+		}
+
+		top.databases.position[window.id].ifEntry[window.peerID] = left;
+		top.databases.position[window.peerID].ifEntry[window.id] = right;
+		
+		window.opener.reload();
+		
+		top.closeDialog();
+	};
+
+	form.onreset = function (e) {
+		if (!confirm("연결을 삭제하겠습니까?")) {
+			return this.checked = false;
+		}
+		
+		delete top.databases.position[window.id].ifEntry[window.peerID];
+		delete top.databases.position[window.peerID].ifEntry[window.id];
+		
+		window.opener.reload();
+		
+		top.closeDialog(true);
+	};
+}) (document.querySelector("form"));
+		</script>
+	
+	</body>
+	
+</html>

@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>ITAhM Console</title>
+		
+		<style>
+
+body  {
+	font-family: arial, tahoma, "맑은 고딕";
+	font-size: 10pt;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	padding: 0; margin: 0;
+	background-color: #4d525a;
+}
+
+body >article {
+	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+}
+
+article.itahm {
+	display: flex;
+	flex-direction: column;
+}
+
+article.signin {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: #f9f9f9;
+}
+
+header {
+	color: #fff;
+	display: flex;
+	position: absolute; top: 0; right: 0; left: 0; height: 80px;
+	transition: height .5s;
+	background-color: #4d525a; 
+}
+
+div.frame {
+	position: absolute; top: 80px; right: 0; bottom: 0; left: 0;
+}
+
+header a {
+	display: inline-block;
+	height: 100%;
+	cursor: pointer;
+}
+
+header a:visited,
+header a:link,
+header a:active,
+header a:hover {
+	color: inherit;
+	text-decoration: none;
+}
+
+nav {
+	width: 1024px; height: 100%;
+	margin: auto;
+	position: relative;
+	display: flex;
+	overflow: hidden;
+	align-items: center;
+	justify-content: space-between;
+}
+
+nav >i {
+	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 2em;
+	color: rgba(200, 200, 200, 0.5);
+}
+
+nav >i:not(:empty)::before {
+	content: "라이선스가";
+}
+
+nav >i:not(:empty)::after {
+	content: " 에 만료됩니다.";
+}
+
+nav >ul {
+	list-style: none;
+	padding: 0;
+	display: flex;
+	position: relative;
+}
+
+nav >ul:first-of-type a {
+	text-shadow: 1px 1px 1px #000;
+	padding: 0.2em 1em;
+	border-radius: 1em;
+	position: relative;
+}
+
+nav >ul:first-of-type a:hover {
+	color: #4d525a;
+	text-shadow: none;
+	background-color: #fff;
+}
+
+nav ul:first-of-type a:hover::after {
+	content: "";
+	position: absolute;
+	top: 100%; left: 50%;
+	transform: translateX(-50%);
+	border: 10px solid transparent;
+	border-top-color: #fff;
+}
+
+nav ul:last-of-type {
+	color: #999;
+}
+
+nav ul:last-of-type a:hover {
+	color: #fff;
+}
+
+nav h1 {
+	color: #fff;
+	font-size: 16px;
+}
+
+nav ul:last-of-type li {
+	margin: 5px;
+}
+
+#frame {
+	flex: 1;
+	width: 100%; height: 100%;
+	border: none;
+	background-color: #4d525a;
+}
+
+#dialog {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	padding: 0;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+}
+
+#status {
+	position: absolute; top: 0; right: 0; bottom: 0; width: 100px;
+	list-style: none; padding: 0; margin: 0;
+	display: flex; flex-direction: column;
+}
+
+#status >li {
+	flex: 1;
+	margin: 1px;
+	border: 1px solid #ddd; border-radius: 3px;
+	display: flex; align-items: center; justify-content: center;
+}
+
+#status >li.normal {
+	background-color: #0f0;
+	color: #097829;
+}
+
+#status >li.status {
+	background-color: #ffa500;
+	color: #ba4800;
+}
+
+#status >li.shutdown {
+	background-color: #666;
+	color: #272727;
+}
+
+#status >li:empty {
+	display: none;
+}
+
+div.log {
+	position: fixed; right: 10px; top: 10px;
+	cursor: pointer;
+}
+
+div.log span {
+	display: inline-block;
+	font-weight: bold;
+	background-color: #ffa500;
+	color: #fff;
+}
+
+#count {
+	width: 2em; height: 2em;
+	box-sizing: border-box;
+	padding: .5em;
+	border-radius: 1em;
+	text-align: center;
+}
+
+#log {
+	padding: .5em .5em .5em 1em;
+	margin-left: 1em;
+	border-radius: 1em 0 0 1em;
+}
+
+/** signin **/
+div.signin {
+	width: 320px;
+}
+
+p, input {
+	font-size: 13px;
+}
+
+h1 {
+	text-align: center;
+}
+
+h1 img {
+	vertical-align: middle;
+}
+
+form {
+	padding: 20px;
+	border: 1px solid #ddd;
+	background-color: #fff;
+}
+
+input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 3px 3px 3px 3px;
+}
+
+input.button {
+	margin-top: 20px;
+	background-image: linear-gradient(#7af, #0084ff);
+	border: 1px solid #07f;
+	font-weight: bold;
+	color: #fff;
+}
+
+.flex {
+	display: flex;
+}
+
+.flex >input {
+	flex: 1;
+}
+
+input[name="ip"] {
+	background: url("img/home.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="tcp"] {
+	background: transparent url("img/port.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="username"] {
+	background: transparent url("img/user.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="password"] {
+	background: transparent url("img/lock.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+.bg_loading {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	background: #4d525a url("/img/loading.gif") no-repeat center;
+	background-size: 32px 32px;
+	opacity: .5;
+}
+
+body:not(.ready) article.signin,
+body.authorized article.signin,
+body:not(.authorized) article.itahm,
+body:not(.loading) .bg_loading,
+body.set form.set,
+body:not(.set) form.account,
+body:not(.log) .log,
+body:not(.dialog) #dialog {
+	display: none;
+}
+
+		</style>
+		<script src="js/google.js"></script>
+
+		<script>
+//public
+function showStatus(id, resource, index) {
+	var	statusWindow = window.statusWindow[id];
+
+	if (statusWindow && !statusWindow.closed) {
+		statusWindow.close();
+	}
+	
+	statusWindow = window.open("/status.html", id);
+	
+	window.statusWindow[id] = statusWindow;
+	
+	if (resource) {
+		statusWindow.onload = function () {
+			statusWindow.onSelectResource(resource, index);
+		};
+	}
+	
+	statusWindow.focus();
+}
+
+//public
+function getDeviceID(ip) {
+	return window.IDMap[ip];
+}
+
+// public
+function showDialog() {
+	var opener = this,
+		url = [].shift.call(arguments),
+		args = arguments;
+	
+	window.dialog.onload = function () {
+		this.contentWindow.initialize.apply(opener, args);
+		
+		document.body.classList.add("dialog");
+	};
+	
+	window.dialog.src = url;
+}
+
+// public
+function closeDialog() {
+	document.body.classList.remove("dialog");
+}
+
+function clearLog() {
+	window.logCount = 0;
+	
+	document.body.classList.remove("log");
+}
+
+function notice(status, message) {
+	message = "\n"+ (message || "");
+
+	switch(status) {
+	case 401:	
+		alert("세션이 만료되었습니다.");
+	
+		window.location.reload();
+		
+		break;
+	case 409:		
+		alert("다른 관리자 계정이 데이터베이스를 수정하였습니다.\n"
+			+"콘솔을 다시 시작합니다.\n"+ message);
+		
+		window.location.reload();
+		
+		break;
+	case 400:
+		alert("잘못된 요청입니다"+ message);
+		
+		break;
+	case 503:
+		alert("서버가 올바르게 동작하지 않습니다."+ message);
+		
+		break;
+		
+		default:
+			alert("에이전트가 응답하지 않습니다.\n"+ "status: "+ status + message);
+	}
+}
+
+function toDateString(m) {
+	const d = new Date(m),
+		a = [d.getFullYear()];
+	let n = d.getMonth() +1;
+	
+	a[a.length] = "년 ";
+	a[a.length] = n > 9? n: ("0"+ n);
+	a[a.length] = "월 ";
+	
+	n = d.getDate();
+	
+	a[a.length] = n > 9? n: ("0"+ n);
+	a[a.length] = "일";
+	
+	return a.join("");
+}
+
+function putDevice(id, device) {
+	window.databases.device[id] = device;
+
+	if (device.ip) {
+		window.IDMap[device.ip] = id;
+	}
+}
+
+function forEachDB(name, f) {
+	const database = window.databases[name];
+	
+	for (let key in database) {
+		f(key, database[key]);
+	}
+}
+
+function putDB(name) {
+	switch(arguments.length) {
+		case 3:
+			const
+				key = arguments[1],
+				value = arguments[2];
+
+			if (value === null) {
+				value = window.databases[name][key];
+			
+				delete window.databases[name][key];
+
+				if (name === "device" && value.ip) {
+					delete window.IDMap[value.ip];
+				}
+			}
+			else {
+				window.databases[name][key] = value;
+
+				if (name === "device" && value.ip) {
+					window.IDMap[value.ip] = key;
+				}
+			}
+
+			break;
+		case 2:
+			const database = arguments[1];
+
+			window.databases[name] = database;
+			
+			break;
+	}
+}
+
+function getDB(name, key) {
+	const database = window.databases[name];
+
+	switch(arguments.length) {
+		case 2:
+			return database && database[key];
+
+		case 1:
+			return database;
+	}
+}
+
+function onInitialize() {
+	// TODO ITAhM의 시작.
+	
+	// old 버전 호환, indexing
+	var device;
+	
+	const deviceData = window.databases.device;
+	
+	for (let id in deviceData) {
+		device = deviceData[id];
+		
+		if (device.ip) {
+			window.IDMap[device.ip] = id;
+		}
+
+		if (!device.group) {
+			continue;
+		}
+		
+		if (!("id" in device)) {
+			device.id = id;
+		}
+	}
+	
+	update();
+	
+	listen();
+}
+
+function onUpdate() {
+	if (this.status === 200) {
+		
+
+		window.topList = JSON.parse(this.responseText);
+		
+		if (!window.initialized) {
+			window.initialized = true;
+			
+			window.frame.src = "/dashboard.html";
+		}
+	}
+	
+	setStatus(new Date().getTime() - window.updateStart, this.status);
+	
+	setTimeout(update, 10000);
+}
+
+function update() {
+	const xhr = new XMLHttpRequest();
+	
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	
+	xhr.onloadend = onUpdate;
+	
+	window.updateStart = new Date().getTime();
+	
+	xhr.send(JSON.stringify({
+		command: "extra",
+		extra: "top",
+		count: window.databases.config.top || undefined
+	}));
+}
+
+function onInitResponse(table, q) {
+	if (this.status == 200) {
+		window.databases[table] = JSON.parse(this.responseText);
+		
+		table = q.pop();
+		
+		if (table) {
+			sendInitRequest(table, q);
+		}
+		else {
+			onInitialize();
+		}
+	}
+	else {
+		alert("데이터베이스를 초기화 할 수 없습니다.\n상태: "+ this.status);
+		
+		window.location.href = "/console.html";
+	}
+}
+
+function getDeviceName(ip) {
+	if (!ip) {
+		return "";
+	}
+
+	const id = getDeviceID(ip),
+		device = id && top.getDB("device", id);
+
+	return device? device.name +" ": "";
+}
+
+function sendInitRequest(table, q) {
+	const xhr = new XMLHttpRequest();
+	
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	
+	xhr.onloadend = onInitResponse.bind(xhr, table, q);
+	
+	xhr.send(JSON.stringify({
+		command: "pull",
+		database: table
+	}));
+}
+
+function isCritical(critical) {
+	let isCritical = false,
+		resource;
+
+	loop: for (let key in critical) {
+		resource = critical[key];
+		for (let key in resource) {
+			if (resource[key].critical) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+function onEvent(e) {
+	e.stopPropagation();
+	
+	if (this.status === 200) {
+		const event = JSON.parse(this.responseText);
+
+		("origin" in event? function () {
+			var monitor = window.databases.monitor[event.ip],
+				critical = window.databases.critical[event.ip],
+				stopEvent = false;
+
+			switch(event.origin) {
+			case "critical":	
+				const value = window.getDB("critical", event.ip)[event.resource][event.rIndex];
+				
+				value.critical = event.critical;
+				value.rate = event.rate;
+
+				if (event.critical) {
+					window.sound.play();
+
+					monitor.critical = true;
+				}
+				else {
+					monitor.critical = isCritical(critical);
+				}
+
+				break;
+
+			case "shutdown":	
+				if (event.shutdown) {
+					window.sound.play();
+				}
+
+				monitor.shutdown = event.shutdown;
+
+				break;
+
+			case "test":
+				if (event.test) {
+					monitor = {
+						shutdown: false,
+						critical: false
+					};
+					
+					if (event.protocol === "snmp") {
+						monitor.profile = event.profile;
+						monitor.protocol = "snmp";
+
+						// 자동탐색인 경우 device 생성해 주어야함
+						if (!getDB("device", event.id)) {
+							putDB("device", event.id, {
+								ip: event.ip,
+								name: "",
+								label: "",
+								type: "unknown",
+								ifSpeed: {}
+							});
+						}
+					}
+					else {
+						monitor.protocol = "icmp";
+					}
+					
+					window.databases.monitor[event.ip] = monitor;
+				}
+
+				if (!("message" in event)) {
+					event.message = event.ip +" "+ event.protocol +" 등록 "+ (event.test? "성공": "실패");
+				}
+
+				break;
+
+			case "system":				
+				break;
+
+			case "warning": // 저장소 상태 변화 감지
+				break;
+			
+			case "exception":
+				(function (xhr) {
+					xhr.open("POST", "http://demo.itahm.com/debug/", true);
+					xhr.withCredentials = true;
+					xhr.send(event.message);
+				}) (new XMLHttpRequest());
+				
+				stopEvent = true;
+				
+				break;
+			}
+
+			if (!stopEvent) {
+				window.logCount++;
+				
+				window.count.textContent = window.logCount > 9? "9+": window.logCount;
+				
+				window.log.textContent = getDeviceName(event.ip) + event.message;
+				
+				try {
+					window.frame.contentWindow.onEvent();
+				} catch(e) {}
+				
+				document.body.classList.add("log");
+			}			
+		} : function () {
+			const id = "ip" in event && getDeviceID(event.ip);
+
+			window.logCount++;
+			
+			window.count.textContent = window.logCount > 9? "9+": window.logCount;
+			
+			window.log.textContent = (id && window.databases.device[id].name || "")  +" "+ event.message;
+
+			if (!event.status) {
+				window.sound.play();
+			}
+
+			sendRequest({
+				command: "pull",
+				database: "monitor"
+			}, function (data) {
+				window.databases.monitor = data;
+				
+				try {
+					window.frame.contentWindow.onEvent();
+				} catch(e) {}
+			});
+			
+			document.body.classList.add("log");
+		}) ();
+		
+		window.listener.index = parseInt(event.index) +1;
+		
+		listen();
+	}
+	else {
+		setStatus(0, this.status);
+		
+		setTimeout(listen, 3000);
+	}
+}
+
+function listen() {
+	const xhr = new XMLHttpRequest();
+
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	
+	xhr.onloadend = onEvent;
+	
+	xhr.send(JSON.stringify(window.listener));
+}
+
+function onClose(e) {
+	for (let ip in window.statusWindow) {
+		window.statusWindow[ip].close();
+	}
+	
+	// listen 중인 세션이 종료되면서 onEvent notice 가 발생함
+	window.notice = new Function();
+}
+		</script>
+		<script>
+ 
+// private
+function postRequest(request, onResponse, timeout) {
+	const xhr = new XMLHttpRequest();
+	
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	xhr.onloadend = onResponse.bind(xhr);
+	
+	if (timeout) {
+		xhr.timeout = timeout;
+	}
+	
+	xhr.send(JSON.stringify(request));
+}
+
+// private
+function parseResponse(onResponse, custom) {
+	const response = this.responseText && JSON.parse(this.responseText) || undefined;
+	
+	if (this.status === 200) {
+		onResponse(response);
+	}
+	else if (custom) {
+		custom(this.status, notice);
+	}
+	else {
+		notice(this.status, response && response.error);
+	}
+}
+
+function sendRequest(request, onResponse, custom) {
+	const xhr = new XMLHttpRequest();
+	
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	xhr.onloadend = parseResponse.bind(xhr, onResponse, custom);
+	
+	xhr.send(JSON.stringify(request));
+}
+
+		</script>
+	</head>
+	
+	<body>
+		<article class="itahm">
+			<div class="frame">
+				<iframe id="frame" name="main"></iframe>
+			</div>
+			<header>
+				<nav>
+					<i id="expire"></i>
+					<ul>
+						<li><h1><a href="/dashboard.html" target="main">대시보드</a></h1>
+						<li><h1><a href="list.html" target="main">장비목록</a></h1>
+						<li><h1><a href="event.html" target="main">이벤트</a></h1>
+					</ul>
+					<ul></ul>
+				</nav>
+				<ul id="status">
+					<li class="normal"></li>
+					<li></li>
+					<li></li>
+				</ul>
+			</header>
+		</article>
+		<article class="signin">
+			<div class="signin">
+				<h1>Connect to agent</h1>
+				<form id="connect" class="set">
+					<p>IP Address</p>
+					<input type="text" name="ip" placeholder="IP address" autofocus required>
+					<p>TCP Port</p>
+					<input type="number" name="tcp" value="2014" readonly>
+					<input type="submit" value="Connect" class="button">
+				</form>	
+				<h1>
+					<a href="/">
+						<img width="64" height="64" src="img/favicon.png">
+					</a>
+				</h1>
+			</div>
+		</article>
+		
+		<div class="log">
+			<a href="event.html" target="main">
+				<span id="count">99</span>
+				<span id="log">message</span>
+			</a>
+		</div>
+		
+		<iframe id="dialog"></iframe>
+		
+		<div class="bg_loading"></div>
+		
+		<script src="js/ITAhM.js"></script>
+		<script src="js/object.js"></script>
+		<script src="js/icon.js"></script>
+		<script src="js/md5.js"></script>
+		<script>
+
+var agent,
+	initialized = false,
+	frame = document.getElementById("frame"),
+	IDMap = {},
+	databases = {
+		local: {
+			scale: 1,
+			icon: ITAhM.iconData
+		}
+	},
+	listener = {
+		command: "listen"
+	},
+	count = document.getElementById("count"),
+	dialog = document.getElementById("dialog"),
+	log = document.getElementById("log"),
+	statusWindow = {},
+	sound = new Audio("siren.mp3"),
+	logCount = 0;
+
+(function (container) {
+	window.setStatus = function (elapse, status) {
+		var item = container.firstElementChild;
+
+		if (!item.classList.contains("normal")) {
+			item = container.insertBefore(container.lastElementChild, item);
+		}
+
+		switch(status) {
+		case 200:
+			item.textContent = elapse + " ms";
+			item.className = "normal";
+			
+			break;
+
+		case 0:
+		item.textContent = "지연";
+			item.className = "shutdown";
+
+			break;
+		
+		default:
+			item.textContent = "상태 "+ status;
+			item.className = "status";
+		}
+
+		item.title = new Date().toLocaleString();
+	};
+
+}) (document.getElementById("status"));
+
+(function (agent) {
+	const connect = document.getElementById("connect");
+	
+	connect.addEventListener("submit", function (e) {
+		e.preventDefault();
+		
+		window.location.href = "/free.html?"+ this.elements["ip"].value +":2014";
+	});
+	
+	if (agent) {
+		document.body.classList.add("loading");
+
+		window.agent = "http://"+ agent;
+				
+		postRequest({
+			command: "echo"
+		}, function () {
+			switch(this.status) {
+			case 400:
+				document.body.classList.add("authorized");
+
+				putDB("local", "level", 0);
+
+				sendInitRequest("config", ["gcm", "sms", , "icon", "profile", "account", "device", "position", "monitor", "critical"]);
+				
+				break;
+			default:
+				connect.elements["ip"].select();
+
+				document.body.classList.add("ready");
+
+				alert("연결할 수 없습니다.");
+			}
+
+			document.body.classList.remove("loading");
+		});
+	}
+	else {
+		document.body.classList.add("ready");
+	}
+
+})(window.location.search && window.location.search.substring(1));
+
+window.addEventListener("unload", onClose);
+
+		</script>
+	
+	</body>
+	
+</html>

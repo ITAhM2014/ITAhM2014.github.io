@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>dialog</title>
+		
+		<style>
+@import "css/itahm.css";
+
+body {
+	margin: 0; padding: 0;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+.dialog {
+	width: 300px;
+	padding: 20px;
+	background-color: #fff;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="submit"],
+input[type="reset"],
+select {
+	width: 100%;
+	box-sizing: border-box;
+	padding: .5em;
+}
+
+input[type="checkbox"] {
+	vertical-align: middle;
+}
+
+div.table {
+	margin-bottom: 10px;
+}
+
+div.table ul {
+	display: flex;
+	align-items: center;
+	list-style: none;
+	padding: 1px;
+	margin: 0;
+}
+
+div.table li:first-child {
+	text-align: right;
+	padding: .5em;
+	flex: 2;
+}
+
+div.table li:last-child {
+	flex: 3;
+}
+
+body.v3 .version:not(.v3),
+body:not(.v3) .version.v3 {
+	display: none;
+}
+
+footer {
+	display: flex;
+	margin-top: 1em;
+}
+
+footer> input {
+	flex: 1;
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: .2em solid transparent;
+	padding: .5em;
+}
+
+footer> input:hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+body:not(.removable) .remove,
+body:not(.warning) .warning {
+	display: none;
+}
+
+		</style>
+		<script>
+
+/**
+ * callback method
+ */
+ function onApply(e) {
+	e.preventDefault();
+	
+	var name = form.elements["name"].value,
+		version = document.querySelector("input[name=version]:checked").value,
+		request = {
+			name: name,
+			udp: form.elements["udp"].value,
+			version: version
+		};
+	
+	if (version === "v3") {
+		var element = form.elements["user"];
+		
+		if (!element.value) {
+			return element.focus();
+		}
+		
+		request["user"] = element.value;
+		
+		if (form.elements["en_auth"].checked) {
+			element = form.elements["authentication"];
+			
+			if (!element.value) {
+				return element.focus();
+			}
+			else if (getByteLength(element.value) < 8) {
+				alert("USM 규격에 따라 authentication passphrase는 8자 이상입니다.");
+				
+				return element.select();
+			}
+		
+			request["md5"] = element.value;
+			
+			if (form.elements["en_priv"].checked) {
+				element = form.elements["privacy"];
+				
+				if (!element.value) {
+					return element.focus();
+				}
+				else if (getByteLength(element.value) < 8) {
+					alert("USM 규격에 따라 privacy는 passphrase는 8자 이상입니다.");
+					
+					return element.select();
+				}
+				
+				request["des"] = element.value;
+			}
+		}
+	}
+	else {
+		var element = form.elements["community"];
+		
+		if (!element.value) {
+			return element.focus();
+		}
+		
+		request.community = form.elements["community"].value;
+	}
+	
+	sendRequest(name, request);
+}
+ 
+function enableElement(element, enable) {
+	if (enable) {
+		element.disabled = false;
+		element.focus();
+	}
+	else {
+		element.value = "";
+		element.disabled = true;
+	}
+}
+
+function getByteLength(s) {
+	var length = 0;
+	
+	for (var i=0, ch; ch=s.charCodeAt(i++); length+=ch>>11? 3: ch>>7? 2: 1);
+	
+	return length;
+}
+
+function onSelectVersion(e) {
+	[].forEach.call(window.version, function (version) {
+		document.body.classList.remove(version.value);
+	});
+	
+	document.body.classList.add(this.value);
+};
+
+function onRemove(e) {
+	if (confirm("사용중인 프로파일을 삭제하면 해당 프로파일을 사용하는 장비가 응답하지 않을 수 있습니다.\n\n프로파일을 삭제하겠습니까?")) {
+		sendRequest(form.elements["name"].value, null);
+	}
+	else {
+		this.checked = false;
+	}	
+}
+
+function onCancel(e) {
+	top.closeDialog(true);
+}
+
+function initialize(name) {
+	window.opener = this && this.location;
+	
+	if (name) {
+		window.profile = top.databases.profile[name];
+		
+		form.elements["name"].value = name;
+		form.elements["name"].disabled = true;
+		
+		form.elements["udp"].value = profile.udp;
+		document.querySelector("input[name=version][value="+ profile.version +"]").checked = true;
+		
+		if (profile.version === "v3") {
+			form.elements["user"].value = profile.user;
+			
+			if ("md5" in profile) {
+				form.elements["authentication"].value = profile.authentication;
+				form.elements["authentication"].disabled = false;
+				form.elements["en_auth"].checked = true;
+				
+				if ("des" in profile) {
+					form.elements["privacy"].value = profile.privacy;
+					form.elements["privacy"].disabled = false;
+					form.elements["en_priv"].checked = true;
+				}
+			}
+		}
+		else {
+			form.elements["community"].value = profile.community;
+		}
+		
+		document.body.classList.add(profile.version);
+		
+		if (isIdleProfile(name)){
+			document.body.classList.add("removable");
+		}
+		else {
+			document.body.classList.add("warning");
+		}
+		
+		document.querySelector("input[type=submit]").disabled = true;
+	}
+	else {
+		form.elements["name"].focus();
+	}
+}
+
+function isIdleProfile(name) {
+	const monitorData = top.databases.monitor;
+
+	for (let ip in monitorData) {
+		monitor = monitorData[ip];
+		
+		if (monitor.profile === name) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function sendRequest(name, profile) {
+	document.body.classList.add("loading");
+	
+	top.sendRequest({
+		command: "put",
+		database: "profile",
+		key: name,
+		value: profile
+	}, function (data) {
+		top.databases.profile = data;
+		
+		if (window.opener) {
+			window.opener.reload();
+		}
+		
+		top.closeDialog();
+	});
+}
+
+		</script>
+	</head>
+	
+	<body>
+	
+		<div class="dialog rounded">
+			<form autocomplete="off">
+				<h2>snmp profile</h2>
+				<div class="table">
+					<ul>
+						<li>profile name 
+						<li>
+							<input type="text" name="name" class="table text"
+								placeholder="snmp profile name" required autofocus>
+						
+					</ul>
+					<ul>
+						<li>udp port 
+						<li>
+							<input type="number" min="1" step="1" value="161" name="udp" class="table text"
+								placeholder="snmp udp port" pattern="\d*" required>
+					</ul>
+					<ul>
+						<li>snmp version 
+						<li>
+							<label><input type="radio" value="v1" name="version">v1</label>
+							<label><input type="radio" value="v2c" name="version" checked>v2c</label>
+							<label><input type="radio" value="v3" name="version">v3</label>
+					</ul>
+					<ul class="version">
+						<li>community 
+						<li>
+							<input type="text" name="community" class="table text"
+								placeholder="snmp community string">
+					</ul>
+					<ul class="version v3">
+						<li>user 
+						<li>
+							<input type="text" name="user" class="table text"
+								placeholder="user name">
+					</ul>
+					<ul class="version v3">
+						<li><div>authentication</div>
+							<label><input type="checkbox" name="en_auth">MD5</label>
+						<li>
+							<input type="password" name="authentication" class="table text"
+								placeholder="user password" disabled>
+					</ul>
+					<ul class="version v3">
+						<li><div>privacy</div>
+							<label><input type="checkbox" name="en_priv">DES</label>
+						<li>
+							<input type="password" name="privacy" class="table text"
+								placeholder="encription password" disabled>
+					</ul>
+				</div>
+				<label class="remove"><input type="checkbox" name="remove" disabled>remove</label>
+				<i class="warning">사용중인 프로파일은 삭제할 수 없습니다.</i>
+				<footer>
+					<input type="reset" value="cancel">
+					<input type="submit" value="apply" disabled>
+				</footer>
+			</form>
+		</div>
+		
+		<script>
+
+var form = document.querySelector("form"),
+	version = document.querySelectorAll("input[name=version]");
+	
+form.addEventListener("reset", onCancel);
+
+[].forEach.call(version, function (version) {
+	version.onchange = onSelectVersion;
+});
+
+form.elements["en_auth"].onclick = function () {
+	enableElement(window.form.elements["authentication"], this.checked);
+	
+	if (!this.checked) {
+		form.elements["en_priv"].checked = this.checked;
+		enableElement(window.form.elements["privacy"], this.checked);
+	}
+};
+
+form.elements["en_priv"].onclick = function () {
+	if (this.checked && !form.elements["en_auth"].checked) {
+		this.checked = false;
+		
+		return;
+	}
+	
+	enableElement(window.form.elements["privacy"], this.checked);
+};
+
+if (top.databases.local.level === 0) {
+	form.addEventListener("submit", onApply);
+	form.elements["remove"].onclick = onRemove;
+	form.elements["remove"].disabled = false;
+	document.querySelector("input[type=submit]").disabled = false;
+}
+
+		</script>
+	
+	</body>
+	
+</html>

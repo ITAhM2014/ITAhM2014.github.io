@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Cache-Control" content="No-Cache">
+		
+		<title>Chart @ ITAhM</title>
+		
+		<style>
+
+@import "css/itahm.css";
+
+body {
+	position: fixed; top: 10px; right: 10px; bottom: 10px; left: 10px;
+	margin: 0; padding: 0;
+}
+
+input[type=date] {
+	font-family: arial, tahoma, "맑은 고딕";
+	font-size: 10pt;
+}
+
+header {
+	position: absolute; top: 0; right: 0;
+	color: #fff; 
+}
+
+.chart {
+	position: absolute; top: 0; right: 0; bottom: 40px; left: 0;
+}
+
+iframe {
+	width: 100%; height: 100%;
+	border: none;
+}
+
+nav {
+	float: right;
+}
+
+nav img {
+	cursor: pointer;
+}
+
+circle {
+	fill: #777;
+}
+
+svg image:hover,
+body.move {
+	cursor: e-resize;
+}
+
+footer {
+	position: absolute; right: 16px; bottom: 0; left: 16px;
+	height: 40px;
+	background-color: rgba(99, 99, 99, .1);
+	color: #fff;
+	/*border: solid #999;
+	border-width: 1px 0;*/
+}
+
+footer >div {
+	position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+}
+
+footer #grid {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+footer .dot {
+	position: relative;
+}
+
+footer .dot::after {
+	content: "";
+	position: absolute; top: 0; left: 0;
+	transform: translateX(-50%) translateY(-50%);
+	border: 2px solid #ddd;
+	border-radius: 50%;
+}
+
+.selector {
+	overflow: hidden;
+}
+
+#top_text,
+#bottom_text {
+	text-anchor: start;
+}
+
+#move {
+	position: absolute;	top: 0; right: 0; bottom: 0; left: 0;
+	background-color: #424242;
+	cursor: move;
+	border: 2px ridge #ddd;
+	transition: left 0.3s, right 0.3s;
+}
+
+#prev, #next {
+	position: absolute;	top: 0; bottom: 0;
+}
+
+#prev {
+	left: 0; width: 5px;
+	cursor: e-resize;
+}
+
+#next {
+	right: 0; width: 5px;
+	cursor: e-resize;
+}
+
+#move::before,
+#move::after {
+	position: absolute;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+#move::before {
+	content: attr(data-start);
+	top: 0; left: 0;
+}
+
+#move::after {
+	content: attr(data-end);
+	right: 0; bottom: 0;
+}
+
+footer .label {
+	position: absolute;
+	white-space: nowrap;
+}
+
+#start {
+	bottom: 0; left: 5px;
+}
+
+#end {
+	right: 5px; top: 0;
+}
+
+footer span.label::after {
+	content: attr(title);
+}
+
+.popup {
+	position: fixed; top:0; right: 0; bottom: 0; left: 0; 
+	display: flex; justify-content: center; align-items: center;
+	background-color: rgba(0, 0, 0, .6);
+}
+
+.dialog {
+	width: 400px;
+	box-sizing: border-box;
+	padding: 20px;
+	background-color: #fff;
+	border: 3px solid #000;
+}
+
+.dialog >div {
+	display: flex;
+}
+
+.dialog >div >* {
+	flex: 1;
+}
+
+.dialog >div:last-child {
+	margin-top: 1em;
+}
+
+.dialog >div input {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.5em;
+}
+
+.dialog >div:last-child >input {
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: 0.2em solid transparent;
+}
+
+.dialog >div:last-child >input:hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+.realtime.popup >div {
+	width: 600px; height: 300px;
+	position: relative;
+}
+
+#close {
+	position: absolute; top: 0; right: 0;
+	font-size: 2em;
+	font-weight: bold;
+	cursor: pointer;
+}
+
+#realtime_frame {
+	border: none;
+	width: 100%; height: 100%;
+	background-color: #fff;
+}
+
+.layout,
+body:not(.set) .set,
+body:not(.realtime) .realtime {
+	display: none;
+}
+
+.label {
+	pointer-events: none;
+}
+
+		</style>
+		<script>
+		
+function resize() {
+	window.sRect = window.selector.getBoundingClientRect();
+	window.blockWidth =  window.sRect.width / (window.dayCount -1);
+	
+	resetArea();
+}
+
+function getDateText(mills) {
+	var date = new Date(mills),
+		dd = date.getDate();
+	
+	return MONTH[date.getMonth()] + (dd >9? "": "0") + dd +"일";
+}
+
+function initialize(resource, index) {
+	window.resource = resource;
+	window.index = index;
+	
+	initChart();
+}
+
+function initChart() {
+	var date = new Date(window.start);
+	
+	window.dateList = [];
+	window.dayCount = 0;
+	
+	for (; date <= window.end; date.setDate(date.getDate() +1)) {
+		window.grid.appendChild(window.dot.cloneNode(true));
+		
+		window.dateList[window.dayCount] = date.getTime();
+		
+		window.dayCount++;
+	}
+	
+	window.leftPos = window.dateList.indexOf(window.today);
+	window.rightPos = window.dateList.indexOf(window.end);
+	
+	window.startDate.title = getDateText(window.start);
+	window.endDate.title = getDateText(window.end);
+	
+	resize();
+	
+	window.chart.src = "chart_"+ window.resource +".html";
+}
+
+function onSelectStart(e) {
+	var rect = window.move.getBoundingClientRect();
+	
+	window.left = rect.left - window.sRect.left;
+	window.right = window.sRect.width - rect.width - window.left;
+}
+
+function onSelect(e) {
+	var event = e.detail;
+	
+	switch(event.target) {
+	case window.prev:
+		var x = window.left + event.dragX;
+		
+		if (x < 0) {
+			return;
+		}
+		
+		onChange(x, window.right);
+		
+		break;
+		
+	case window.next:
+		var x = window.right - event.dragX;
+		
+		if (x < 0) {
+			return;
+		}
+		
+		onChange(window.left, x);
+		
+		break;
+	
+	case window.move:
+		var x1 = window.left + event.dragX,
+			x2 = window.right - event.dragX;
+		
+		if (x1 < 0 || x2 < 0) {
+			return;
+		}
+			
+		onChange(x1, x2);
+		
+		break;
+	}
+}
+
+function onChange(left, right) {
+	var leftPos = Math.round(left / window.blockWidth),
+		rightPos = Math.round((window.sRect.width - right) / window.blockWidth);
+	
+	if (leftPos >= rightPos) {
+		return;
+	}
+	
+	if (window.leftPos == leftPos && window.rightPos == rightPos) {
+		return;
+	}
+	
+	window.leftPos = leftPos;
+	window.rightPos = rightPos;
+	
+	resetArea();
+	
+	window.chartWindow.draw(window.dateList[leftPos], window.dateList[rightPos]);
+}
+
+function resetArea() {
+	window.move.style.left = window.leftPos * blockWidth + "px";
+	window.move.style.right = (window.dayCount -1 - window.rightPos) * blockWidth + "px";
+	
+	window.move.dataset.start = getDateText(window.dateList[window.leftPos]);
+	window.move.dataset.end = getDateText(window.dateList[window.rightPos]);
+}
+
+function reload(from, to) {
+	window.today = window.start = from.setHours(0, 0, 0, 0);
+	window.end = to.setHours(0, 0, 0, 0);
+	
+	window.chartWindow.location.reload();
+	
+	clear(window.grid);
+	
+	window.leftPos = window.dayCount -2;
+	window.rightPos = 0;
+	
+	initChart();
+}
+
+function setValueAsDate(e, d) {
+	if ("valueAsDate" in e) {
+		d = new Date(d.getTime());
+		
+		d.setHours(9, 0, 0, 0);
+		
+		e.valueAsDate = d;
+	}
+	else {
+		var mm = d.getMonth() +1,
+			dd = d.getDate();
+		
+		e.value = [d.getFullYear(), mm > 9? mm: "0"+ mm, dd > 9? dd: "0"+ dd].join('-');
+	}
+}
+
+function getValueAsDate(e) {
+	var date;
+	
+	if ("valueAsDate" in e) {
+		date = e.valueAsDate;
+	}
+	else {
+		date = new Date(e.value);
+	}
+	
+	date.setHours(0, 0, 0, 0);
+	
+	return date;
+}
+
+function clear(e) {
+	for (var child; child = e.firstChild; ) {
+		e.removeChild(child);
+	}
+}
+		</script>
+	</head>
+	
+	<body>		
+		<div class="chart">
+			<iframe id="chart"></iframe>
+		</div>
+		
+		<header>
+			<nav>
+				<img id="set" width="16" height="16" src="img/calendar.png" title="기간 설정">
+				<img id="realtime" width="16" height="16" src="img/realtime.png" title="실시간 그래프">
+				<img id="save" width="16" height="16" src="img/save.png" title="CSV 파일로 저장">
+				<img id="print" width="16" height="16" src="img/printer16.png" title="인쇄">
+			</nav>
+		</header>
+		
+		<footer>
+			<div id="grid"></div>
+			<div class="label">
+				<span class="label" id="start"></span>
+				<span class="label" id="end"></span>
+			</div>
+			<div class="selector">
+				<div id="move">
+					<div id="prev"></div>
+					<div id="next"></div>
+				</div>
+			</div>
+		</footer>
+		
+		<div class="popup set">
+			<form class="dialog" autocomplete="off">
+				<h3>기간설정</h3>
+				<div>
+					<div>
+						<p>from</p>
+						<input type="date" id="set_start" value="2017-12-05">
+					</div>
+					<div>
+						<p>to</p>
+						<input type="date" id="set_end" value="2017-12-12">
+					</div>
+				</div>
+				<div>
+					<input type="reset" value="cancel">
+					<input type="submit" value="apply">
+				</div>
+			</form>
+		</div>
+		
+		<div class="popup realtime">
+			<div>
+				<span id="close" title="실시간 차트 닫기">&#10006;</span>
+				<iframe id="realtime_frame" width="100%" height="100%"></iframe>
+			</div>
+		</div>
+		
+		<div class="layout">
+			<span class="dot"></span>
+		</div>
+		
+		<script src="js/ITAhM.js"></script>
+		<script src="js/Draggable.js"></script>
+		<script src="js/object.js"></script>
+		<script>
+
+const 
+	MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+	MONTH = ["01월", "02월", "03월", "04월", "05월", "06월", "07월", "08월", "09월", "10월", "11월", "12월"],
+	MARGINS = 5;
+
+var resource, index,
+	chartFrame = document.getElementById("chart"),
+	chartWindow = chartFrame.contentWindow,
+	rtFrame = document.getElementById("realtime_frame"),
+	svg = document.querySelector("svg"),
+	base = document.getElementById("base"),
+	dot = document.querySelector(".dot"),
+	footer = document.querySelector("footer"),
+	grid = document.getElementById("grid"),
+	selector = document.querySelector(".selector"),
+	prev = document.getElementById("prev"),
+	move = document.getElementById("move"),
+	next = document.getElementById("next"),
+	startDate = document.getElementById("start"),
+	endDate = document.getElementById("end"),
+	left, right, dayCount, blockWidth, sRect;
+
+(function (date) {
+	date.setHours(0, 0, 0, 0);
+	
+	window.today = date.getTime();
+	window.start = date.setDate(date.getDate() -6);
+	window.end = date.setDate(date.getDate() +7);
+})(new Date());
+
+
+document.onselectstart = function (e) {
+	return false;
+};
+
+document.getElementById("save").onclick = function () {
+	window.chartWindow.getFile();
+};
+
+document.getElementById("print").onclick = function () {
+	window.chartWindow.print();
+};
+
+document.getElementById("realtime").onclick = function () {
+	window.rtFrame.src = "realtime_chart.html";
+	
+	document.body.classList.add("realtime");
+};
+
+document.getElementById("close").onclick = function () {
+	document.body.classList.remove("realtime");
+};
+
+document.getElementById("set").onclick = function (e) {
+	document.body.classList.add("set");
+};
+
+window.addEventListener("resize", function () {
+	if (window.resizeTimer) {
+		clearTimeout(window.resizeTimer);
+	}
+	
+	window.resizeTimer = setTimeout(resize, 300);
+});
+
+window.selector.addEventListener("dragon", onSelectStart);
+window.selector.addEventListener("drag", onSelect);
+
+window.chartFrame.onload = function () {
+	this.contentWindow.initialize(window.start, window.end, window.today, window.end, window.index);
+};	
+
+window.rtFrame.onload = function () {
+	this.contentWindow.initialize(window.resource, window.index);
+};
+
+new Draggable(window.selector);
+
+(function(window) {
+	var form = document.querySelector("form"),
+		start = document.getElementById("set_start"),
+		end = document.getElementById("set_end"),
+		kst = new Date();
+	
+	kst.setDate(kst.getDate() +1);
+	
+	setValueAsDate(end, kst); 
+	
+	kst.setDate(kst.getDate() -7);
+	
+	setValueAsDate(start, kst);
+	
+	form.addEventListener("submit", function (e) {
+		e.preventDefault();
+		
+		var from = getValueAsDate(start),
+			to = getValueAsDate(end);
+		
+		if (from === to) {
+			return alert("서로 다른 날짜를 선택하세요.");
+		}
+	
+		if (from > to) {
+			setValueAsDate(start, to);
+			setValueAsDate(end, from);
+			
+			reload(to, from);
+		}
+		else {
+			reload(from, to);
+		}
+		
+		document.body.classList.remove("set");
+	});
+	
+	form.addEventListener("reset", function (e) {
+		document.body.classList.remove("set");
+	});	
+})({});
+		</script>
+	
+	</body>
+	
+</html>

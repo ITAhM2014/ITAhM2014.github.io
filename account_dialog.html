@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>dialog</title>
+		
+		<style>
+@import "css/itahm.css";
+		
+body {
+	margin: 0; padding: 0;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, .8);
+}
+
+.dialog {
+	width: 300px;
+	padding: 20px;
+	background-color: #fff;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="submit"],
+input[type="reset"],
+select {
+	width: 100%;
+	box-sizing: border-box;
+	padding: .5em;
+}
+
+input[type="checkbox"] {
+	vertical-align: middle;
+}
+
+.table {
+	margin-bottom: 10px;
+}
+
+.table ul {
+	display: flex;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.table li:first-child {
+	text-align: right;
+	padding: .5em;
+	flex: 2;
+}
+
+.table li:last-child {
+	flex: 3;
+}
+
+footer{
+	display: flex;
+}
+
+footer> input {
+	flex: 1;
+	border-radius: 1.2em;
+	background-color: #0084ff;
+	color: #fff;
+	border: .2em solid transparent;
+	padding: .5em;
+}
+
+footer> input:hover {
+	background-color: #fff;
+	color: #0084ff;
+	border-color: #0084ff;
+}
+
+body:not(.removable) .remove {
+	display: none;
+}
+
+		</style>
+		
+	</head>
+	
+	<body>
+		
+		<div class="dialog rounded">
+			<form autocomplete="off">
+				<h2>account</h2>
+				<div class="table">
+					<ul>
+						<li>username
+						<li>
+							<input type="text" name="username" class="table text" required>
+					</ul>
+					<ul>
+						<li>password
+						<li>
+							<input type="password" name="password"
+								class="table text"
+								placeholder="new password"
+								pattern=".{6,}"
+								title="at least 6 characters"
+								required>
+							<div>6자 이상</div>
+					</ul>
+					<ul>
+						<li>confirm password
+						<li>
+							<input type="password" name="password2"
+								class="table text"
+								placeholder="confirm password"
+								required>
+					</ul>
+					<ul>
+						<li>level
+						<li>
+							<select name="level">
+								<option value="0">root
+								<option value="2" selected>user
+							</select>
+					</ul>
+				</div>
+				<label class="remove"><input type="checkbox" name="remove" disabled>remove</label>
+				<footer>
+					<input type="reset" value="cancel">
+					<input type="submit" value="apply" disabled>
+				</footer>
+			</form>
+		</div>
+		
+		<script src="js/md5.js"></script>
+		<script>
+
+var form = document.querySelector("form");
+
+form.addEventListener("reset", onCancel);
+
+if (top.databases.local.level === 0) {
+	form.addEventListener("submit", onApply);
+	
+	document.querySelector("input[type=submit]").disabled = false;
+	
+	form.elements.remove.onclick = onRemove;
+	form.elements.remove.disabled = false;
+}
+
+
+/**
+ * callback method
+ */
+function onApply(e) {
+	e.preventDefault();
+	
+	var password = form.elements.password,
+		password2 = form.elements.password2;
+		
+	if (password.value !== password2.value) {
+		alert("password does not match the confirmation");
+		
+		password2.select();
+		
+		return;
+	}
+	
+	var username = form.elements.username.value;
+	
+	put(username, {
+			username: username,
+			password: hex_md5(password.value),
+			level: parseInt(form.elements.level.value)
+		});
+};
+
+function onRemove(e) {
+	var accountData = top.databases.account,
+		rootCheck = false;
+	
+	for (var username in accountData) {
+		if (username != form.elements.username.value && accountData[username].level === 0) {
+			rootCheck = true;
+			
+			break;
+		}
+	}
+	
+	if (!rootCheck) {
+		alert("루트 레벨 계정이 하나 이상 필요합니다.\n계정을 삭제할 수 없습니다.");
+		
+		return;
+	}
+	
+	if (confirm("계정을 삭제하겠습니까?")) {
+		put(form.elements.username.value, null);
+	}
+	else {
+		this.checked = false;
+	}
+}
+
+function onCancel(e) {
+	top.closeDialog();
+}
+
+function put(username, account) {
+	document.body.classList.add("loading");
+	
+	top.sendRequest({
+		command: "put",
+		database: "account",
+		key: username,
+		value: account
+	}, function (data) {
+		top.databases.account = data;
+		
+		window.opener.reload();
+		
+		top.closeDialog();
+	});
+}
+
+function initialize(username) {
+	window.opener = this.location;
+	
+	if (username) {
+		window.account = top.databases.account[username];
+		
+		form.elements.username.value = username;
+		form.elements.username.disabled = true;
+		
+		form.elements.level.value = account.level;
+		
+		document.body.classList.add("removable");
+	}
+	else {
+		form.elements.username.focus();
+	}
+}
+
+		</script>
+	
+	</body>
+	
+</html>
