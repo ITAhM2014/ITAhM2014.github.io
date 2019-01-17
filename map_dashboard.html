@@ -175,11 +175,11 @@ function onDragEnd(e) {
 }
 
 function moveAllDevice(x, y) {
-	const group = top.databases.local.parent;
+	const group = top.store.parent;
 	var pos;
 	
-	top.forEachDB("device", function (id) {
-		pos = top.databases.position[id];
+	for (let id in window.node) {
+		pos = top.position[id];
 		
 		if (pos.parent !== group) {
 			return;
@@ -189,9 +189,8 @@ function moveAllDevice(x, y) {
 		pos.y = Math.round((y + pos.y) /10) *10;
 	
 		window.svgData[id].setAttribute("transform", "translate("+ pos.x +","+ pos.y +")");
-	});
+	};
 
-	const posData = top.getDB("position");
 	var list, link, pos1, pos2;
 
 	for (let id in window.linkData) {
@@ -200,8 +199,8 @@ function moveAllDevice(x, y) {
 		for (let peerID in list) {
 			link = list[peerID];
 			
-			pos1 = posData[link.peer1];
-			pos2 = posData[link.peer2];
+			pos1 = top.position[link.peer1];
+			pos2 = top.position[link.peer2];
 
 			link.svg.setAttribute("x1", pos1.x);
 			link.svg.setAttribute("y1", pos1.y);
@@ -235,9 +234,8 @@ function moveAllDevice(x, y) {
 	}
 }
 
-function addDevice(id, pos) {
-	var device = top.getDB("device", id),
-		monitor = device.ip && top.databases.monitor[device.ip],
+function addNode(id, node, pos) {
+	var 
 		svgDevice = document.createElementNS(svgNS, "g"),
 		svgIcon = document.createElementNS(svgNS, "image"),
 		svgBG = document.createElementNS(svgNS, "circle"),
@@ -258,14 +256,14 @@ function addDevice(id, pos) {
 	
 	svgDevice.onmousedown = setClick;
 
-	if (device.group) {
+	if (node.base.type === "group") {
 		svgDevice.onclick = function() {
-			top.databases.local.parent = id;
+			top.store.parent = id;
 	
 			window.location.reload();
 		};
 	}
-	else if (monitor && monitor.protocol === "snmp") {
+	else if (node.monitor && node.monitor.protocol === "snmp") {
 		svgDevice.onclick = function () { //bind 사용하면 event가 arguments로 따라가서 안됨
 			if (window.click) {
 				top.showStatus(id);
@@ -273,8 +271,8 @@ function addDevice(id, pos) {
 		};
 	}
 	
-	svgName.textContent = device.name || device.ip;
-	svgAddr.textContent = device.ip || device.name;
+	svgName.textContent = node.base.name || node.base.ip || "";
+	svgAddr.textContent = node.base.ip || node.base.name || "";
 	
 	svgLabel.appendChild(svgName);
 	svgLabel.appendChild(svgAddr);
@@ -293,40 +291,37 @@ function addDevice(id, pos) {
 	
 	window.svgData[id] = svgDevice;
 	
-	drawDevice(id);
+	drawDevice(id, node, svgDevice, pos);
 	
 	addLine(id, pos);
 }
 
-function drawDevice(id) {
-	var device = top.getDB("device", id),
-		svgDevice = window.svgData[id],
+function drawDevice(id, node, svgDevice, pos) {
+	var 
 		svgIcon = svgDevice.querySelector("image"),
-		pos = top.databases.position[id],
-		icon = getIcon(device.type || "unknown"),
-		monitor = device.ip && top.databases.monitor[device.ip];
+		icon = getIcon(device.type || "unknown");
 	
 	removeClass(svgDevice, "shutdown", "critical");
 	
-	if (!monitor) {
-		svgIcon.setAttributeNS(xlinkNS, "xlink:href", device.application? "/img/setting.png": icon.disabled);
-	}
-	else {
+	if (node.monitor) {
 		svgIcon.setAttributeNS(xlinkNS, "xlink:href", icon.src);
 		
-		if (monitor.shutdown) {
+		if (!node.monitor.status) {
 			addClass(svgDevice, "shutdown");
 		}
-		else if (monitor.critical) {
+		else if ("critical" in node.monitor && !node.monitor.critical) {
 			addClass(svgDevice, "critical");
 		}
+	}
+	else {
+		svgIcon.setAttributeNS(xlinkNS, "xlink:href", icon.disabled);
 	}
 }
 
 function setClick() {
 	window.click = true;
 }
-
+/*
 function getDevice(svgDevice) {
 	if (!hasClass(svgDevice, "device")) {
 		svgDevice = svgDevice.parentNode;
@@ -334,7 +329,7 @@ function getDevice(svgDevice) {
 	
 	return hasClass(svgDevice, "device")? svgDevice: null;
 }
-
+*/
 function addClass(e, className) {
 	var cls = e.getAttribute("class"),
 		classList = cls? cls.split(" "): [];
@@ -385,15 +380,15 @@ function moveLabel(labelSvg, x1, y1, x2, y2) {
 }
 
 function addLine(id, pos) {
-	var device = top.getDB("device", id),
+	var 
 		ifEntry = pos.ifEntry,
 		peerList = {},
 		peerPos, peerID, link, lineSvg, port, labelSvg;
 	
 	window.linkData[id] = peerList;
 	
-	for (var peerID in ifEntry) {
-		peerPos = top.databases.position[peerID];
+	for (let peerID in ifEntry) {
+		peerPos = top.position[peerID];
 		
 		port = ifEntry[peerID];
 		
@@ -474,61 +469,44 @@ function setGroupStatus(id, status) {
 	}
 	// 그릴수 없는 조건
 	else {
-		if (id in top.databases.position) {
-			setGroupStatus(top.databases.position[id].parent, status);
+		if (id in top.position) {
+			setGroupStatus(top.position[id].parent, status);
 		}
 	}
 }
 
+// public
 function initialize() {
-	var group = top.databases.local.parent,
-		shutdown = {},
-		critical = {},
-		device, pos;
-	
-	top.forEachDB("device", function (id, device) {	
-		pos = top.databases.position[id];
+	if ("display" in top.config) {
+		document.body.classList[top.config.display == "name"? "add": "remove"]("name");
+	}
 
-		// 동기화 안된 node의 pos 정보가 없음
-		if (!pos) {
-			top.databases.position[id] = pos = {
-				x: 0,
-				y: 0,
-				ifEntry: {}
-			};
-		}
-		
-		if (pos.parent === group) {
-			addDevice(id, pos);
-		}
-		// upper 그룹일수도 lower 그룹일수도 있음
-		// upper 그룹은 대상이 아님
-		// 모니터링 대상장비 이어야 함
-		else if (pos.parent && device.ip && device.ip in top.databases.monitor) {
-			if (top.databases.monitor[device.ip].shutdown) {
-				shutdown[pos.parent] = true;
+	window.getIcon = function (type) {
+		return top.config.icon && top.config.icon[type] || top.store.icon[type];
+	}
+
+	top.postRequest({
+		command: "node"
+	}, function () {
+		switch (this.status) {
+		case 200:
+			resize();
+			
+			window.node = JSON.parse(this.responseText);
+
+			draw();
+
+			break;
+		default:
+			const message = this.responseText? JSON.parse(this.responseText).error: "";
+
+			if (message) {
+				console.log(message);
 			}
-			else if (top.databases.monitor[device.ip].critical) {
-				critical[pos.parent] = true;
-			}
+
+			alert(top.getMessage(this.status));
 		}
 	});
-	
-	for (var id in shutdown) {
-		setGroupStatus(id, "shutdown");
-	}
-	
-	for (var id in critical) {
-		setGroupStatus(id, "critical");
-	}
-
-	document.body.classList.remove("loading");
-
-	mapCanvas.style.animationName = "initialize";
-}
-
-function getIcon(type) {
-	return window.top.databases.icon[type] || window.top.databases.local.icon[type];
 }
 
 		</script>
@@ -565,7 +543,7 @@ var svgNS = "http://www.w3.org/2000/svg",
 const LINE_COLOR = "#d4af37",
 	LINE_WIDTH = 2;
 
-var posData = top.getDB("position"),
+var 
 	mapCanvas = document.getElementById("map"),
 	deviceCanvas = document.getElementById("device"),
 	lineCanvas = document.getElementById("line"),
@@ -577,10 +555,10 @@ var posData = top.getDB("position"),
 	linkData = {},
 	svgData = {},
 	checked = {},
-	scale = top.databases.local.scale,
+	scale = top.store.scale,
 	click = false;
 
-if (top.databases.local.level === 0) {
+if (top.account.level === 0) {
 	document.body.classList.add("root");
 }
 
@@ -590,18 +568,14 @@ mapCanvas.addEventListener("dragon", onDragStart);
 mapCanvas.addEventListener("drag", onDragMove);
 mapCanvas.addEventListener("dragoff", onDragEnd);
 
-if (top.databases.local.parent) {
+if (top.store.parent) {
 	document.body.classList.add("submap");
 	
 	parentAnchor.onclick = function (e) {
-		top.databases.local.parent = top.databases.position[top.databases.local.parent].parent;
+		top.store.parent = top.position[top.store.parent].parent;
 	
 		window.location.reload();
 	};
-}
-
-if ("display" in top.databases.config) {
-	document.body.classList[top.databases.config.display == "name"? "add": "remove"]("name");
 }
 
 (function (delay) {
@@ -641,8 +615,57 @@ if ("display" in top.databases.config) {
 	});
 })(300);
 
-resize();
+function draw() {
+	const group = top.store.parent;
+	var
+		shutdown = {},
+		critical = {},
+		node, pos;
 
+	for (let id in window.node) {
+		node = window.node[id];
+
+		pos = top.position[id];
+
+		// 동기화 안된 node의 pos 정보가 없음
+		if (!pos) {
+			top.position[id] = pos = {
+				x: 0,
+				y: 0,
+				ifEntry: {},
+				parent: top.store.parent
+			};
+		}
+		
+		if (pos.parent === group) {
+			addNode(id, node, pos);
+		}
+
+		// upper 그룹일수도 lower 그룹일수도 있음
+		// upper 그룹은 대상이 아님
+		// 모니터링 대상장비 이어야 함
+		else if (pos.parent && node.monitor) {
+			if (!node.monitor.status) {
+				shutdown[pos.parent] = true;
+			}
+			else if (!node.monitor.critical) {
+				critical[pos.parent] = true;
+			}
+		}
+	}
+	
+	for (let id in shutdown) {
+		setGroupStatus(id, "shutdown");
+	}
+	
+	for (let id in critical) {
+		setGroupStatus(id, "critical");
+	}
+
+	document.body.classList.remove("loading");
+
+	mapCanvas.style.animationName = "initialize";
+}
 		</script>
 	
 	</body>

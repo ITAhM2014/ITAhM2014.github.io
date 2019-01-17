@@ -47,11 +47,22 @@ header {
 }
 
 #header >li {
+	position: relative;
 	display: flex; align-items: center; justify-content: center;
 }
 
 #header >li:nth-child(1) {
 	position: relative;
+}
+
+#sort::after {
+	content: "▲";
+	cursor: pointer;
+	position: absolute; right: 3px;
+}
+
+#sort.reverse::after {
+	content: "▼";
 }
 
 #header >li:not(:last-child) {
@@ -149,7 +160,7 @@ label {
 	background-image: url(img/normal.png);
 }
 
-#list> ul[data-critical=true] >li:first-child {
+#list> ul[data-critical] >li:first-child {
 	background-image: url(img/siren.png);
 }
 
@@ -157,7 +168,7 @@ label {
 	background-image: url(img/warning.png);
 }
 
-#list> ul[data-disaled] >li:first-child {
+#list> ul[data-disabled] >li:first-child {
 	background-image: url(img/disabled.png);
 }
 
@@ -240,8 +251,10 @@ label {
 	}
 }
 
+#list >ul.hidden,
+body.keyword #list> ul:not(.keyword),
 body.normal #list> ul:not([data-normal]),
-body.critical #list> ul:not([data-critical=true]),
+body.critical #list> ul:not([data-critical]),
 body.shutdown #list> ul:not([data-shutdown]),
 body.disabled #list> ul:not([data-disabled]) {
 	display: none;
@@ -277,7 +290,7 @@ function onEdit() {
 }
 
 function onSetAlarm(){
-	top.showDialog.call(window, "/critical_dialog.html", top.getDB("device", window.selectedID).ip);
+	top.showDialog.call(window, "/critical_dialog.html", window.selectedID);
 }
 
 function onMap() {
@@ -289,11 +302,11 @@ function onShowStatus() {
 }
 
 function initialize() {
-	if ("custom" in top.databases.config) {
-		var customs = top.databases.config.custom;
+	if ("custom" in top.config) {
+		var customs = top.config.custom;
 		
 		if (customs) {
-			var df = document.createDocumentFragment();
+			let df = document.createDocumentFragment();
 			
 			window.customs = customs.split(",");
 			
@@ -305,56 +318,57 @@ function initialize() {
 		}
 	}
 	
-	initList();
-
-	initLabel();
-}
-
-function initList() {
-	var deviceData = top.getDB("device"),
+	const
 		df = document.createDocumentFragment(),
-		monitorData = top.databases.monitor,
-		criticalData = top.databases.critical,
-		ipList = Object.keys(deviceData),
-		count = 0, device;
-	
-	ipList.sort(function (a, b) {
-		return IP2Int(deviceData[a].ip) - IP2Int(deviceData[b].ip);
-	});
-	
-	for (let i=0, _i=ipList.length, id; i<_i; i++) {
+		ipList = Object.keys(window.node).sort(function (a, b) {
+			const
+				ipA = window.node[a].base.ip,
+				ipB = window.node[b].base.ip;
+			
+			if (ipA && ipB) {
+				return IP2Int(ipA) - IP2Int(ipB);
+			}
+			else if (ipA) {
+				return 1;
+			}
+			else {
+				return 2;
+			}
+		});
+
+	for (let i=0, _i=ipList.length, id, node; i<_i; i++) {
 		id = ipList[i];
 	
-		device = deviceData[id];
+		node = window.node[id];
 	
-		if (device.group || device.application) {
+		if (node.base.type === "group" || node.base.type === "application") {
 			continue;
 		}
 		
-		df.appendChild(createRow(id, device, monitorData[device.ip]));
-		
-		count++;
+		df.appendChild(createRow(id, node.base, node.monitor));
 	}
-	
-	document.getElementById("count").textContent = count;
 	
 	list.appendChild(df);
 	
 	document.body.classList.remove("loading");
+
+	document.getElementById("count").textContent = count();
+
+	initLabel();
 }
 
-function createRow(id, device, monitor) {
-	var critical = top.databases.critical[device.ip],
+function createRow(id, base, monitor) {
+	var
 		row = document.createElement("ul"),
 		type, labels, label;
 	
 	row.appendChild(document.createElement("li")); // N.1
 	
-	row.appendChild(document.createElement("li")).textContent = device.ip; // N.2
+	row.appendChild(document.createElement("li")).textContent = base.ip || ""; // N.2
 	
 	type = document.createElement("li");
-	type.dataset.type = device.type;
-	type.style.backgroundImage = "url('"+ getIcon(device.type).src +"')";
+	type.dataset.type = base.type;
+	type.style.backgroundImage = "url('"+ getIcon(base.type).src +"')";
 	
 	row.appendChild(type); // N.3
 	
@@ -362,31 +376,36 @@ function createRow(id, device, monitor) {
 	
 	if (window.customs) {
 		forEach(window.customs, function (custom) {
-			row.appendChild(document.createElement("li")).textContent = device[custom] || "";
+			row.appendChild(document.createElement("li")).textContent = base.custom[custom] || "";
 		});
 	};
 	
-	row.appendChild(document.createElement("li")).textContent = device.name; // N.0
+	row.appendChild(document.createElement("li")).textContent = base.name; // N.0
+
+	row.id = id;
 	
-	window.deviceMapping[id] = row;
-	
-	if (device.label) {
-		labels = device.label.split(",");
+	if (base.label) {
+		labels = base.label.split(",");
 		
 		for (var i=0, length=labels.length; i<length; i++) {
 			label = labels[i];
 			
-			row.classList.add(label);
-			
-			window.labelData[label] = null;
+			if (!(label in window.labelMap)) {
+				window.labelMap[label] = [];
+			}
+
+			window.labelMap[label].push(row);
 		}
+	}
+	else {
+		window.labelMap[""].push(row);
 	}
 	
 	if (monitor) {
-		if (monitor.shutdown) {
+		if (!monitor.status) {
 			row.dataset.shutdown = true;
 		}
-		else if (monitor.critical) {
+		else if ("critical" in monitor && !monitor.critical) {
 			row.dataset.critical = true;
 		}
 		else {
@@ -433,7 +452,7 @@ function initLabel() {
 	var df = document.createDocumentFragment(),
 		option = document.createElement("option");
 
-	for (var label in window.labelData) {
+	for (var label in window.labelMap) {
 		option = document.createElement("option");
 		
 		option.text = label;
@@ -442,106 +461,6 @@ function initLabel() {
 	}
 	
 	window.label.insertBefore(df, window.label.firstChild);
-}
-
-function clearDeviceList() {
-	var df = document.createDocumentFragment(),
-		row;
-	
-	while (row = list.firstChild) {
-		df.appendChild(row);
-	}
-	
-	return df;
-}
-
-function onReset(e) {
-	e.preventDefault();
-	
-	changeLabel();
-}
-
-function onChangeLabel(e) {
-	changeLabel();
-}
-
-function changeLabel() {
-	form.elements["keyword"].value = "";
-	
-	selectLabel(window.label.value);
-}
-
-// 선택 초기화 (키워드로 필터링)
-function onSearch(e) {
-	e.preventDefault();
-	
-	document.body.classList.add("loading");
-
-	selectLabel(window.label.value);
-	
-	selectDevice();
-	
-	const keyword = form.elements["keyword"].value;
-	var row = clearDeviceList().firstChild,
-		next, cols,
-		df = document.createDocumentFragment(),
-		device;
-	
-	let count = 0;
-	
-	while (row) {
-		next = row.nextSibling;
-		
-		cols = row.children;
-		
-		for (var i=0, length=cols.length; i<length; i++) {
-			if (cols[i].textContent.indexOf(keyword) !== -1) {
-				df.appendChild(row);
-				
-				count++;
-				
-				break;
-			}
-		}
-		
-		row = next;
-	}
-	
-	document.getElementById("count").textContent = count;
-	
-	list.appendChild(df);
-
-	document.body.classList.remove("loading");
-}
-
-// 선택 초기화 (라벨별로 필터링)
-function selectLabel(label) {
-	let df = document.createDocumentFragment(),
-		count = 0;
-	
-	selectDevice();
-	
-	for (var id in window.deviceMapping) {
-		df.appendChild(window.deviceMapping[id]);
-		
-		count++;
-	}
-	
-	if (window.label.selectedIndex < window.label.options.length -1) {
-		let condition = window.label.selectedIndex === window.label.options.length -2? "[data-unlabeled]": ("."+ label),
-			rows = [].slice.call(df.querySelectorAll(condition), 0);
-			
-		df = document.createDocumentFragment();
-		count = rows.length;
-		
-		for (var i=0; i<count; i++) {
-			df.appendChild(rows[i]);
-		}
-	}
-	
-	document.getElementById("count").textContent = count;
-	
-	list.appendChild(df);
 }
 
 // 선택 초기화 (상태별로 필터링)
@@ -557,10 +476,6 @@ function onSelectStatus (src, className) {
 	icon.src = src;
 	
 	window.selector.blur();
-}
-
-function getIcon(type) {
-	return top.databases.icon[type] || top.databases.local.icon[type];
 }
 
 function onSave() {
@@ -633,6 +548,19 @@ function onSave() {
 	}), "list.csv");
 }
 
+function count() {
+	var count = 0;
+
+	[].forEach.call(window.list.children, function (row) {
+		if (row.offsetHeight > 0) {
+			count++;
+		}
+	});
+
+	return count;
+}
+
+
 function forEach(a, f) {
 	for (var i=0, _i=a.length; i<_i; i++) {
 		f(a[i]);
@@ -651,7 +579,7 @@ function forEach(a, f) {
 					<div>
 						<select id="label">
 							<optgroup>
-								<option>미분류
+								<option value="">미분류
 							</optgroup>
 							<optgroup>
 								<option selected>모두 보기
@@ -668,8 +596,8 @@ function forEach(a, f) {
 						<img id="alarm" class="snmp" src="img/alarm.png" title="장비의 성능 임계 설정">
 					</div>
 				</nav>
-				<form id="form">
-					<input type="text" name="keyword" placeholder="이름, 유형, IP주소 ">
+				<form>
+					<input type="text" name="keyword" placeholder="IP, Type, Name">
 					<input type="submit" value="찾기">
 					<input type="reset" value="초기화">
 				</form>
@@ -696,7 +624,7 @@ function forEach(a, f) {
 								<img src="img/all.png">
 							</p>
 						</div>
-					<li>IP
+					<li id="sort">IP
 					<li>Type
 					<li>Monitor
 					<li>Name
@@ -712,21 +640,45 @@ function forEach(a, f) {
 		<script src="js/object.js"></script>
 		<script>
 
-var form = document.getElementById("form"),
+var 
 	header = document.getElementById("header"),
 	label = document.getElementById("label"),
 	list = document.getElementById("list"),
 	selector = document.querySelector(".selector"),
 	icon = document.getElementById("icon"),
 	action = document.getElementById("action"),
-	deviceMapping = {},
-	labelData = {},
+	labelMap = {
+		"": []
+	},
 	customs, selected;
 
-label.addEventListener("change", onChangeLabel);
+label.onchange = function () {
+	const
+		df = document.createDocumentFragment(),
+		label = this.value;
+	
+	document.body.classList.add("loading");
+	
+	if (window.label.selectedIndex === window.label.options.length -1) {
+		for (let row; row = window.list.firstElementChild;) {
+			df.appendChild(row).classList.remove("hidden");
+		}
+	}
+	else {
+		// 선택 초기화
+		selectDevice();
 
-window.form.addEventListener("submit", onSearch);
-window.form.addEventListener("reset", onReset);
+		for (let row; row = window.list.firstElementChild;) {
+			df.appendChild(row).classList[window.labelMap[label].indexOf(row) == -1? "add": "remove"]("hidden");
+		}
+	}
+	
+	window.list.appendChild(df);
+
+	document.body.classList.remove("loading");
+
+	document.getElementById("count").textContent = count();
+};
 
 document.getElementById("shutdown").onclick = onSelectStatus.bind(window, "img/warning.png", "shutdown");
 document.getElementById("critical").onclick = onSelectStatus.bind(window, "img/siren.png", "critical");
@@ -739,9 +691,121 @@ document.getElementById("edit").onclick = onEdit;
 document.getElementById("alarm").onclick = onSetAlarm;
 document.getElementById("status").onclick = onShowStatus;
 
-initialize();
+document.getElementById("sort").onclick = function (e) {
+	const
+		reverse = this.classList.toggle("reverse"),
+		df = document.createDocumentFragment();
 
-		</script>
+	[].slice.call(window.list.children).sort(reverse?
+		function (a, b) {
+			return b.children[1].textContent.localeCompare(a.children[1].textContent);
+		}:
+		function (a, b) {
+			return a.children[1].textContent.localeCompare(b.children[1].textContent);
+		}).forEach(function (e) {
+			df.appendChild(e);
+		});
+
+	window.list.appendChild(df);
+};
+
+(function (form) {
+	// 키워드로 필터링
+	form.onsubmit = function (e) {
+		e.preventDefault();
+		
+		document.body.classList.add("loading", "keyword");
+
+		// 선택 취소
+		selectDevice();
+		
+		const keyword = form.elements["keyword"].value;
+
+		if (!keyword) {
+			resetKeyWord();
+
+			return;
+		}
+
+		const df = document.createDocumentFragment();
+		
+		for (let row, cols; row = window.list.firstElementChild;) {
+			cols = row.children;
+
+			df.appendChild(row);
+
+			for (var i=0, length=cols.length; i<length; i++) {
+				row.classList.remove("keyword");
+
+				if (cols[i].textContent.indexOf(keyword) !== -1) {
+					row.classList.add("keyword");
+					
+					break;
+				}
+			}
+		}
+		
+		window.list.appendChild(df);
+
+		document.body.classList.remove("loading");
+
+		document.getElementById("count").textContent = count();
+	};
+
+	form.onreset =  function (e) {
+		e.preventDefault();
+	
+		form.elements["keyword"].value = "";
+
+		resetKeyWord();
+	};
+
+	function resetKeyWord() {
+		const df = document.createDocumentFragment();
+
+		document.body.classList.add("loading");
+		
+		for (let row; row = window.list.firstElementChild;) {
+			df.appendChild(row).classList.remove("keyword");
+		}
+
+		document.body.classList.remove("keyword");
+
+		window.list.appendChild(df);
+
+		document.body.classList.remove("loading");
+
+		document.getElementById("count").textContent = count();
+	}
+
+	window.getIcon = function (type) {
+		return top.config.icon && top.config.icon[type] || top.store.icon[type];
+	};
+
+}) (document.querySelector("form"));
+
+top.postRequest({
+	command: "node"
+}, function () {
+	switch (this.status) {
+	case 200:
+		window.node = JSON.parse(this.responseText);
+
+		initialize();
+
+		break;
+	default:
+		const message = this.responseText? JSON.parse(this.responseText).error: "";
+
+		if (message) {
+			console.log(message);
+		}
+
+		alert(top.getMessage(this.status));
+	}
+});
+
+</script>
 	
 	</body>
 	

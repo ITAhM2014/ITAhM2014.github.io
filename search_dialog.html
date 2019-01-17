@@ -160,7 +160,7 @@ form.addEventListener("reset", onCancel);
 
 window.mask.onchange = onSelect;
 
-if (top.databases.local.level === 0) {
+if (top.account.level === 0) {
 	form.addEventListener("submit", onApply);
 	document.querySelector("input[type=submit]").disabled = false;
 }
@@ -173,8 +173,8 @@ function onApply(e) {
 	e.preventDefault();
 	
 	var request = {
-			command: "extra",
-			extra: "search",
+			command: "order",
+			order: "search",
 			network: form.elements.network.value,
 			mask: parseInt(window.mask.options[window.mask.selectedIndex].text)
 		};

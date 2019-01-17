@@ -530,7 +530,6 @@ div.flex span {
 	}
 	
 	label.filter,
-	#reset,
 	nav {
 		display: none;
 	}
@@ -774,16 +773,6 @@ function initialize() {
 	var entry;
 	
 	document.title = window.ip + (window.snmp.sysName? " ["+ window.snmp.sysName +"]": "");
-	
-	document.getElementById("reset").onclick = function () {
-		sendRequest({
-			command: "extra",
-			extra: "reset",
-			ip: window.ip
-		}, function () {
-			window.location.reload();
-		});
-	};
 	
 	document.getElementById("sys_name").textContent = window.snmp.sysName;
 	document.getElementById("sys_name").title = window.snmp.sysDescr;
@@ -1045,7 +1034,7 @@ function closeDialog() {
 				</ul>
 				<ul>
 					<li>상태
-					<li id="status">(<span id="failure"></span>%) <input type="button" id="reset" value="초기화">
+					<li id="status">(<span id="failure"></span>%)
 				</ul>
 			</section>
 			
@@ -1255,8 +1244,8 @@ document.getElementById("set_monitor").onclick = function (e) {
 	document.body.classList.add("loading");
 
 	postRequest({
-		command: "extra",
-		extra: "monitor",
+		command: "order",
+		order: "monitor",
 		ip: window.ip,
 		monitor: ifMonitor	
 	}, function () {

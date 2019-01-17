@@ -126,7 +126,7 @@ var form = document.querySelector("form");
 
 form.addEventListener("reset", onCancel);
 
-if (top.databases.local.level === 0) {
+if (top.account.level === 0) {
 	form.addEventListener("submit", onApply);
 	document.querySelector("input[type=submit]").disabled = false;
 }
@@ -165,7 +165,7 @@ window.initialize = function (type) {
 			document.body.classList.add("customized");
 		}
 		else {
-			window.icon = top.databases.local.icon[type];
+			window.icon = top.store.icon[type];
 		}
 		
 		document.getElementById("image").src = icon.src;
@@ -176,7 +176,7 @@ window.initialize = function (type) {
 		form.elements.url.value = icon.src;
 		form.elements.disabled.value = icon.disabled;
 		
-		if (top.databases.local.level === 0) {
+		if (top.account.level === 0) {
 			form.elements.reset.onclick = onReset;
 			form.elements.reset.disabled = false;
 		}

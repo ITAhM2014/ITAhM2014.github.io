@@ -349,8 +349,8 @@ function initCritical() {
 		document.body.classList.add("loading");
 		
 		top.postRequest({
-			command: "extra",
-			extra: "critical",
+			command: "order",
+			order: "critical",
 			target: target,
 			resource: this.elements["resource"].value || undefined,
 			rate: this.elements["rate"].value,
@@ -902,7 +902,7 @@ var configData = top.databases.config,
 	iftype = document.getElementById("iftype"),
 	backup = document.getElementById("backup");
 
-if (top.databases.local.level > 0) {
+if (top.account.level > 0) {
 	[].forEach.call(document.querySelectorAll(".root"),
 		function (e) {
 			e.disabled = true;
@@ -1123,8 +1123,8 @@ backup.onsubmit = function (e) {
 	document.body.classList.add("loading");
 	
 	top.sendRequest({
-		command: "extra",
-		extra: "backup"
+		command: "order",
+		order: "backup"
 	}, function (backup) {
 		document.body.classList.remove("loading");
 		
@@ -1152,8 +1152,8 @@ backup.elements["restore"].onchange = function (e) {
 		document.body.classList.add("loading");
 		
 		top.sendRequest({
-			command: "extra",
-			extra: "restore",
+			command: "order",
+			order: "restore",
 			backup: JSON.parse(this.result)
 		}, function () {
 			document.body.classList.remove("loading");
@@ -1209,8 +1209,8 @@ document.getElementById("test").onclick = function (e) {
 	document.body.classList.add("loading");
 	
 	top.sendRequest({
-		command: "extra",
-		extra: "test"
+		command: "order",
+		order: "test"
 	}, function (data) {
 		document.body.classList.remove("loading");
 		

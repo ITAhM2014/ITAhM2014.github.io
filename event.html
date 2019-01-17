@@ -194,19 +194,19 @@ function sendRequest(mills) {
 		window.list.removeChild(log);
 	}
 	
-	top.sendRequest({
-		command: "extra",
-		extra: "log",
+	top.postRequest({
+		command: "log",
 		date: mills
-	}, function (data) {
-		if (data) {
-			var df = document.createDocumentFragment(),
-				indexArray = Object.keys(data);
+	}, function () {
+		switch (this.status) {
+		case 200:
+			const
+				data = JSON.parse(this.responseText),
+				df = document.createDocumentFragment(),
+				indexArray = Object.keys(data).sort(function (a, b) {
+					return parseInt(a) - parseInt(b);
+				}),
 				count = indexArray.length;
-			
-			indexArray = indexArray.sort(function (a, b) {
-				return parseInt(a) - parseInt(b);
-			});
 			
 			for (var i=0; i<count; i++) {
 				df.appendChild(createItem(data[indexArray[i]]));
@@ -214,76 +214,55 @@ function sendRequest(mills) {
 			
 			window.list.appendChild(df);
 			
-			list.scrollTop = list.scrollHeight;		
+			list.scrollTop = list.scrollHeight;	
+			
+			document.getElementById("count").textContent = count;
+			document.getElementById("date").textContent = getDateString(mills);
+
+			document.body.classList.remove("loading");
+	
+			break;
+		default:
+			alert(top.getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
 		}
-
-		document.getElementById("count").textContent = count;
-
-		document.getElementById("date").textContent = getDateString(mills);
-
-		document.body.classList.remove("loading");
 	});
 }
 
-function getDeviceName(id) {
-	const device = id && top.getDB("device", id);
-
-	return device && device.name || "";
-}
-
-function createItem(log) {
+function createItem(event) {
 	var ul = document.createElement("ul"),
 		icon = ul.appendChild(document.createElement("li")).appendChild(document.createElement("img")),
-		id = "ip" in log && top.getDeviceID(log.ip),
-		name = getDeviceName(id),
 		status = 0;
 	
-	ul.appendChild(document.createElement("li")).textContent = toTimeString(log.date);
-	ul.appendChild(document.createElement("li")).textContent = name || log.ip;
+	ul.appendChild(document.createElement("li")).textContent = toTimeString(event.date);
+	ul.appendChild(document.createElement("li")).textContent = event.name;
 	
-	("origin" in log? function () {
-		switch(log.origin) {
-		case "critical":
-			if (log.critical) {
-				status = 1;
-			}
-
-			break;
-
-		case "shutdown":
-			if (log.shutdown) {
-				status = 2;
-			}
-
-			break;
-
-		case "system":
-
-			break;
-
-		case "test":
-			if (!log.test) {
-				status = 2;
-			}
-
-			break;
-
-		case "monitor":
-			if (!log.monitor) {
-				status = 2;
-			}
-
-			break;
+	switch(event.origin) {
+	case "critical":
+	case "snmp":
+	case "test":
+		if (!event.status) {
+			status = 1;
 		}
-	} : function () {
-		//이전 버전
-	}) ();
 
-	if (!("message" in log) && ("ip" in log) && ("test" in log) && ("protocol" in log)) {
-		log.message = log.ip +" "+ log.protocol +" 등록 "+ (log.test? "성공": "실패");
+		break;
+	case "status":
+	case "updown":
+		if (!event.status) {
+			status = 2;
+		}
+
+		break;
+	case "warning":
+		status = 1;
+
+		break;	
+	case "system":
+		break;
 	}
-	
-	ul.appendChild(document.createElement("li")).textContent = log.message;
+
+	ul.appendChild(document.createElement("li")).textContent = event.message;
 
 	ul.classList.add("item");
 	

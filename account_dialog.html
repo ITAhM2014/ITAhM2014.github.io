@@ -138,7 +138,7 @@ var form = document.querySelector("form");
 
 form.addEventListener("reset", onCancel);
 
-if (top.databases.local.level === 0) {
+if (top.account.level === 0) {
 	form.addEventListener("submit", onApply);
 	
 	document.querySelector("input[type=submit]").disabled = false;

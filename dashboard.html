@@ -317,7 +317,7 @@ header> ul> li:nth-child(3) {
 function initialize() {
 	update();
 	
-	(function (map, configData) {
+	(function (map) {
 		map.onload = function () {
 			var mapWindow = window.map.contentWindow,
 				scale;
@@ -327,7 +327,7 @@ function initialize() {
 
 				mapWindow.zoom(scale);
 				
-				window.top.databases.local.scale = scale;
+				window.top.store.scale = scale;
 			}
 			
 			document.getElementById("zoom_in").onclick = function () {
@@ -342,58 +342,58 @@ function initialize() {
 				zoom(e.deltaY < 0);
 			});
 			
-			mapWindow.zoom(scale = window.top.databases.local.scale);
+			mapWindow.zoom(scale = top.store.scale);
 			
 			mapWindow.initialize();
 		};
 
-		if ("animation" in configData) {
-			switch(configData.animation) {
+		if ("animation" in top.config) {
+			switch(top.config.animation) {
 				case "none":
 					map.src = "/map_dashboard.html";
 				break;
 
 				default:
-					map.src = "/map_dashboard_"+ configData.animation +".html";
+					map.src = "/map_dashboard_"+ top.config.animation +".html";
 			}
 		}
 		else {
 			map.src = "/map_dashboard.html";
 		}
-	}) (document.getElementById("map"), top.getDB("config"));
+	}) (document.getElementById("map"));
 	
 	removeClass(document.body, "loading");
 	
 	window.setInterval(update, 5000);
 }
 
-function update() {
-	initStats();
+function clearElement(e) {
+	for (let child; child=e.firstChild;) {
+		e.removeChild(child);
+	}
 }
 
-function initStats() {
-	var monitorData = top.getDB("monitor"),
+function update() {
+	var 
 		df = document.createDocumentFragment(),
-		monitor,
+		node,
 		shutdown = 0,
 		critical = 0,
 		normal = 0,
 		labelData = {},
 		device, count;
 	
-	while (window.summaryList.firstChild) {
-		window.summaryList.removeChild(window.summaryList.firstChild);
-	}
+	clearElement(window.summaryList);
 	
-	top.forEachDB("device", function (id, device) {
-		monitor = device.ip && monitorData[device.ip];
+	for (let id in window.node) {
+		node = window.node[id];
 	
-		if (!monitor) {
-			return;
+		if (!node.monitor) {
+			continue;
 		}
 		
-		if (device.label) {
-			labels = device.label.split(",");
+		if (node.base.label) {
+			labels = node.base.label.split(",");
 			
 			for (var i=0, length=labels.length; i<length; i++) {
 				if (!labelData[labels[i]]) {
@@ -404,10 +404,10 @@ function initStats() {
 					}
 				}
 				
-				if (monitor.shutdown) {
+				if (node.monitor.shutdown) {
 					labelData[labels[i]].shutdown++;
 				}
-				else if (monitor.critical) {
+				else if (node.monitor.critical) {
 					labelData[labels[i]].critical++;
 				}
 				else {
@@ -416,16 +416,16 @@ function initStats() {
 			}
 		}
 		
-		if (monitor.shutdown) {
+		if (node.monitor.shutdown) {
 			shutdown++;
 		}
-		else if (monitor.critical) {
+		else if (node.monitor.critical) {
 			critical++;
 		}
 		else {
 			normal++;
 		}		
-	});
+	}
 	
 	window.alert.dataset.value = shutdown;
 	window.critical.dataset.value = critical;
@@ -612,8 +612,7 @@ function hasClass(e, className) {
 		<script src="/js/Draggable.js"></script>
 		<script>
 
-var configData = top.databases.config,
-	summaryList = document.getElementById("summary_list"),
+var summaryList = document.getElementById("summary_list"),
 	eventList = document.getElementById("event_list"),
 	article = document.querySelector("article"),
 	alert = document.getElementById("alert"),
@@ -676,10 +675,6 @@ var configData = top.databases.config,
 		}
 	};
 
-if ("display" in configData) {
-	window[top.databases.config.display !== "name"? "removeClass": "addClass"](document.body, "name");
-}
-
 document.getElementById("edit").onclick = function () {
 	window.location.href = "/map_edit.html";
 };
@@ -718,7 +713,26 @@ document.getElementById("edit").onclick = function () {
 	};
 }) (1000);
 
-initialize();
+top.postRequest({
+	command: "node"
+}, function () {
+	switch (this.status) {
+	case 200:
+		window.node = JSON.parse(this.responseText);
+
+		initialize();
+
+		break;
+	default:
+		const message = this.responseText? JSON.parse(this.responseText).error: "";
+
+		if (message) {
+			console.log(message);
+		}
+
+		alert(top.getMessage(this.status));
+	}
+});
 
 		</script>
 	

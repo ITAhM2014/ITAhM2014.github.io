@@ -150,7 +150,7 @@ body.name .list_item> li:nth-child(2) {
 function initialize() {
 	const df = document.createDocumentFragment();
 	let resource;
-	
+	/*
 	if ("dashboard" in top.databases.config) {
 		var resources = top.databases.config.dashboard,
 			order = Object.keys(resources);
@@ -165,16 +165,16 @@ function initialize() {
 			setTop(top.topList[resource], df.appendChild(document.getElementById(resource)));
 		}
 	}
-	else {
+	else {*/
 		const list = document.getElementById("tmp_list");
 		let section;
 
 		while (section = list.firstElementChild) {
 			resource = section.id;
-
+if (!(resource in top.topList)) console.log(resource);
 			setTop(top.topList[resource], df.appendChild(section));
 		}
-	}
+	//}
 
 	window.list.appendChild(df);
 }
@@ -237,34 +237,28 @@ function setTop(topData, section) {
 			else {
 				return topData[b].value - topData[a].value;
 			}
-		}),
-		max = "top" in top.databases.config? Math.min(top.databases.config.top, list.length): list.length;
+		});
 
-	for (let i=0, ip, value; i< max; i++) {
-		ip = list[i];
-		value = topData[ip];
+	for (let i=0, _i=list.length, id, value; i< _i; i++) {
+		id = list[i];
+		value = topData[id];
 		
 		if (value.value || !skipZero) {
-			section.appendChild(createTopItem(ip, toString(value.value), value.rate, section.id, value.index));
+			section.appendChild(createTopItem(id, toString(value.value), value.rate, section.id, value.index));
 		}
 	}
 }
 
-function createTopItem(ip, value, rate, resource, index) {
-	var item = document.createElement("ul"),
-		id = top.getDeviceID(ip),
+function createTopItem(id, value, rate, resource, index) {
+	var 
+		node = window.node[id],
+		item = document.createElement("ul"),
 		bar;
 
-	if (!id) {
-		console.log("서버와 동기화 실패 node: "+ ip);
-
-		return item;
-	}
-	
 	item.className = "list_item";
 	
-	item.appendChild(document.createElement("li")).textContent = top.getDB("device", id).name || ip;
-	item.appendChild(document.createElement("li")).textContent = ip;
+	item.appendChild(document.createElement("li")).textContent = node.base.name || node.base.ip || id;
+	item.appendChild(document.createElement("li")).textContent = node.base.ip;
 	
 	bar = item.appendChild(document.createElement("li"));
 	bar.dataset.value = value;
@@ -283,7 +277,7 @@ function createTopItem(ip, value, rate, resource, index) {
 	
 	bar.onclick = function (e) {
 		e.stopPropagation();
-		console.log(resource);
+		
 		top.showStatus(id, resource, index);
 	}
 	
@@ -334,10 +328,6 @@ function createTopItem(ip, value, rate, resource, index) {
 				<div class="title">통신 오류</div>
 				<div class="list"></div>
 			</section>
-			<section id="failureRate" data-func="toPercentageString" data-zero="true">
-				<div class="title">SNMP 오류</div>
-				<div class="list"></div>
-			</section>
 		</div>
 		
 		<script>
@@ -345,17 +335,34 @@ function createTopItem(ip, value, rate, resource, index) {
 var list = document.getElementById("top_list"),
 	rafID;
 
-(function (configData) {
-	if ("display" in configData && configData.display !== "name") {
-		document.body.classList.remove("name");
-	}
+if ("display" in top.config && top.config.display !== "name") {
+	document.body.classList.remove("name");
+}
 
-	if ("color" in configData) {
-		window.list.classList.add(configData.color);
-	}
-}) (top.databases.config);
+if ("color" in top.config) {
+	window.list.classList.add(top.config.color);
+}
 
-initialize();
+top.postRequest({
+	command: "node"
+}, function () {
+	switch (this.status) {
+	case 200:
+		window.node = JSON.parse(this.responseText);
+
+		initialize();
+
+		break;
+	default:
+		const message = this.responseText? JSON.parse(this.responseText).error: "";
+
+		if (message) {
+			console.log(message);
+		}
+
+		alert(top.getMessage(this.status));
+	}
+});
 
 function reload() {
 	const rafID = 

@@ -126,7 +126,7 @@ function buildType() {
 		group = {},
 		icon, iconData, type;
 	
-	iconData = top.databases.local.icon;
+	iconData = top.store.icon;
 	for (type in iconData) {
 		typeData[type] = iconData[type];
 	}
@@ -282,7 +282,7 @@ document.getElementById("close").onclick = function () {
 					x: 0,
 					y: 0,
 					ifEntry: {},
-					parent: top.databases.local.parent
+					parent: top.store.parent
 				}; 
 				
 				saveGroup(id, group);

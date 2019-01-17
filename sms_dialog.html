@@ -241,7 +241,7 @@ function sendRequest(id, sms) {
 
 var form = document.querySelector("form");
 
-if (top.databases.local.level === 0) {
+if (top.account.level === 0) {
 	form.addEventListener("submit", onApply);
 	form.elements["remove"].onclick = onRemove;
 	form.elements["remove"].disabled = false;

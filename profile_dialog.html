@@ -373,7 +373,7 @@ form.elements["en_priv"].onclick = function () {
 	enableElement(window.form.elements["privacy"], this.checked);
 };
 
-if (top.databases.local.level === 0) {
+if (top.account.level === 0) {
 	form.addEventListener("submit", onApply);
 	form.elements["remove"].onclick = onRemove;
 	form.elements["remove"].disabled = false;

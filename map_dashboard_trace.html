@@ -207,7 +207,7 @@ function onDragEnd(e) {
 }
 
 function moveAllDevice(x, y) {
-	const group = top.databases.local.parent;
+	const group = top.store.parent;
 	var pos;
 	
 	top.forEachDB("device", function (id) {
@@ -290,7 +290,7 @@ function addDevice(id, pos) {
 	
 	if (device.group) {
 		svgDevice.onclick = function() {
-			top.databases.local.parent = id;
+			top.store.parent = id;
 	
 			window.location.reload();
 		};
@@ -574,7 +574,7 @@ function stopAnimation () {
 }
 
 function initialize() {
-	var group = top.databases.local.parent,
+	var group = top.store.parent,
 		shutdown = {},
 		critical = {},
 		device, pos;
@@ -623,7 +623,7 @@ function initialize() {
 }
 
 function getIcon(type) {
-	return window.top.databases.icon[type] || window.top.databases.local.icon[type];
+	return top.databases.icon[type] || top.store.icon[type];
 }
 
 		</script>
@@ -673,10 +673,10 @@ var posData = top.getDB("position"),
 	linkData = {},
 	svgData = {},
 	checked = {},
-	scale = top.databases.local.scale,
+	scale = top.store.scale,
 	isDragging = false;
 
-if (top.databases.local.level === 0) {
+if (top.account.level === 0) {
 	document.body.classList.add("root");
 }
 
@@ -686,11 +686,11 @@ mapCanvas.addEventListener("dragon", onDragStart);
 mapCanvas.addEventListener("drag", onDragMove);
 mapCanvas.addEventListener("dragoff", onDragEnd);
 
-if (top.databases.local.parent) {
+if (top.store.parent) {
 	document.body.classList.add("submap");
 	
 	parentAnchor.onclick = function (e) {
-		top.databases.local.parent = top.databases.position[top.databases.local.parent].parent;
+		top.store.parent = top.databases.position[top.store.parent].parent;
 	
 		window.location.reload();
 	};
