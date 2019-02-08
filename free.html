@@ -425,17 +425,6 @@ function update() {
 	}));
 }
 
-function getDeviceName(ip) {
-	if (!ip) {
-		return "";
-	}
-
-	const id = getDeviceID(ip),
-		device = id && top.getDB("device", id);
-
-	return device? device.name +" ": "";
-}
-
 function isCritical(critical) {
 	let isCritical = false,
 		resource;
