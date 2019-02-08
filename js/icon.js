@@ -145,7 +145,7 @@ ITAhM.iconData = {
     },
     "application": {
         "group": "application",
-        "src": "/img/setting.png",
-        "disabled": "/img/test.png"
+        "src": "img/setting.png",
+        "disabled": "img/test.png"
     }
 };

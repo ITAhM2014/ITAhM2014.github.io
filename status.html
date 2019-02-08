@@ -29,15 +29,6 @@ h2 {
 	text-align: center;
 }
 
-nav {
-	position: absolute; top: 1em; right: 1em;
-	display: none;
-}
-
-nav img {
-	cursor: pointer;
-}
-
 section {
 	padding: 5px; margin: 5px;
 	/*border: 3px solid #0084ff;*/
@@ -351,11 +342,6 @@ interface
 	width: 3em;
 }
 
-.throughput >li.monitor {
-	flex: none;
-	padding: 0;
-}
-
 .throughput >li.bandwidth {
 	flex: none;
 	width: 9em;
@@ -481,6 +467,16 @@ ul.storage.item.critical >li.status::after {
 	pointer-events: none;
 }
 
+#setting {
+	float: right;
+	cursor: pointer;
+	border: 1px solid transparent;
+}
+
+#setting:hover {
+	border-color: #fff;
+}
+
 section.information ul {
 	display: flex;
 }
@@ -501,8 +497,7 @@ section.information li:first-child {
 	content: "정상 ";
 }
 
-label.filter,
-#set_monitor {
+label.filter {
 	float: right;
 	font-weight: normal;
 	font-size: 12px;
@@ -512,27 +507,12 @@ label.filter {
 	float: right;
 }
 
-#set_monitor {
-	float: left;
-}
-
 div.flex {
 	display: flex;
 }
 
 div.flex span {
 	flex: 1;
-}
-
-@media print {
-	body {
-		color: #000;
-	}
-	
-	label.filter,
-	nav {
-		display: none;
-	}
 }
 
 body.shutdown #status::before {
@@ -693,10 +673,10 @@ function createStorageGuage(used, size, label) {
 	return clone;
 }
 
-function createIFaceItem(admin, oper, index, name, descr, alias, type, bandwidth, monitor, inBPS, outBPS, error) {
+function createIFaceItem(admin, oper, index, name, descr, alias, type, bandwidth, inBPS, outBPS, error) {
 	const item = iFaceItem.cloneNode(true),
-		barIn = item.children[7],
-		barOut = item.children[9];
+		barIn = item.children[6],
+		barOut = item.children[8];
 	
 	let usageIn, usageOut;
 	
@@ -732,16 +712,15 @@ function createIFaceItem(admin, oper, index, name, descr, alias, type, bandwidth
 	
 	item.dataset.index = index;
 
-	item.children[1].children[0].checked = monitor? true: false;
-	item.children[2].textContent = name;
-	item.children[3].textContent = alias;
-	item.children[4].textContent = type + "("+ ITAhM.snmp.ifType[type] +")";
-	item.children[5].textContent = ITAhM.util.toBPSString(bandwidth);
-	item.children[6].textContent = ITAhM.util.toBPSString(inBPS);
-	item.children[8].textContent = ITAhM.util.toBPSString(outBPS);
+	item.children[1].textContent = name || descr || alias;
+	item.children[2].textContent = alias;
+	item.children[3].textContent = type + "("+ ITAhM.snmp.ifType[type] +")";
+	item.children[4].textContent = ITAhM.util.toBPSString(bandwidth);
+	item.children[5].textContent = ITAhM.util.toBPSString(inBPS);
+	item.children[7].textContent = ITAhM.util.toBPSString(outBPS);
 	barIn.dataset.value = usageIn; 
 	barOut.dataset.value = usageOut;
-	item.children[10].textContent = error;
+	item.children[9].textContent = error;
 	barIn.children[0].style.width = usageIn;
 	barOut.children[0].style.width = usageOut;
 	
@@ -768,36 +747,35 @@ function createIFaceItem(admin, oper, index, name, descr, alias, type, bandwidth
 }
 
 function initialize() {
-	const critical = window.databases.critical[window.ip];
+	document.title = window.node.base.ip + (window.node.snmp.sysName? " ["+ window.node.snmp.sysName +"]": "");
 	
-	var entry;
+	document.getElementById("sys_name").textContent = window.node.snmp.sysName;
+	document.getElementById("sys_name").title = window.node.snmp.sysDescr;
+	document.getElementById("sys_enterprise").textContent = ITAhM.util.enterpriseFromOID(window.node.snmp.sysObjectID);
+	document.getElementById("sys_enterprise").title = window.node.snmp.sysObjectID;
+	document.getElementById("ip").textContent = window.node.base.ip;
+	document.getElementById("last_response").textContent = toDateString(window.node.snmp.lastResponse);
 	
-	document.title = window.ip + (window.snmp.sysName? " ["+ window.snmp.sysName +"]": "");
-	
-	document.getElementById("sys_name").textContent = window.snmp.sysName;
-	document.getElementById("sys_name").title = window.snmp.sysDescr;
-	document.getElementById("sys_enterprise").textContent = ITAhM.util.enterpriseFromOID(window.snmp.sysObjectID);
-	document.getElementById("sys_enterprise").title = window.snmp.sysObjectID;
-	document.getElementById("ip").textContent = window.ip;
-	document.getElementById("failure").textContent = 100 - window.snmp.failure;
-	document.getElementById("last_response").textContent = toDateString(window.snmp.lastResponse);
-	
-	if (window.databases.monitor[window.ip].shutdown || window.snmp.failure === 100) {
+	if (!window.node.monitor.status) {
 		document.body.classList.add("shutdown");
 	}
 	else {
 		window.rtFrame.onload = function () {
-			this.contentWindow.initialize(window.ip);
+			this.contentWindow.initialize(window.name);
 		};
 		
 		window.rtFrame.src = "realtime_response.html"
 	}
 	
-	(function(entry, section, critical) {
-		var max, min, avg = 0, load, count = 0;
+	(function(entry, section) {
+		var
+			indexData,
+			max, min, avg = 0, load, count = 0;
 
 		for (let index in entry) {
-			load = entry[index];
+			indexData = entry[index];
+
+			load = indexData.hrProcessorLoad;
 
 			if (isNaN(max)) {
 				max = min = avg = load;
@@ -806,6 +784,12 @@ function initialize() {
 				max = Math.max(max, load);
 				min = Math.min(min, load);
 				avg += load;
+			}
+
+			if ("status" in indexData) {
+				if (!indexData.status) {
+					section.classList.add("critical");
+				}
 			}
 
 			count++;
@@ -818,47 +802,43 @@ function initialize() {
 
 			document.body.classList.add("processor");
 
-			section.onclick = onSelectResource.bind(window, "processor");
-			
-			if (critical && critical["0"] && critical["0"].critical) {
-				section.classList.add("critical");
-			}
+			section.onclick = onSelectResource.bind(window, "processor", "0");
 		}
 
-	})(window.snmp.hrProcessorEntry, document.querySelector("section.processor"), critical && critical["processor"]);
+	})(window.node.snmp.hrProcessorEntry, document.querySelector("section.processor"));
 	
 	(function (entry) {
 		var storage;
 
 		for (let index in entry) {
-			storage = entry[index];
+			indexData = entry[index];
 
-			switch(storage.hrStorageType) {
+			switch(indexData.hrStorageType) {
 			case 4:
-				if (storage.hrStorageSize > 0) {
-					initStorage(storage, index, critical && critical["storage"]);
+				if (indexData.hrStorageSize > 0) {
+					initStorage(indexData, index);
 				}
 				
 				break;
 			case 2:
-				initMemory(storage, index, critical && critical["memory"]);
+				initMemory(indexData, index);
 				
 				break;
 			}
 		}
-	}) (window.snmp.hrStorageEntry);
+	}) (window.node.snmp.hrStorageEntry);
 	
+	(function (entry) {
+		for (let index in entry) {
+			initIFace(entry[index], index);
+		}
+	}) (window.node.snmp.ifEntry);
 	
-	entry = window.snmp.ifEntry;
-	for (let index in entry) {
-		initIFace(entry[index], index, window.device.ifSpeed && window.device.ifSpeed[index], critical && critical["throughput"]);
-	}
-	
-	if ("hrSWRunName" in window.snmp && Object.keys(window.snmp.hrSWRunName).length > 0) {
+	if ("hrSWRunName" in window.node.snmp && Object.keys(window.node.snmp.hrSWRunName).length > 0) {
 		document.body.classList.add("process");
 	
 		document.getElementById("process").dataset.value
-			= Object.keys(window.snmp.hrSWRunName).length;
+			= Object.keys(window.node.snmp.hrSWRunName).length;
 	}
 	
 	document.body.classList.remove("loading");
@@ -878,24 +858,24 @@ function toDateString(millis) {
 	return ar[0] +"-"+ ar[1] +"-"+ ar[2] +" "+ ar[3] +":"+ ar[4] +":"+ ar[5];
 }
 
-function initStorage(storage, index, critical) {
+function initStorage(indexData, index) {
 	const item = storageArea.appendChild(
-		createStorageGuage(storage.hrStorageUsed * storage.hrStorageAllocationUnits
-			, storage.hrStorageSize * storage.hrStorageAllocationUnits, storage.hrStorageDescr));
+		createStorageGuage(indexData.hrStorageUsed * indexData.hrStorageAllocationUnits
+			, indexData.hrStorageSize * indexData.hrStorageAllocationUnits, indexData.hrStorageDescr));
 
 	item.onclick = onSelectResource.bind(window, "storage", index);
 	
-	if (critical && critical[index] && critical[index].critical) {
+	if ("status" in indexData && !indexData.status) {
 		item.classList.add("critical");
 	}
 
 	document.body.classList.add("storage");
 }
 
-function initMemory(memory, index, critical) {
+function initMemory(indexData, index) {
 	var section = document.querySelector("section.memory"),
-		used = memory.hrStorageUsed * memory.hrStorageAllocationUnits,
-		size = memory.hrStorageSize * memory.hrStorageAllocationUnits,
+		used = indexData.hrStorageUsed * indexData.hrStorageAllocationUnits,
+		size = indexData.hrStorageSize * indexData.hrStorageAllocationUnits,
 		usage = Math.round(100* used / size),
 		bar = document.querySelector("div.memory.bar"),
 		color = "green";
@@ -919,31 +899,30 @@ function initMemory(memory, index, critical) {
 
 	section.onclick = onSelectResource.bind(window, "memory", index);
 
-	if (critical && critical[index] && critical[index].critical) {
+	if ("status" in indexData && !indexData.status) {
 		section.classList.add("critical");
 	}
 
 	document.body.classList.add("memory");
 }
 
-function initIFace(iFace, index, ifSpeed, critical) {
+function initIFace(indexData, index) {
 	const item = interfaceArea.appendChild(
 		createIFaceItem(
-			iFace.ifAdminStatus,
-			iFace.ifOperStatus,
+			indexData.ifAdminStatus,
+			indexData.ifOperStatus,
 			index,
-			iFace.ifName,
-			iFace.ifDescr,
-			iFace.ifAlias,
-			iFace.ifType,
-			ifSpeed || iFace.ifHighSpeed || iFace.ifSpeed,
-			iFace.monitor,
-			iFace.ifInBPS || 0,
-			iFace.ifOutBPS || 0,
-			(iFace.ifInErrors || 0) + (iFace.ifOutErrors || 0)
+			indexData.ifName,
+			indexData.ifDescr,
+			indexData.ifAlias,
+			indexData.ifType,
+			indexData.speed || indexData.ifHighSpeed || indexData.ifSpeed,
+			indexData.ifInBPS || 0,
+			indexData.ifOutBPS || 0,
+			(indexData.ifInErrors || 0) + (indexData.ifOutErrors || 0)
 			));
 	
-	if (critical && critical[index] && critical[index].critical) {
+	if ("status" in indexData && !indexData.status) {
 		item.classList.add("critical");
 	}
 
@@ -951,61 +930,13 @@ function initIFace(iFace, index, ifSpeed, critical) {
 }
 
 function onSelectResource(resource, index) {
-	chartFrame.onload = function () {
-		this.contentWindow.initialize(resource, index);
+	window.frame.onload = function () {
+		this.contentWindow.initialize(window.name, window.node.snmp, resource, index || "0");
 	}
 	
-	chartFrame.src = "chart.html";
+	window.frame.src = "chart.html";
 	
 	document.body.classList.add("frame");
-}
-
-//public
-function getIFSpeed(index) {
-	return window.device.ifSpeed && window.device.ifSpeed[index];
-}
-
-//public
-function setIFSpeed(f, index, speed) {
-	if (!("ifSpeed" in window.device)) {
-		window.device.ifSpeed = {};
-	}
-	
-	if (speed) {
-		window.device.ifSpeed[index] = speed;
-	}
-	else {
-		delete window.device.ifSpeed[index];
-	}
-	
-	sendRequest({
-		command: "put",
-		database: "device",
-		key: window.ip,
-		value: window.device
-	}, function () {
-		f();
-	});	
-}
-
-// public
-function showDialog() {
-	var opener = this,
-		url = [].shift.call(arguments),
-		args = arguments;
-	
-	window.dialog.onload = function () {
-		this.contentWindow.initialize.apply(opener, args);
-		
-		document.body.classList.add("dialog");
-	};
-	
-	window.dialog.src = url;
-}
-
-// public
-function closeDialog() {
-	document.body.classList.remove("dialog");
 }
 
 		</script>
@@ -1016,6 +947,7 @@ function closeDialog() {
 		<article>
 		
 			<section class="information">
+				<img id="setting" src="/img/set.png" width="30" height="30" title="설정">
 				<ul>
 					<li>장비명
 					<li id="sys_name">
@@ -1034,7 +966,7 @@ function closeDialog() {
 				</ul>
 				<ul>
 					<li>상태
-					<li id="status">(<span id="failure"></span>%)
+					<li id="status">
 				</ul>
 			</section>
 			
@@ -1043,14 +975,6 @@ function closeDialog() {
 					프로세스
 				</h2>
 				<div id="process"></div>
-			</section>
-			
-			<section class="application resource">
-				<h2>앱 모니터</h2>
-				<div id="application">
-					<img class="" src="/img/app_true.png" width="100" height="100">
-					<img src="/img/app_false.png" width="100" height="100">
-				</div>
 			</section>
 
 			<section class="processor resource">
@@ -1108,13 +1032,10 @@ function closeDialog() {
 						<input id="filter" type="checkbox" checked>
 						<span>비활성 인터페이스 감추기</span>
 					</label>
-					<input id="set_monitor" type="button" value="모니터 적용" title="선택된 인터페이스의 Up/Down을 모니터링 합니다.">
 				</h2>
 				<div>
 					<ul class="title throughput">
 						<li class="status">상태
-						<li class="monitor">
-							<input type="checkbox" id="monitor" title="모니터 전체 선택/해제">
 						<li>이름
 						<li>설명
 						<li class="debug">종류
@@ -1128,21 +1049,14 @@ function closeDialog() {
 			</section>
 		</article>
 		
-		<nav>
-			<img id="print" src="img/printer.png" width="16" height="16" title="인쇄">
-			<img id="refresh" src="img/refresh.png" width="16" height="16" title="새로고침">
-		</nav>
-		
 		<div class="frame">
 			<header>
 				<span>&#10006;</span>
 			</header>
 			<div>
-				<iframe id="chart"></iframe>
+				<iframe id="frame"></iframe>
 			</div>
 		</div>
-		
-		<iframe id="dialog"></iframe>
 
 		<div class="bg_loading"></div>
 		
@@ -1171,8 +1085,6 @@ function closeDialog() {
 	
 			<ul class="throughput item">
 				<li class="status">
-				<li class="monitor">
-					<input type="checkbox">
 				<li>
 				<li>
 				<li class="debug">
@@ -1193,11 +1105,9 @@ function closeDialog() {
 	
 var ip, snmp, ifSpeed,
 	origin = "status",
-	sendRequest = opener.top.sendRequest,
 	postRequest = opener.top.postRequest,
-	databases = opener.top.databases,
-	getDB = opener.top.getDB,
 	getMessage = opener.top.getMessage,
+	sendEvent = opener.top.sendEvent,
 	dialog = document.getElementById("dialog"),
 	processorArea = document.getElementById("processor"),
 	storageArea = document.getElementById("storage"),
@@ -1205,85 +1115,49 @@ var ip, snmp, ifSpeed,
 	gauge = document.querySelector(".gauge"),
 	storageGauge = document.querySelector(".storage.item"),
 	iFaceItem = document.querySelector(".throughput.item"),
-	chartFrame = document.getElementById("chart"),
+	frame = document.getElementById("frame"),
 	rtFrame = document.getElementById("realtime_response");
 
-document.querySelector(".response_time").onclick = onSelectResource.bind(window, "responseTime");
+if (location.search.substring(1) === "debug") {
+	document.body.classList.add("debug");
+}
+
+document.querySelector(".response_time").onclick = onSelectResource.bind(window, "responseTime", "0");
 
 document.getElementById("filter").onclick = function () {
 	document.body.classList[this.checked? "add": "remove"]("filter");
 };
 
-document.getElementById("print").onclick = function () {
-	window.print();	
-};
-
-document.getElementById("refresh").onclick = function () {
-	window.location.reload();
-};
-
 document.querySelector(".frame span").onclick = function () {
-	document.body.classList.remove("frame");;
+	window.location.reload();
+	//document.body.classList.remove("frame");
 };
 
-document.getElementById("monitor").onclick = function (e) {
-	const checked = this.checked;
-
-	[].forEach.call(window.throughput.querySelectorAll("[type=checkbox]"), function (input) {
-		input.checked = checked;
-	});
+document.getElementById("setting").onclick = function () {
+	window.frame.src = "edit.html";
+	
+	document.body.classList.add("frame");
 };
 
-document.getElementById("set_monitor").onclick = function (e) {
-	const ifMonitor = {};
-
-	[].forEach.call(window.throughput.querySelectorAll("[type=checkbox]"), function (input) {
-		ifMonitor[input.parentNode.parentNode.dataset.index] = input.checked;
-	});
-
-	document.body.classList.add("loading");
-
+if (window.name) {
 	postRequest({
-		command: "order",
-		order: "monitor",
-		ip: window.ip,
-		monitor: ifMonitor	
-	}, function () {
-		switch(this.status) {
-		case 200:
-			alert("인터페이스의 모니터 설정 변경 사항을 적용하였습니다.");
-
-			break;
-		default:
-			const message = this.responseText? JSON.parse(this.responseText).error: "";
-
-			if (message) {
-				console.log(message);
-			}
-
-			alert(getMessage(this.status));
-		}
-	
-		document.body.classList.remove("loading");
-	});
-};
-
-(function (device) {
-	window.ip = device.ip;
-	window.device = device;
-	
-	sendRequest({
-		command: "select",
-		ip: device.ip	
+		command: "node",
+		id: window.name,
+		snmp: true
 	}, function (snmp) {
-		window.snmp = snmp;
+		switch (this.status) {
+			case 200:
+				window.node = JSON.parse(this.responseText);
 
-		initialize();
+				initialize();
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
 	});
-})(window.databases.device[window.name]);
-
-if (location.search.substring(1) === "debug") {
-	document.body.classList.add("debug");
 }
 
 		</script>

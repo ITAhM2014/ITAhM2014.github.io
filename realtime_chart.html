@@ -153,58 +153,124 @@ function resize() {
 	point2.setAttribute("cx", width);
 }
 
-function sendRequest() {
+function postRequest() {
 	try {
-		top.sendRequest(window.request, window.onResponse);
+		top.postRequest(window.request, window.onResponse);
 	}
 	catch (e) {
 		clearInterval(window.schedule);
 	}
 }
 
-function onRTResponse(response) {
-	parseData(response.responseTime);
+function onRTResponse() {
+	switch (this.status) {
+	case 200:
+		parseData(JSON.parse(this.responseText).snmp.responseTime["0"].rtt);
+
+		break;
+	default:
+		alert(top.getMessage(this.status));
+
+		console.log(this.responseText && JSON.parse(this.responseText).error);
+
+		throw "";
+	}
 }
 
 function onPLResponse(response) {
-	var entry = response.hrProcessorEntry,
-		max = 0;
-	
-	for (var index in entry) {
-		max = Math.max(max, entry[index]);
+	switch (this.status) {
+	case 200:
+		const entry = JSON.parse(this.responseText).snmp.hrProcessorEntry;
+		let max = 0;
+		
+		for (let index in entry) {
+			max = Math.max(max, entry[index].hrProcessorLoad);
+		}
+		
+		parseData(max);
+
+		break;
+	default:
+		alert(top.getMessage(this.status));
+
+		console.log(this.responseText && JSON.parse(this.responseText).error);
+
+		throw "";
 	}
-	
-	parseData(max);
 }
 
-function onPMResponse(response) {
-	var entry = response.hrStorageEntry[window.index];
-	
-	parseData(entry.hrStorageAllocationUnits * entry.hrStorageUsed);
+function onPMResponse() {
+	switch (this.status) {
+	case 200:
+		const entry = JSON.parse(this.responseText).snmp.hrStorageEntry[window.index];
+
+		parseData(entry.hrStorageAllocationUnits * entry.hrStorageUsed);
+
+		break;
+	default:
+		alert(top.getMessage(this.status));
+
+		console.log(this.responseText && JSON.parse(this.responseText).error);
+
+		throw "";
+	}
 }
 
 function onSUResponse(response) {
-	var entry = response.hrStorageEntry[window.index];
+	switch (this.status) {
+	case 200:
+		const entry = JSON.parse(this.responseText).snmp.hrStorageEntry[window.index];
+		
+		document.getElementById("index").textContent = entry.hrStorageDescr;
 
-	document.getElementById("index").textContent = entry.hrStorageDescr;
-	
-	parseData(entry.hrStorageAllocationUnits * entry.hrStorageUsed);
+		parseData(entry.hrStorageAllocationUnits * entry.hrStorageUsed);
+			
+		break;
+	default:
+		alert(top.getMessage(this.status));
+
+		console.log(this.responseText && JSON.parse(this.responseText).error);
+
+		throw "";
+	}
 }
 
 function onITResponse(response) {
-	var entry = response.ifEntry[window.index];
-	
-	document.getElementById("index").textContent = entry.ifName;
-	
-	parseITData(entry.ifInBPS, entry.ifOutBPS);
+	switch (this.status) {
+	case 200:
+		const entry = JSON.parse(this.responseText).snmp.ifEntry[window.index];
+		
+		document.getElementById("index").textContent = entry.ifName;
+
+		parseITData(entry.ifInBPS, entry.ifOutBPS);
+			
+		break;
+	default:
+		alert(top.getMessage(this.status));
+
+		console.log(this.responseText && JSON.parse(this.responseText).error);
+
+		throw "";
+	}
 }
 
 function onIEResponse(response) {
-	var entry = response.ifEntry[window.index];
-	
-	document.getElementById("index").textContent = entry.ifName;
-	
-	parseITData(entry.ifInErrors, entry.ifOutErrors);
+	switch (this.status) {
+	case 200:
+		const entry = JSON.parse(this.responseText).snmp.ifEntry[window.index];
+		
+		document.getElementById("index").textContent = entry.ifName;
+
+		parseITData(entry.ifInErrors, entry.ifOutErrors);
+			
+		break;
+	default:
+		alert(top.getMessage(this.status));
+
+		console.log(this.responseText && JSON.parse(this.responseText).error);
+
+		throw "";
+	}
 }
 
 function toMSString(value) {
@@ -335,7 +401,8 @@ function drawIT() {
 }
 
 //public
-function initialize(resource, index) {
+function initialize(id, resource, index) {
+	window.request.id = id;
 	window.index = index;
 	
 	switch(resource) {
@@ -346,7 +413,6 @@ function initialize(resource, index) {
 		document.getElementById("resource").textContent = "Response time";
 		
 		break;
-		
 	case "processor":
 		window.onResponse = onPLResponse;
 		window.format = toPercentString;
@@ -354,7 +420,6 @@ function initialize(resource, index) {
 		document.getElementById("resource").textContent = "Processor load";
 		
 		break;
-		
 	case "memory":
 		window.onResponse = onPMResponse;
 		window.format = ITAhM.util.toBytesString;
@@ -362,7 +427,6 @@ function initialize(resource, index) {
 		document.getElementById("resource").textContent = "Physical memory";
 		
 		break;
-		
 	case "storage":
 		window.onResponse = onSUResponse;
 		window.format = ITAhM.util.toBytesString;
@@ -371,7 +435,6 @@ function initialize(resource, index) {
 		document.getElementById("index").textContent = "loading...";
 		
 		break;
-		
 	case "throughput":
 		window.onResponse = onITResponse;
 		window.realtimeData2 = new RealtimeData(window.PERIOD * 60000);
@@ -402,9 +465,9 @@ function initialize(resource, index) {
 	
 	resize();
 
-	sendRequest();
+	postRequest();
 
-	window.schedule = setInterval(sendRequest, INTERVAL);
+	window.schedule = setInterval(postRequest, INTERVAL);
 }
 		</script>		
 	</head>
@@ -445,8 +508,8 @@ var chart = document.getElementById("chart"),
 	grid = new ITAhM.Path(document.getElementById("grid")),
 	realtimeData = new RealtimeData(PERIOD * 60000),
 	request = {
-		command: "select",
-		ip: top.ip
+		command: "node",
+		snmp: true
 	};
 
 window.addEventListener("resize", function() {

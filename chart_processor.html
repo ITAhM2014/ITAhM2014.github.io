@@ -91,103 +91,94 @@ body.ro #view {
 
 		</style>
 		<script>
-		
+
+function loadChart(indexArray, callback) {
+	if (indexArray.length > 0) {
+		const
+			index = indexArray.pop(),
+			chart = document.createElement("iframe");
+
+		window.chartMap[index] = chart;
+
+		window.chartLayer.appendChild(chart);
+
+		chart.onload = loadChart.bind(chart, indexArray, callback);
+
+		chart.src = "chart_base.html";
+	}
+	else {
+		callback();
+	}
+}
+
 /**
  * public
  */
-function initialize(from, to, start, end) {
-	var entry = top.snmp.hrProcessorEntry,
-		df = document.createDocumentFragment(),
-		request = {
-			command: "query",
-			ip: top.ip,
-			summary: true,
-			database: "hrProcessorLoad",
-			start: from,
-			end: to
-		};
-	
-	window.chartList["0"] = df.appendChild(document.createElement("iframe"));
-	
-	window.chartCount = 0;
-	
-	for (var index in entry) {
-		window.chartList[index] = df.appendChild(document.createElement("iframe"));
-		
-		window.chartCount++;
-	}
-	
-	chartLayer.appendChild(df);
-	
-	for (var index in entry) {
-		request.index = index;
-		
-		top.sendRequest(request, onSummaryResponse.bind(undefined, index));
-	}
-	
-	window.start = start;
-	window.end = end;
-	
-	testDetail();
-}
+function initialize(args) {
+	window.request.id = args.id;
+	window.request.index = args.index;
+	window.request.start = args.start;
+	window.request.end = args.end;
 
-function onSummaryResponse(index, data) {
-	summarizeResponse(index, data);
-	
-	if (--window.chartCount === 0) {
-		summarizeChart();
-	}
-}
+	loadChart(Object.keys(args.snmp.hrProcessorEntry), function () {
+		top.postRequest(window.request, function () {
+			switch (this.status) {
+			case 200:
+				const
+					data = JSON.parse(this.responseText),
+					summary = {};
+				let chartData, summaryData;
 
-function summarizeResponse(index, data) {
-	var chart = window.chartList[index];
-	
-	window.summaryList[index] = new ITAhM.ChartSummaryData(data);
-	
-	chart.onload = onLoadChart.bind(undefined, index);
-	
-	chart.src = "chart_base.html";
-}
+				for (let index in data) {
+					chartData = new ITAhM.ChartSummaryData(data[index]);
 
-function summarizeChart() {
-	var summaryData = {},
-		data, avg, min, max;
-	
-	window.summaryList["0"] = {};
-	
-	for (var index in window.summaryList) {
-		data = window.summaryList[index].data;
+					window.chartMap[index].contentWindow.initialize(
+						chartData,
+						window.max,
+						window.colorList[window.colorIndex++ % window.colorLength],
+						onValueToString);
+					
+					summaryData = chartData.data;
+					
+					for (let mills in summaryData) {
+						if (!(mills in summary)) {
+							summary[mills] = {
+								avg: [],
+								min: [],
+								max: []
+							};
+						}
+						summary[mills].avg.push(summaryData[mills].avg);
+						summary[mills].min.push(summaryData[mills].min);
+						summary[mills].max.push(summaryData[mills].max);
+					}
+				}
 		
-		for (var mills in data) {
-			if (!(mills in summaryData)) {
-				summaryData[mills] = {
-					avg: [],
-					min: [],
-					max: []
-				};
+				for (var mills in summary) {
+					summary[mills].avg =
+						summary[mills].avg.reduce(function (a, b) {
+							return a + b;
+						}) / summary[mills].avg.length;
+					summary[mills].min = Math.min.apply(undefined, summary[mills].min);
+					summary[mills].max = Math.max.apply(undefined, summary[mills].max);
+				}
+
+				window.chartMap["0"].contentWindow.initialize(
+					new ITAhM.ChartSummaryData(summary),
+					window.max,
+					window.colorList[window.colorIndex++ % window.colorLength],
+					onValueToString);
+				
+				draw(args.position, args.limit);
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
 			}
-			
-			summaryData[mills].avg.push(data[mills].avg);
-			summaryData[mills].min.push(data[mills].min);
-			summaryData[mills].max.push(data[mills].max);
-		}
-	}
-	
-	for (var mills in summaryData) {
-		summaryData[mills].avg = summaryData[mills].avg.reduce(function (a, b) {return a + b;}) / summaryData[mills].avg.length;
-		summaryData[mills].min = Math.min.apply(undefined, summaryData[mills].min);
-		summaryData[mills].max = Math.max.apply(undefined, summaryData[mills].max);
-	}
-	
-	summarizeResponse("0", summaryData);
-}
-
-function onLoadChart(index) {
-	var chartWindow = window.chartList[index].contentWindow;
-	
-	chartWindow.initialize(window.summaryList[index], window.max, window.colorList[window.colorIndex++ % window.colorLength], onValueToString);
-	
-	drawProcessor(index);
+		});
+	});
 }
 
 function onValueToString(value) {
@@ -195,48 +186,43 @@ function onValueToString(value) {
 }
 
 /**
- * private
- */
-function onDetailResponse(index, dataOnly, data) {
-	window.chartList[index].contentWindow.detail(new ITAhM.ChartData(data), dataOnly);
-}
-
-
-/**
- * private
- */
-function drawProcessor(index) {
-	const dataOnly = !window.chartList[index].contentWindow.draw(window.start, window.end);
-	
-	if (window.detail && index !== "0") {
-		window.detailRequest.index = index;
-		
-		top.sendRequest(window.detailRequest, onDetailResponse.bind(undefined, index, dataOnly));
-	}
-}
-
-function testDetail() {
-	var date = new Date(window.start);
-	
-	window.detail = date.setDate(date.getDate() +1) === window.end;
-	
-	if (window.detail) {
-		window.detailRequest.start = window.start;
-		window.detailRequest.end = window.end;
-	}
-}
-
-/**
  * public
  */
-function draw(start, end) {
-	window.start = start;
-	window.end = end;
+ function draw(position, limit) {
+	const
+		date = new Date(position);
 	
-	testDetail();
-	
-	for (var index in window.chartList) {
-		drawProcessor(index);
+	if (date.setDate(date.getDate() +1) === limit) {
+		window.request.summary = false;
+		window.request.start = position;
+		window.request.end = limit;
+
+		top.postRequest(window.request, function () {
+			switch (this.status) {
+			case 200:
+				const data = JSON.parse(this.responseText);
+				let chart;
+
+				for (let index in window.chartMap) {
+					chart = window.chartMap[index].contentWindow;
+					
+					if (chart.draw(position, limit) && index !== "0") {
+						chart.detail(new ITAhM.ChartData(data[index]));
+					}
+				}
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+		});
+	}
+	else {
+		for (let index in window.chartMap) {
+			window.chartMap[index].contentWindow.draw(position, limit)
+		}
 	}
 }
 
@@ -246,8 +232,8 @@ function draw(start, end) {
 function getFile() {
 	var chartWindow;
 	
-	for (var index in window.chartList) {
-		chartWindow = window.chartList[index].contentWindow;
+	for (var index in window.chartMap) {
+		chartWindow = window.chartMap[index].contentWindow;
 		
 		ITAhM.util.download(new Blob([(chartWindow.detailData? buildDetailFile: buildSummaryFile)(chartWindow).join("\n")] ,{
 			type: "text/csv;charset=utf-8;"
@@ -300,14 +286,14 @@ function buildSummaryFile(chartWindow) {
  */
 (function(print) {
 	window.print = function() {
-		for (var index in window.chartList) {
-			window.chartList[index].contentWindow.beforePrint();
+		for (var index in window.chartMap) {
+			window.chartMap[index].contentWindow.beforePrint();
 		}
 		
 		print();
 		
-		for (var index in window.chartList) {
-			window.chartList[index].contentWindow.afterPrint();
+		for (var index in window.chartMap) {
+			window.chartMap[index].contentWindow.afterPrint();
 		}
 	};
 })(window.print);
@@ -328,6 +314,7 @@ function buildSummaryFile(chartWindow) {
 			</select>
 		</nav>
 		<div id="chart" class="sum">
+			<iframe src="/chart_base.html"></iframe>
 		</div>
 		
 		<script src="js/ITAhM.js"></script>	
@@ -335,9 +322,9 @@ function buildSummaryFile(chartWindow) {
 		<script>
 
 var chartLayer = document.getElementById("chart"),
-	chartList = {},
-	summaryList = {},
-	detail,
+	chartMap = {
+		"0": chartLayer.querySelector("iframe")
+	},
 	colorList = [
 		"#6b050d",
 		"#f0a30a",
@@ -347,13 +334,11 @@ var chartLayer = document.getElementById("chart"),
 		"#333",
 		"#1ba1e2",
 		"#093346"],
-	detailRequest = {
-		ip: top.ip,
+	request = {
 		command: "query",
-		summary: false,
-		database: "hrProcessorLoad",
+		summary: true,
+		resource: "hrProcessorLoad",
 	},
-	chartIndex,
 	colorLength = colorList.length,
 	colorIndex = 0,
 	max = 100;

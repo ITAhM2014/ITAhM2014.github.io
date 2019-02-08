@@ -391,97 +391,6 @@ function toDateString(m) {
 	return a.join("");
 }
 
-function putDevice(id, device) {
-	window.databases.device[id] = device;
-
-	if (device.ip) {
-		window.IDMap[device.ip] = id;
-	}
-}
-
-function forEachDB(name, f) {
-	const database = window.databases[name];
-	
-	for (let key in database) {
-		f(key, database[key]);
-	}
-}
-
-function putDB(name) {
-	switch(arguments.length) {
-		case 3:
-			const
-				key = arguments[1],
-				value = arguments[2];
-
-			if (value === null) {
-				value = window.databases[name][key];
-			
-				delete window.databases[name][key];
-
-				if (name === "device" && value.ip) {
-					delete window.IDMap[value.ip];
-				}
-			}
-			else {
-				window.databases[name][key] = value;
-
-				if (name === "device" && value.ip) {
-					window.IDMap[value.ip] = key;
-				}
-			}
-
-			break;
-		case 2:
-			const database = arguments[1];
-
-			window.databases[name] = database;
-			
-			break;
-	}
-}
-
-function getDB(name, key) {
-	const database = window.databases[name];
-
-	switch(arguments.length) {
-		case 2:
-			return database && database[key];
-
-		case 1:
-			return database;
-	}
-}
-
-function onInitialize() {
-	// TODO ITAhM의 시작.
-	
-	// old 버전 호환, indexing
-	var device;
-	
-	const deviceData = window.databases.device;
-	
-	for (let id in deviceData) {
-		device = deviceData[id];
-		
-		if (device.ip) {
-			window.IDMap[device.ip] = id;
-		}
-
-		if (!device.group) {
-			continue;
-		}
-		
-		if (!("id" in device)) {
-			device.id = id;
-		}
-	}
-	
-	update();
-	
-	listen();
-}
-
 function onUpdate() {
 	if (this.status === 200) {
 		
@@ -513,28 +422,7 @@ function update() {
 	xhr.send(JSON.stringify({
 		command: "order",
 		order: "top",
-		count: window.databases.config.top || undefined
 	}));
-}
-
-function onInitResponse(table, q) {
-	if (this.status == 200) {
-		window.databases[table] = JSON.parse(this.responseText);
-		
-		table = q.pop();
-		
-		if (table) {
-			sendInitRequest(table, q);
-		}
-		else {
-			onInitialize();
-		}
-	}
-	else {
-		alert("데이터베이스를 초기화 할 수 없습니다.\n상태: "+ this.status);
-		
-		window.location.href = "/console.html";
-	}
 }
 
 function getDeviceName(ip) {
@@ -546,20 +434,6 @@ function getDeviceName(ip) {
 		device = id && top.getDB("device", id);
 
 	return device? device.name +" ": "";
-}
-
-function sendInitRequest(table, q) {
-	const xhr = new XMLHttpRequest();
-	
-	xhr.open("POST", window.agent, true);
-	xhr.withCredentials = true;
-	
-	xhr.onloadend = onInitResponse.bind(xhr, table, q);
-	
-	xhr.send(JSON.stringify({
-		command: "pull",
-		database: table
-	}));
 }
 
 function isCritical(critical) {
@@ -578,138 +452,41 @@ function isCritical(critical) {
 	return false;
 }
 
+
 function onEvent(e) {
 	e.stopPropagation();
 	
 	if (this.status === 200) {
 		const event = JSON.parse(this.responseText);
+		
+		window.listener.event = parseInt(event.event) +1;
+		
+		window.logCount++;
+		
+		window.count.textContent = window.logCount > 9? "9+": window.logCount;
 
-		("origin" in event? function () {
-			var monitor = window.databases.monitor[event.ip],
-				critical = window.databases.critical[event.ip],
-				stopEvent = false;
-
-			switch(event.origin) {
-			case "critical":	
-				const value = window.getDB("critical", event.ip)[event.resource][event.index];
-				
-				value.critical = event.critical;
-				value.rate = event.rate;
-
-				if (event.critical) {
-					window.sound.play();
-
-					monitor.critical = true;
-				}
-				else {
-					monitor.critical = isCritical(critical);
-				}
-
-				break;
-
-			case "shutdown":	
-				if (event.shutdown) {
-					window.sound.play();
-				}
-
-				monitor.shutdown = event.shutdown;
-
-				break;
-
-			case "test":
-				if (event.test) {
-					monitor = {
-						shutdown: false,
-						critical: false
-					};
-					
-					if (event.protocol === "snmp") {
-						monitor.profile = event.profile;
-						monitor.protocol = "snmp";
-
-						// 자동탐색인 경우 device 생성해 주어야함
-						if (!getDB("device", event.id)) {
-							putDB("device", event.id, {
-								ip: event.ip,
-								name: "",
-								label: "",
-								type: "unknown",
-								ifSpeed: {}
-							});
-						}
-					}
-					else {
-						monitor.protocol = "icmp";
-					}
-					
-					window.databases.monitor[event.ip] = monitor;
-				}
-
-				if (!("message" in event)) {
-					event.message = event.ip +" "+ event.protocol +" 등록 "+ (event.test? "성공": "실패");
-				}
-
-				break;
-
-			case "system":				
-				break;
-
-			case "warning": // 저장소 상태 변화 감지
-				break;
-			
-			case "exception":
-				(function (xhr) {
-					xhr.open("POST", "http://demo.itahm.com/debug/", true);
-					xhr.withCredentials = true;
-					xhr.send(event.message);
-				}) (new XMLHttpRequest());
-				
-				stopEvent = true;
-				
-				break;
-			}
-
-			if (!stopEvent) {
-				window.logCount++;
-				
-				window.count.textContent = window.logCount > 9? "9+": window.logCount;
-				
-				window.log.textContent = getDeviceName(event.ip) + event.message;
-				
-				try {
-					window.frame.contentWindow.onEvent();
-				} catch(e) {}
-				
-				document.body.classList.add("log");
-			}			
-		} : function () {
-			const id = "ip" in event && getDeviceID(event.ip);
-
-			window.logCount++;
-			
-			window.count.textContent = window.logCount > 9? "9+": window.logCount;
-			
-			window.log.textContent = (id && window.databases.device[id].name || "")  +" "+ event.message;
-
+		switch(event.origin) {
+		case "critical":
+		case "status":
+		case "snmp":
+		case "updown":
 			if (!event.status) {
 				window.sound.play();
 			}
 
-			sendRequest({
-				command: "pull",
-				database: "monitor"
-			}, function (data) {
-				window.databases.monitor = data;
-				
-				try {
-					window.frame.contentWindow.onEvent();
-				} catch(e) {}
-			});
-			
-			document.body.classList.add("log");
-		}) ();
+			break;
+
+		case "test":
+		case "system":
+		case "warning":
+			break;
+		}
+
+		window.log.textContent = event.message;
+
+		sendEvent(event);
 		
-		window.listener.index = parseInt(event.index) +1;
+		document.body.classList.add("log");
 		
 		listen();
 	}
@@ -719,6 +496,7 @@ function onEvent(e) {
 		setTimeout(listen, 3000);
 	}
 }
+
 
 function listen() {
 	const xhr = new XMLHttpRequest();
@@ -772,20 +550,10 @@ function parseResponse(onResponse, custom) {
 	}
 }
 
-function sendRequest(request, onResponse, custom) {
-	const xhr = new XMLHttpRequest();
-	
-	xhr.open("POST", window.agent, true);
-	xhr.withCredentials = true;
-	xhr.onloadend = parseResponse.bind(xhr, onResponse, custom);
-	
-	xhr.send(JSON.stringify(request));
-}
-
 		</script>
 	</head>
 	
-	<body>
+	<body class="menu">
 		<article class="itahm">
 			<div class="frame">
 				<iframe id="frame" name="main"></iframe>
@@ -846,11 +614,16 @@ var agent,
 	initialized = false,
 	frame = document.getElementById("frame"),
 	IDMap = {},
-	databases = {
-		local: {
-			scale: 1,
-			icon: ITAhM.iconData
-		}
+	account = {
+		level: 0
+	},
+	store = {
+		scale: 1,
+		icon: ITAhM.iconData
+	},
+	position = {},
+	setting = {
+		menu: true
 	},
 	listener = {
 		command: "listen"
@@ -861,6 +634,34 @@ var agent,
 	statusWindow = {},
 	sound = new Audio("siren.mp3"),
 	logCount = 0;
+
+function initialize() {
+	document.body.classList.add("authorized");
+
+	postRequest({
+		command: "pull",
+		database: "position"
+	}, function () {
+		switch (this.status) {
+		case 200:
+			window.position = JSON.parse(this.responseText).position;
+
+			update();
+
+			listen();
+
+			break;
+		default:
+			const message = this.responseText? JSON.parse(this.responseText).error: "";
+
+			if (message) {
+				console.log(message);
+			}
+
+			alert(getMessage(this.status));
+		}
+	});
+}
 
 (function (container) {
 	window.setStatus = function (elapse, status) {
@@ -912,12 +713,8 @@ var agent,
 		}, function () {
 			switch(this.status) {
 			case 400:
-				document.body.classList.add("authorized");
+				initialize();
 
-				putDB("local", "level", 0);
-
-				sendInitRequest("config", ["gcm", "sms", , "icon", "profile", "account", "device", "position", "monitor", "critical"]);
-				
 				break;
 			default:
 				connect.elements["ip"].select();

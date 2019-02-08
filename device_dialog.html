@@ -126,15 +126,16 @@ function isIPv4(s) {
 		
 function buildType() {
 	var df = document.createDocumentFragment(),
-		groupName, optgroup, option,
+		iconData = top.store.icon,
+		groupName, optgroup,
 		typeData = {},
 		group = {},
-		icon, iconData, type;
+		icon, type;
 	
-	iconData = top.store.icon;
+	;
 		
 	for (type in iconData) {
-		typeData[type] = iconData[type];
+		typeData[type] = ("icon" in top.setting && type in top.setting.icon? top.setting.icon: iconData)[type];
 	}
 	
 	for (type in typeData) {
@@ -267,7 +268,7 @@ document.getElementById("close").onclick = function () {
 		base.type = this.elements["type"].value;
 		base.label = trimLabel(this.elements["label"].value);
 		
-		if (window.custom.length > 0) {
+		if (Object.keys(window.custom).length > 0) {
 			base.custom = {};
 
 			for (var name in window.custom) {
@@ -348,11 +349,10 @@ document.getElementById("close").onclick = function () {
 		}
 		
 		top.postRequest({
-			command: "monitor",
+			command: "order",
+			order: "monitor",
 			id: window.id,
-			monitor: this.value === "none"? null: {
-				protocol: this.value
-			}
+			protocol: this.value === "none"? null: this.value
 		}, function () {
 			switch (this.status) {
 				case 200:
@@ -380,16 +380,16 @@ document.getElementById("close").onclick = function () {
 		const opener = this.location;
 
 		window.close = function () {
-			opener.reload();
+			opener && opener.reload();
 			
 			top.closeDialog();
 		};
 
 		window.id = id;
 		
-		if ("custom" in top.config) {
+		if ("custom" in top.setting) {
 			const
-				customs = top.config.custom.split(",")
+				customs = top.setting.custom.split(",")
 				df = document.createDocumentFragment();
 			let
 				ul,
@@ -419,6 +419,10 @@ document.getElementById("close").onclick = function () {
 				case 200:
 					window.node = JSON.parse(this.responseText);
 
+					if (!node.base.type) {
+						node.base.type = "unknown";
+					}
+					
 					form.elements["name"].value = window.node.base.name || "";
 					form.elements["ip"].value = window.node.base.ip || "";
 					form.elements["type"].value = window.node.base.type;

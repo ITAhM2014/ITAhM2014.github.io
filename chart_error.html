@@ -87,43 +87,43 @@ body.ro #view {
 
 		</style>
 		<script>
-		
-function initialize(from, to, start, end, index) {
-	var entry = top.snmp.ifEntry[index],
-		request = {
-			command: "query",
-			ip: top.ip,
-			summary: true,
-			index: index,
-			start: from,
-			end: to
-		};
-	
-	document.getElementById("if_name").textContent = entry.ifName;
-	
-	window.detailRequest.index = index;
-	window.start = start;
-	window.end = end;
-	
-	testDetail();
-	
-	request.database = "ifInErrors";
-	top.sendRequest(request, onSummaryInResponse);
-	
-	request.database = "ifOutErrors";
-	top.sendRequest(request, onSummaryOutResponse);
-}
 
-function onSummaryInResponse(data) {
-	window.chartInWindow.initialize(new ITAhM.ChartSummaryData(data), undefined, "#7d7", onValueToString);
+function initialize(args) {
+	const indexData = args.snmp.ifEntry[args.index];
 	
-	drawIn();
-}
+	window.request.id = args.id;
+	window.request.index = args.index;
+	window.request.start = args.start;
+	window.request.end = args.end;
+	
+	document.getElementById("if_name").textContent = indexData.ifName;
+	
+	top.postRequest(window.request, function () {
+		switch (this.status) {
+		case 200:
+			const data = JSON.parse(this.responseText);
 
-function onSummaryOutResponse(data) {
-	window.chartOutWindow.initialize(new ITAhM.ChartSummaryData(data), undefined, "#f60", onValueToString);
+			window.chartInWindow.initialize(
+				new ITAhM.ChartSummaryData(data.in),
+				undefined,
+				"#7d7",
+				onValueToString);
 	
-	drawOut();
+			window.chartOutWindow.initialize(
+				new ITAhM.ChartSummaryData(data.in),
+				undefined,
+				"#f60",
+				onValueToString);
+
+			draw(args.position, args.limit);
+
+			break;
+		default:
+			alert(top.getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
 }
 
 function onValueToString(value) {
@@ -131,68 +131,41 @@ function onValueToString(value) {
 }
 
 /**
- * private
- */
-function sendDetailRequest(database, callback) {
-	window.detailRequest.start = window.start;
-	window.detailRequest.end = window.end;
-	window.detailRequest.database = database;
-	
-	top.sendRequest(window.detailRequest, callback);
-}
-
-/**
- * private
- */
-function onDetailInResponse(data) {
-	window.chartInWindow.detail(new ITAhM.ChartData(data));
-}
-
-/**
- * private
- */
-function onDetailOutResponse(data) {
-	window.chartOutWindow.detail(new ITAhM.ChartData(data));
-}
-
-/**
- * private
- */
-function drawIn() {
-	if (window.chartInWindow.draw(window.start, window.end) && window.detail) {
-		sendDetailRequest("ifInErrors", onDetailInResponse);
-	}
-}
-
-/**
- * private
- */
-function drawOut() {
-	if (window.chartOutWindow.draw(window.start, window.end) && window.detail) {
-		sendDetailRequest("ifOutErrors", onDetailOutResponse);
-	}
-}
-
-/**
- * private
- */
-function testDetail() {
-	var date = new Date(window.start);
-	
-	window.detail = date.setDate(date.getDate() +1) === window.end;
-}
-
-/**
  * public
  */
- function draw(start, end) {
-	window.start = start;
-	window.end = end;
+ function draw(position, limit) {
+	const date = new Date(position);
 	
-	testDetail();
-	
-	drawIn();
-	drawOut();
+	if (date.setDate(date.getDate() +1) === limit) {
+		window.request.summary = false;
+		window.request.start = position;
+		window.request.end = limit;
+
+		top.postRequest(window.request, function () {
+			switch (this.status) {
+			case 200:
+				const data = JSON.parse(this.responseText);
+
+				if (window.chartInWindow.draw(position, limit)) {
+					window.chartInWindow.detail(new ITAhM.ChartData(data.in));
+				}
+
+				if (window.chartOutWindow.draw(position, limit)) {
+					window.chartOutWindow.detail(new ITAhM.ChartData(data.out));
+				}
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+		});
+	}
+	else {
+		window.chartInWindow.draw(position, limit);
+		window.chartOutWindow.draw(position, limit);
+	}
 }
 
 /**
@@ -300,10 +273,10 @@ var chartIn = document.getElementById("chart_in"),
 	chartInWindow = chartIn.contentWindow,
 	chartOut = document.getElementById("chart_out"),
 	chartOutWindow = chartOut.contentWindow,
-	detailRequest = {
-		ip: top.ip,
+	request = {
 		command: "query",
-		summary: false
+		resource: "error",
+		summary: true
 	};
 
 document.getElementById("view").onchange = function () {

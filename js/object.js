@@ -27,10 +27,6 @@ var ITAhM = ITAhM || {};
 		this.initialize(calendar, handler);
 	};
 	
-	ITAhM.Communicator = function (host, port, timeout) {
-		this.initialize(host, port, timeout);
-	};
-	
 	ITAhM.Color = function (r, g, b) {
 		this.initialize(r, g, b);
 	};
@@ -132,7 +128,6 @@ var ITAhM = ITAhM || {};
 			var key = [],
 				date = new Date(start),
 				mills = date.setSeconds(0, 0);
-			
 			do {
 				if (!isNaN(this.data[mills])) {
 					key[key.length] = mills;
@@ -370,41 +365,6 @@ var ITAhM = ITAhM || {};
 		
 	};
 
-	ITAhM.Communicator.prototype = {
-		
-		initialize: function (host, port, timeout) {
-			this.url = "http://"+ host +":"+ port;
-			this.timeout = timeout;
-		},
-		
-		sendRequest: function (request, onResponse) {
-			var xhr = new XMLHttpRequest();
-			
-			xhr.open("POST", this.url, true);
-			if (this.timeout > 0) {
-				xhr.timeout = this.timeout;
-			}
-			
-			xhr.withCredentials = true;
-			xhr.onloadend = this.onComplete.bind(xhr, onResponse);
-			
-			xhr.send(JSON.stringify(request));
-		},
-		
-		onComplete: function (onResponse) {
-			var response;
-			
-			try {
-				response = JSON.parse(this.responseText);
-			}
-			catch(e) {
-			}
-			
-			onResponse(this.status, response);
-		}
-		
-	};
-	
 	ITAhM.Color.prototype = {
 		initialize: function (r, g, b) {
 			this.r = r;

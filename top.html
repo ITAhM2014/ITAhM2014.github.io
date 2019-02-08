@@ -149,32 +149,24 @@ body.name .list_item> li:nth-child(2) {
 
 function initialize() {
 	const df = document.createDocumentFragment();
-	let resource;
-	/*
-	if ("dashboard" in top.databases.config) {
-		var resources = top.databases.config.dashboard,
-			order = Object.keys(resources);
+	
+	if ("dashboard" in top.setting) {
+		var order = top.setting.dashboard;
 		
-		[].sort.call(order, function (a, b) {
-			return parseInt(a) - parseInt(b);
-		})
-		
-		for (var i=0, _i=order.length; i<_i; i++) {
-			resource = resources[order[i]];
+		for (let i=0, _i=order.length, resource; i<_i; i++) {
+			resource = order[i];
 
 			setTop(top.topList[resource], df.appendChild(document.getElementById(resource)));
 		}
 	}
-	else {*/
+	else {
 		const list = document.getElementById("tmp_list");
 		let section;
 
 		while (section = list.firstElementChild) {
-			resource = section.id;
-if (!(resource in top.topList)) console.log(resource);
-			setTop(top.topList[resource], df.appendChild(section));
+			setTop(top.topList[section.id], df.appendChild(section));
 		}
-	//}
+	}
 
 	window.list.appendChild(df);
 }
@@ -335,12 +327,12 @@ function createTopItem(id, value, rate, resource, index) {
 var list = document.getElementById("top_list"),
 	rafID;
 
-if ("display" in top.config && top.config.display !== "name") {
+if ("display" in top.setting && top.setting.display !== "name") {
 	document.body.classList.remove("name");
 }
 
-if ("color" in top.config) {
-	window.list.classList.add(top.config.color);
+if ("color" in top.setting) {
+	window.list.classList.add(top.setting.color);
 }
 
 top.postRequest({

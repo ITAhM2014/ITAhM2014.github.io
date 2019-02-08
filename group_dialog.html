@@ -111,57 +111,12 @@ footer> input:hover {
 	background-color: #c68e17;
 }
 
-form:not(.edit) input[type=reset] {
+body:not(.edit) input[type=reset] {
 	display: none;
 }
 
 		</style>
 		
-		<script>
-		
-function buildType() {
-	var df = document.createDocumentFragment(),
-		option,
-		typeData = {},
-		group = {},
-		icon, iconData, type;
-	
-	iconData = top.store.icon;
-	for (type in iconData) {
-		typeData[type] = iconData[type];
-	}
-	
-	iconData = top.databases.icon;
-	for (type in iconData) {
-		typeData[type] = iconData[type];
-	}
-	
-	for (type in typeData) {
-		icon = typeData[type];
-		
-		if (icon.group !== "group") {
-			continue;
-		}
-		
-		if (!group[icon.type]) {
-			(group[icon.type] = df.appendChild(document.createElement("option"))).text = type;
-		}
-	}
-	
-	return df;
-}
-
-function saveGroup(id, group) {
-	top.putDB("device", id, group);
-	
-	if (window.opener) {
-		window.opener.reload();
-	}
-	
-	top.closeDialog();
-}
-		
-		</script>
 	</head>
 	
 	<body class="loading">
@@ -174,12 +129,6 @@ function saveGroup(id, group) {
 					<li>이름
 					<li>
 						<input type="text" name="name" placeholder="그룹 이름" autofocus required>
-				</ul>
-				<ul>
-					<li>아이콘
-					<li>
-						<select name="type" required></select>
-					
 				</ul>
 			</div>
 			
@@ -194,12 +143,11 @@ function saveGroup(id, group) {
 		
 		<script>
 
-var form = document.querySelector("form"),
-	group;
+var group;
 
-if (top.getDB("local", "level") === 0) {
-	document.querySelector("input[type=reset]").disabled = false;
+if (top.account.level === 0) {
 	document.querySelector("input[type=submit]").disabled = false;
+	document.querySelector("input[type=reset]").disabled = false;
 }
 
 document.getElementById("close").onclick = function () {
@@ -207,117 +155,103 @@ document.getElementById("close").onclick = function () {
 };
 
 (function (form) {
-	form.elements["type"].appendChild(buildType());
+	let opener;
 
-	/* group을 삭제했을때는 device와 마찬가지로 연결되어 있는 link를 끊어주고
-	이 group을 parent로 갖는 device의 pos 정보도 수정해 주어야 한다.*/
+	function close() {
+		opener && opener.reload();
+		
+		top.closeDialog();
+	}
+	
 	form.onreset = function (e) {
 		if (!confirm("선택한 그룹을 삭제하겠습니까?")) {
 			return;
 		}
-
+		
 		document.body.classList.add("loading");
 		
-		top.sendRequest({
+		top.postRequest({
 			command: "put",
-			database: "device",
+			database: "node",
 			key: window.id,
 			value: null
 		}, function () {
-			var posData = top.databases.position;
-			
-			// group 정보 삭제
-			top.putDB("device", window.id, null);
-			
-			// group을 parent로 갖는 device의 pos 정보 갱신
-			for (let id in posData) {
-				if(posData[id].parent === window.id) {
-					delete posData[id].parent;
-				}
+			switch (this.status) {
+				case 200:
+					close();
+
+					break;
+				default:
+					alert(top.getMessage(this.status));
+
+					console.log(this.responseText && JSON.parse(this.responseText).error);
 			}
-			
-			// 연관 link 정보 삭제
-			if (posData[window.id]) {
-				const ifEntry = posData[window.id].ifEntry;
-				
-				for (let id in ifEntry) {
-					if (posData[id]) {
-						delete posData[id].ifEntry[window.id];
-					}
-				}
-			}
-			
-			// group의 position 정보 삭제
-			delete posData[window.id];
-			
-			document.body.classList.remove("loading");
-			
-			window.opener.reload();
-			
-			top.closeDialog();
-		});	
+		});
 	};
 
 	form.onsubmit = function (e) {
 		e.preventDefault();
 	
-		const group = window.id? top.getDB("device", window.id): {
-				group: true
-			},
-			posData = top.databases.position;
+		const base = {};
 		
-		group.name = form.elements["name"].value;
-		group.type = form.elements["type"].value;
+		base.name = form.elements["name"].value;
+		base.type = "group";
 		
-		if (!window.id) {
-			top.sendRequest({
-				command: "put",
-				database: "device",
-				key: "",
-				value: group
-			}, function (data) {
-				const id = Object.keys(data)[0];
-				
-				top.databases.position[id] = {
-					x: 0,
-					y: 0,
-					ifEntry: {},
-					parent: top.store.parent
-				}; 
-				
-				saveGroup(id, group);
-			});
-		}
-		else {
-			top.sendRequest({
-				command: "put",
-				database: "device",
-				key: window.id,
-				value: group
-			}, function () {
-				saveGroup(window.id, group);
-			});
-		}
+		top.postRequest({
+			command: "put",
+			database: "node",
+			key: window.id || "",
+			value: base
+		}, function () {
+			switch (this.status) {
+				case 200:
+					close();
+
+					break;
+				default:
+					alert(top.getMessage(this.status));
+
+					console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+		});		
 	};
 
 	// public
 	window.initialize = function (id) {
-		window.opener = this && this.location;
+		opener = this && this.location;
 		window.id = id;
-		
+
 		if (id) {
-			const group = top.getDB("device", id);
-			
-			form.elements.name.value = group.name;
-			form.elements.type.value = group.type;
-			
-			document.body.classList.add("edit");
+			top.postRequest({
+				command: "node",
+				id: id
+			}, function () {
+				switch (this.status) {
+				case 200:
+					window.node = JSON.parse(this.responseText);
+
+					if (node.base.type !== "group") {
+						throw "group이 아닌 노드를 dialog에 표시할 수 없습니다.";
+					}
+					
+					form.elements.name.value = window.node.base.name;
+					 
+					document.body.classList.add("edit");
+
+					break;
+
+				default:
+					alert(top.getMessage(this.status));
+
+					console.log(this.responseText && JSON.parse(this.responseText).error);
+				}
+
+				document.body.classList.remove("loading");
+			});
 		}
 		else {
-			form.elements.type.value = "group";
+			document.body.classList.remove("loading");
 		}
-
-		document.body.classList.remove("loading");
 	};
 }) (document.querySelector("form"));
 

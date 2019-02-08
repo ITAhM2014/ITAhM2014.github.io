@@ -150,13 +150,14 @@ resize();
 /**
  * public
  */
-function initialize(ip) {
+function initialize(id) {
 	window.request = {
-		command: "select",
-		ip: ip
+		command: "node",
+		id: id,
+		snmp: true
 	};
 	
-	top.sendRequest(window.request, onResponse);
+	top.postRequest(window.request, onResponse);
 }
 
 function format(value) {
@@ -207,11 +208,16 @@ function resize() {
 	point.setAttribute("cx", width);
 }
 
-function onResponse(data) {
-	parseData(data.responseTime);
+function onResponse() {
+	switch(this.status) {
+	case 200:
+		parseData(JSON.parse(this.responseText).snmp.responseTime["0"].rtt);
+		
+		break;
+	}
 	
 	setTimeout(function () {
-		top.sendRequest(window.request, onResponse);
+		top.postRequest(window.request, onResponse);
 	}, INTERVAL);
 }
 

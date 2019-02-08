@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Cache-Control" content="No-Cache">
+		
+		<title>Edit @ ITAhM</title>
+
+		<style>
+@import "/css/style.css";
+
+body {
+	background-color: #fff;
+	width: 860px;
+	margin: auto;
+}
+
+ul {
+	padding:0; margin: 0;
+	list-style: none;
+	display: flex;
+}
+
+li {
+	padding: 3px 5px;
+}
+
+li:nth-child(1) {
+	width: 300px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+li:nth-child(2) {
+	width: 160px;
+	border-left: 3px solid #777;
+	border-right: 3px solid #777;
+}
+
+li:nth-child(3) {
+	width: 200px;
+}
+
+li >input[type=number],
+li >input:not([type]) {
+	box-sizing: border-box;
+	width: 100%;
+	text-align: right;
+}
+
+#storage,
+#throughput {
+	position: relative;
+}
+
+.header {
+	color: #fff;
+	text-align: center;
+	font-weight: bold;
+}
+
+.header >li {
+	padding: 5px 5px;
+}
+
+.header >li:not(:empty) {
+	background-color: #0084ff;
+	position: relative;
+}
+
+li.top {
+	border-top: 3px solid #777;
+}
+
+li.bottom {
+	border-bottom: 3px solid #777;
+}
+
+.balloon {
+	position: absolute;
+	background: #ff8000;
+	border-radius: 5px;
+	width: 130px;
+	padding: 5px;
+	bottom: 40px;
+	border-bottom: 3px solid #777;
+}
+
+.balloon::after {
+	content: '';
+	position: absolute;
+	width: 0;
+	height: 0;
+	border: 8px solid transparent;
+	border-top-color: #ff8000;
+	border-bottom: 0;
+	bottom: -8px;
+}
+
+.balloon.critical {
+	left: 90px;
+}
+
+.balloon.critical::after {
+	left: 20%;
+}
+
+.balloon.speed {
+	left: 30px;
+}
+
+.balloon.speed::after {
+	left: 80%;
+}
+
+.balloon.updown {
+	left: 20px;
+}
+
+.balloon.updown::after {
+	left: 50%;
+}
+
+body:not(.rtt) #throughput,
+body:not(.processor) #processor,
+body:not(.memory) #memory,
+body:not(.storage) #storage,
+body:not(.throughput) #throughput {
+	display: none;
+}
+
+		</style>
+		
+		<script>
+function initialize() {
+	const
+		df = document.createDocumentFragment(),
+		snmp = window.node.snmp;
+	let entry;
+
+	if ("responseTime" in snmp) {
+		document.body.classList.add("rtt");
+
+		if ("critical" in snmp.responseTime["0"]) {
+			window.form.elements["rtt"].value = snmp.responseTime["0"].critical;
+		}
+	}
+
+	if ("hrProcessorEntry" in snmp) {
+		let indexData;
+		
+		for (let index in snmp.hrProcessorEntry) {
+			document.body.classList.add("processor");
+
+			indexData = snmp.hrProcessorEntry[index];
+
+			if ("critical" in indexData) {
+				window.form.elements["processor"].value = indexData.critical;
+			}
+
+			break;
+		}
+	}
+	
+	if ("ifEntry" in snmp) {
+		document.body.classList.add("throughput");
+
+		entry = snmp.ifEntry;
+
+		for (let index in entry) {
+			df.appendChild(createThroughputItem(index, entry[index]));
+		}
+
+		window.throughput.appendChild(df);
+	}
+
+	if ("hrStorageEntry" in snmp) {
+		let item;
+
+		entry = snmp.hrStorageEntry;
+
+		for (let index in entry) {
+			item = createStorageItem(index, entry[index]);
+
+			if (item) {
+				document.body.classList.add("storage");
+
+				df.appendChild(item);
+			}
+		}
+
+		window.storage.appendChild(df);
+	}
+	
+	document.body.classList.remove("loading");
+}
+
+function createThroughputItem(index, indexData) {
+	const ul = document.createElement("ul");
+	let
+		li = document.createElement("li"),
+		input;
+
+	ul.appendChild(li).textContent = indexData.ifName || indexData.ifDescr || indexData.ifAlias;
+
+	li = document.createElement("li");
+	input = document.createElement("input");
+	input.id = "ifEntry."+ index;
+	input.classList.add("critical");
+	li.appendChild(input).type = "number";
+	input.max = 100;
+	input.min = 1;
+	
+	if ("critical" in indexData) {
+		input.value = indexData.critical;
+	}
+
+	ul.appendChild(li);
+
+	li = document.createElement("li");
+	input = document.createElement("input");
+	input.dataset.index = index;
+	li.appendChild(input);
+
+	if ("speed" in indexData) {
+		input.value = indexData.speed;
+	}
+
+	ul.appendChild(li);
+
+	li = document.createElement("li");
+	input = document.createElement("input");
+	li.appendChild(input).type = "checkbox";
+	input.dataset.index = index;
+
+	if ("updown" in indexData) {
+		input.checked = indexData.updown;
+	}
+	
+	ul.appendChild(li);
+
+	return ul;
+}
+
+function createStorageItem(index, indexData) {
+	switch (indexData.hrStorageType) {
+	case 4:
+		break;
+	case 2:
+		document.body.classList.add("memory");
+
+		const input = window.form.elements["memory"];
+
+		input.id = "hrStorageEntry."+ index;
+
+		if ("critical" in indexData) {
+			input.value = indexData.critical;
+		}
+	default:
+		return;
+	}
+	
+	const
+		ul = document.createElement("ul"),
+		input = document.createElement("input");
+	let li = document.createElement("li");
+
+	ul.appendChild(li).textContent = indexData.hrStorageDescr;
+
+	li = document.createElement("li");
+	li.appendChild(input).type = "number";
+	input.id = "hrStorageEntry."+ index;
+	input.classList.add("critical");
+	input.max = 100;
+	input.min = 1;
+
+	if ("critical" in indexData) {
+		input.value = indexData.critical;
+	}
+
+	ul.appendChild(li);
+
+	return ul;
+}
+
+		</script>
+	</head>
+
+	<body class="loading filter">
+		<h2>
+			설정
+		</h2>
+		<p>
+			각 자원의 성능 임계값을 설정하거나 통신 대역폭을 지정합니다.
+			통신 인터페이스의 up/down 발생시 통보 여부를 결정할 수 있습니다.
+		</p>
+		<p>
+			설정한 임계값(%) 이상(같거나 초과)이면 통보합니다. 
+		</p>
+		<p>
+			응답속도의 임계값 단위는 초(Seconds) 입니다.
+		</p>
+		<form>
+			<ul class="header">
+				<li></li>
+				<li class="top">
+					임계값 %
+					<input name="critical" type="button" value="적용">
+					<div class="balloon left critical">
+						자원의 성능 임계값을<br>
+						설정하고 적용합니다.
+					</div>
+				</li>
+			</ul>
+			<ul id="rtt">
+				<li>응답속도 (Seconds)</li>
+				<li>
+					<input name="rtt" type="number" class="critical" max="100" min="1">
+				</li>
+			</ul>
+			<ul id="processor">
+				<li>프로세서 로드</li>
+				<li>
+					<input id="hrProcessorEntry.0" name="processor" type="number" class="critical" max="100" min="1">
+				</li>
+			</ul>
+			<ul id="memory">
+				<li>물리적 메모리</li>
+				<li>
+					<input name="memory" type="number" class="critical" max="100" min="1">
+				</li>
+			</ul>
+			<div id="storage">
+				<ul class="header">
+					<li>저장소</li>
+					<li></li>
+				</ul>
+			</div>
+			<div id="throughput">
+				<ul class="header">
+					<li>통신</li>
+					<li></li>
+					<li>
+						대역폭 bps
+						<input name="speed" type="button" value="적용">
+						<div class="balloon speed">
+							대역폭을 수정하고<br>
+							적용합니다.<br>
+						</div>
+					</li>
+					<li>
+						<input name="batch" type="checkbox">
+						모니터
+						<input name="updown" type="button" value="적용">
+						<div class="balloon updown">
+							인터페이스의<br>
+							up/down을 감시하고<br>
+							통보합니다.
+						</div>
+					</li>
+				</ul>
+			</div>
+			<ul>
+				<li></li>
+				<li class="bottom"></li>
+			</ul>
+		</form>
+		
+		<div class="bg_loading"></div>
+	
+		<script>
+	
+var
+	storage = document.getElementById("storage"),
+	throughput = document.getElementById("throughput"),
+	form = document.querySelector("form");
+
+window.form.elements["critical"].onclick = function () {
+	if(!confirm("자원의 성능 임계값 변경 사항을 적용 하겠습니까? ")) {
+		return;
+	}
+
+	const critical = {};
+	let id;
+
+	[].forEach.call(window.form.querySelectorAll("input.critical"), function (input) {
+		if (input.value) {
+			id = input.id.split(".");
+			
+			if (!(id[0] in critical)) {
+				critical[id[0]] = {};
+			}
+
+			critical[id[0]][id[1]] = parseInt(input.value);
+		}
+	});
+
+	top.postRequest({
+		command: "order",
+		order: "critical",
+		id: top.name,
+		critical: critical
+	}, function () {
+		switch (this.status) {
+			case 200:
+				top.sendEvent();
+				
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+};
+
+window.form.elements["batch"].onclick = function () {
+	const checked = this.checked;
+	
+	[].forEach.call(window.throughput.querySelectorAll("input[type=checkbox]"), function (checkbox) {
+		checkbox.checked = checked;
+	});
+};
+
+window.form.elements["speed"].onclick = function () {
+	if(!confirm("Interface 대역폭의 변경 사항을 적용 하겠습니까? ")) {
+		return;
+	}
+
+	const speed = {};
+
+	[].forEach.call(window.throughput.querySelectorAll("input:not([type]"), function (input) {
+		if (input.value) {
+			speed[input.dataset.index] = parseInt(input.value);
+		}
+	});
+
+	top.postRequest({
+		command: "order",
+		order: "speed",
+		id: top.name,
+		speed: speed
+	}, function () {
+		switch (this.status) {
+			case 200:
+				
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+};
+
+window.form.elements["updown"].onclick = function () {
+	if(!confirm("Interface up/down 모니터의 변경 사항을 적용 하겠습니까? ")) {
+		return;
+	}
+
+	const updown = {};
+
+	[].forEach.call(window.throughput.querySelectorAll("input[type=checkbox]"), function (checkbox) {
+		if (checkbox.checked) {
+			updown[checkbox.dataset.index] = true;
+		}
+	});
+
+	top.postRequest({
+		command: "order",
+		order: "updown",
+		id: top.name,
+		updown: updown
+	}, function () {
+		switch (this.status) {
+			case 200:
+				
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+};
+
+if (top.name) {
+	top.postRequest({
+		command: "node",
+		id: top.name,
+		snmp: true
+	}, function () {
+		switch (this.status) {
+			case 200:
+				window.node = JSON.parse(this.responseText);
+
+				initialize();
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+}
+
+		</script>
+	
+	</body>
+</html>

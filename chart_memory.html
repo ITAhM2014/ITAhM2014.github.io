@@ -48,57 +48,41 @@ h2 {
 /**
  * public
  */
-function initialize(from, to, start, end, index) {
-	var entry = top.snmp.hrStorageEntry[index];
+function initialize(args) {
+	var indexData = args.snmp.hrStorageEntry[args.index];
 	
-	window.detailRequest.index = index;
+	window.request.id = args.id;
+	window.request.index = args.index;
+	window.request.start = args.start;
+	window.request.end = args.end;
+
+	window.max = indexData.hrStorageSize * indexData.hrStorageAllocationUnits;
 	
-	window.max = entry.hrStorageSize * entry.hrStorageAllocationUnits;
-	
-	top.sendRequest({
-		command: "query",
-		ip: top.ip,
-		summary: true,
-		database: "hrStorageUsed",
-		index: index,
-		start: from,
-		end: to
-	}, onSummaryResponse);
-	
-	
-	window.start = start;
-	window.end = end;
+	top.postRequest(window.request, function () {
+		switch (this.status) {
+		case 200:		
+			chartWindow.initialize(
+				new ITAhM.ChartSummaryData(JSON.parse(this.responseText)),
+				window.max,
+				"#b8860b",
+				onValueToString);
+
+			draw(args.position, args.limit);
+
+			break;
+		default:
+			alert(top.getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
 	
 	document.getElementById("legend").textContent = "Memory capacity : "+ ITAhM.util.toBytesString(max);
-}
-
-function onSummaryResponse(data) {
-	chartWindow.initialize(new ITAhM.ChartSummaryData(data), window.max, "#b8860b", onValueToString);
-	
-	drawMemory();
-}
-
-/**
- * private
- */
-function onDetailResponse(data) {
-	window.chartWindow.detail(new ITAhM.ChartData(data));
 }
 
 function onValueToString(value) {
 	return ITAhM.util.toBytesString(value).replace("ytes", "");
 }
-
-/**
- * private
- */
-function sendDetailRequest() {
-	window.detailRequest.start = window.start;
-	window.detailRequest.end = window.end;
-	
-	top.sendRequest(window.detailRequest, onDetailResponse);
-}
-
 
 /**
  * private
@@ -146,24 +130,29 @@ function buildDetailFile() {
 }
 
 /**
- * private
- */
-function drawMemory() {
-	var date = new Date(this.start);
-	
-	if (window.chartWindow.draw(window.start, window.end) && date.setDate(date.getDate() +1) === window.end) {
-		sendDetailRequest();
-	}
-}
-
-/**
  * public
  */
-function draw(start, end) {
-	window.start = start;
-	window.end = end;
+function draw(position, limit) {
+	var date = new Date(position);
 	
-	drawMemory();
+	if (window.chartWindow.draw(position, limit) && date.setDate(date.getDate() +1) === limit) {
+		window.request.summary = false;
+		window.request.start = position;
+		window.request.end = limit;
+		
+		top.postRequest(window.request, function () {
+			switch (this.status) {
+			case 200:
+				window.chartWindow.detail(new ITAhM.ChartData(JSON.parse(this.responseText)));		
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+		});
+	}
 }
 
 /**
@@ -217,11 +206,10 @@ function getFile() {
 
 var chart = document.getElementById("chart"),
 	chartWindow = chart.contentWindow,
-	detailRequest = {
-		ip: top.ip,
+	request = {
 		command: "query",
-		summary: false,
-		database: "hrStorageUsed"
+		resource: "hrStorageUsed",
+		summary: true
 	};
 
 		</script>

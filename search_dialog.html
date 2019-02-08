@@ -5,7 +5,7 @@
 		<title>dialog</title>
 		
 		<style>
-@import "css/itahm.css";
+@import "css/style.css";
 
 body {
 	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
@@ -19,7 +19,7 @@ form {
 	width: 300px;
 	padding: 20px;
 	background-color: #fff;
-	/*box-shadow: 0px 0px 20px 10px #ddd;*/
+	position: relative;
 }
 
 h2 {
@@ -100,15 +100,21 @@ footer> input:hover {
 	border-color: #0084ff;
 }
 
+#close {
+	font-size: 20px;
+	position: absolute; top: 5px; right: 5px;
+	border: 3px solid transparent;
+}
+
+#close:hover {
+	border-color: #c68e17;
+}
+
+#close::before, #close::after {
+	background-color: #c68e17;
+}
+
 body:not(.monitor) .monitor {
-	display: none;
-}
-
-body:not(.removable) .remove {
-	display: none;
-}
-
-body.initialized .search {
 	display: none;
 }
 
@@ -118,7 +124,8 @@ body.initialized .search {
 	
 	<body>
 	
-		<form class="rounded">
+		<form>
+			<i class="btn_close round" id="close"></i>
 			<h2>네트워크 탐색</h2>
 			<div class="table">
 				<ul>
@@ -131,7 +138,7 @@ body.initialized .search {
 					<li>서브넷 마스크
 					<li>
 						<div id="mask">255.255.255.192</div>
-						<select id="mask_bits">
+						<select name="mask">
 							<option value="255.255.255.0">24
 							<option value="255.255.255.128">25
 							<option value="255.255.255.192" selected>26
@@ -144,8 +151,7 @@ body.initialized .search {
 			</div>
 			
 			<footer>
-				<input type="reset"  value="Cancel">
-				<input type="submit" value="Apply" disabled>
+				<input type="submit" value="확인" disabled>
 			</footer>
 		</form>
 		
@@ -156,42 +162,49 @@ if (window === top) throw "";
 var form = document.querySelector("form"),
 	mask = document.getElementById("mask_bits");
 
-form.addEventListener("reset", onCancel);
-
-window.mask.onchange = onSelect;
+document.getElementById("close").onclick = function () {
+	top.closeDialog(true);
+};
 
 if (top.account.level === 0) {
-	form.addEventListener("submit", onApply);
 	document.querySelector("input[type=submit]").disabled = false;
 }
 
-function onSelect(e) {
-	document.getElementById("mask").textContent = this.value;
-}
+(function (form) {
+	let opener;
 
-function onApply(e) {
-	e.preventDefault();
+	form.elements["mask"].onchange = function (e) {
+		document.getElementById("mask").textContent = this.value;
+	};
+
+	form.onsubmit = function (e) {
+		e.preventDefault();
 	
-	var request = {
-			command: "order",
-			order: "search",
-			network: form.elements.network.value,
-			mask: parseInt(window.mask.options[window.mask.selectedIndex].text)
-		};
-	
-	top.sendRequest(request, function () {
-		alert("자동 탐지 요청을 처리하고 있습니다.");
-		
-		top.closeDialog(true);
-	});
-}
+		top.postRequest({
+			command: "search",
+			network: form.elements["network"].value,
+			mask: parseInt(form.elements["mask"].options[form.elements["mask"].selectedIndex].text)
+		}, function () {
+			switch (this.status) {
+			case 200:
+				alert("자동 탐지 요청을 처리하고 있습니다.");
 
-function onCancel(e) {
-	top.closeDialog(true);
-}
+				top.closeDialog(true);
 
-function initialize() {
-}
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+		});
+	};
+
+	window.initialize = function () {
+		opener = this && this.location;
+	};
+
+}) (document.querySelector("form"));
 
 		</script>
 	

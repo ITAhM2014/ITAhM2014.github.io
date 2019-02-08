@@ -299,7 +299,7 @@ function addNode(id, node, pos) {
 function drawDevice(id, node, svgDevice, pos) {
 	var 
 		svgIcon = svgDevice.querySelector("image"),
-		icon = getIcon(device.type || "unknown");
+		icon = getIcon(node.base.type || "unknown");
 	
 	removeClass(svgDevice, "shutdown", "critical");
 	
@@ -321,15 +321,7 @@ function drawDevice(id, node, svgDevice, pos) {
 function setClick() {
 	window.click = true;
 }
-/*
-function getDevice(svgDevice) {
-	if (!hasClass(svgDevice, "device")) {
-		svgDevice = svgDevice.parentNode;
-	}
-	
-	return hasClass(svgDevice, "device")? svgDevice: null;
-}
-*/
+
 function addClass(e, className) {
 	var cls = e.getAttribute("class"),
 		classList = cls? cls.split(" "): [];
@@ -477,12 +469,12 @@ function setGroupStatus(id, status) {
 
 // public
 function initialize() {
-	if ("display" in top.config) {
-		document.body.classList[top.config.display == "name"? "add": "remove"]("name");
+	if ("display" in top.setting) {
+		document.body.classList[top.setting.display == "name"? "add": "remove"]("name");
 	}
 
 	window.getIcon = function (type) {
-		return top.config.icon && top.config.icon[type] || top.store.icon[type];
+		return top.setting.icon && top.setting.icon[type] || top.store.icon[type];
 	}
 
 	top.postRequest({

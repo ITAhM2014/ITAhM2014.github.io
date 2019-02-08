@@ -122,12 +122,12 @@ footer .dot::after {
 }
 
 #move::before {
-	content: attr(data-start);
+	content: attr(data-position);
 	top: 0; left: 0;
 }
 
 #move::after {
-	content: attr(data-end);
+	content: attr(data-limit);
 	right: 0; bottom: 0;
 }
 
@@ -239,7 +239,10 @@ function getDateText(mills) {
 	return MONTH[date.getMonth()] + (dd >9? "": "0") + dd +"일";
 }
 
-function initialize(resource, index) {
+// public
+function initialize(id, snmp, resource, index) {console.log(index, typeof index);
+	window.id = id;
+	window.snmp = snmp;
 	window.resource = resource;
 	window.index = index;
 	
@@ -260,11 +263,11 @@ function initChart() {
 		window.dayCount++;
 	}
 	
-	window.leftPos = window.dateList.indexOf(window.today);
-	window.rightPos = window.dateList.indexOf(window.end);
+	window.leftPos = window.dateList.indexOf(window.position);
+	window.rightPos = window.dateList.indexOf(window.limit);
 	
-	window.startDate.title = getDateText(window.start);
-	window.endDate.title = getDateText(window.end);
+	document.getElementById("start").title = getDateText(window.start);
+	document.getElementById("end").title = getDateText(window.end);
 	
 	resize();
 	
@@ -311,7 +314,7 @@ function onSelect(e) {
 		if (x1 < 0 || x2 < 0) {
 			return;
 		}
-			
+		
 		onChange(x1, x2);
 		
 		break;
@@ -342,13 +345,13 @@ function resetArea() {
 	window.move.style.left = window.leftPos * blockWidth + "px";
 	window.move.style.right = (window.dayCount -1 - window.rightPos) * blockWidth + "px";
 	
-	window.move.dataset.start = getDateText(window.dateList[window.leftPos]);
-	window.move.dataset.end = getDateText(window.dateList[window.rightPos]);
+	window.move.dataset.position = getDateText(window.dateList[window.leftPos]);
+	window.move.dataset.limit = getDateText(window.dateList[window.rightPos]);
 }
 
-function reload(from, to) {
-	window.today = window.start = from.setHours(0, 0, 0, 0);
-	window.end = to.setHours(0, 0, 0, 0);
+function reload(position, limit) {
+	window.position = window.start = position.setHours(0, 0, 0, 0);
+	window.limit = window.end = limit.setHours(0, 0, 0, 0);
 	
 	window.chartWindow.location.reload();
 	
@@ -432,11 +435,11 @@ function clear(e) {
 				<h3>기간설정</h3>
 				<div>
 					<div>
-						<p>from</p>
+						<p>start</p>
 						<input type="date" id="set_start" value="2017-12-05">
 					</div>
 					<div>
-						<p>to</p>
+						<p>end</p>
 						<input type="date" id="set_end" value="2017-12-12">
 					</div>
 				</div>
@@ -481,18 +484,17 @@ var resource, index,
 	prev = document.getElementById("prev"),
 	move = document.getElementById("move"),
 	next = document.getElementById("next"),
-	startDate = document.getElementById("start"),
-	endDate = document.getElementById("end"),
+	fromDate = document.getElementById("position"),
+	toDate = document.getElementById("limit"),
 	left, right, dayCount, blockWidth, sRect;
 
 (function (date) {
 	date.setHours(0, 0, 0, 0);
 	
-	window.today = date.getTime();
+	window.position = date.getTime();
 	window.start = date.setDate(date.getDate() -6);
-	window.end = date.setDate(date.getDate() +7);
+	window.end = window.limit = date.setDate(date.getDate() +7);
 })(new Date());
-
 
 document.onselectstart = function (e) {
 	return false;
@@ -532,47 +534,47 @@ window.selector.addEventListener("dragon", onSelectStart);
 window.selector.addEventListener("drag", onSelect);
 
 window.chartFrame.onload = function () {
-	this.contentWindow.initialize(window.start, window.end, window.today, window.end, window.index);
-};	
+	this.contentWindow.initialize(window);
+};
 
 window.rtFrame.onload = function () {
-	this.contentWindow.initialize(window.resource, window.index);
+	this.contentWindow.initialize(window.id, window.resource, window.index);
 };
 
 new Draggable(window.selector);
 
 (function(window) {
 	var form = document.querySelector("form"),
-		start = document.getElementById("set_start"),
-		end = document.getElementById("set_end"),
+		inputStart = document.getElementById("set_start"),
+		inputEnd = document.getElementById("set_end"),
 		kst = new Date();
 	
 	kst.setDate(kst.getDate() +1);
 	
-	setValueAsDate(end, kst); 
+	setValueAsDate(inputEnd, kst); 
 	
 	kst.setDate(kst.getDate() -7);
 	
-	setValueAsDate(start, kst);
+	setValueAsDate(inputStart, kst);
 	
 	form.addEventListener("submit", function (e) {
 		e.preventDefault();
 		
-		var from = getValueAsDate(start),
-			to = getValueAsDate(end);
+		var start = getValueAsDate(inputStart),
+			end = getValueAsDate(inputEnd);
 		
-		if (from === to) {
+		if (start === end) {
 			return alert("서로 다른 날짜를 선택하세요.");
 		}
 	
-		if (from > to) {
-			setValueAsDate(start, to);
-			setValueAsDate(end, from);
+		if (start > end) {
+			setValueAsDate(inputStart, end);
+			setValueAsDate(inputEnd, start);
 			
-			reload(to, from);
+			reload(end, start);
 		}
 		else {
-			reload(from, to);
+			reload(start, end);
 		}
 		
 		document.body.classList.remove("set");

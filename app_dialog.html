@@ -99,7 +99,7 @@ footer> input:hover {
 	background-color: #c68e17;
 }
 
-form:not(.edit) input[type=reset] {
+body:not(.edit) input[type=reset] {
 	display: none;
 }
 
@@ -154,25 +154,11 @@ function isIPv4(s) {
 		<div class="bg_loading"></div>
 		<script>
 
-var posTable = top.getDB("position");
-
-if (top.getDB("local", "level") === 0) {
-	document.querySelector("input[type=reset]").disabled = false;
-	document.querySelector("input[type=submit]").disabled = false;
-}
-
 (function (form) {
 
-	let opener;
-
-	function save(id, appData) {
-		top.putDB("device", id, appData);
-
-		if (opener) {
-			opener.reload();
-		}
-
-		top.closeDialog();
+	if (top.account.level === 0) {
+		document.querySelector("input[type=submit]").disabled = false;
+		document.querySelector("input[type=reset]").disabled = false;
 	}
 
 	form.onreset = function(e) {
@@ -187,33 +173,19 @@ if (top.getDB("local", "level") === 0) {
 		// 삭제
 		top.postRequest({
 			command: "put",
-			database: "device",
+			database: "node",
 			key: window.id,
 			value: null
 		}, function () {
 			switch (this.status) {
-			case 200:				
-				// Monitor 삭제
-
-				// 연관 link 정보 삭제
-				if (window.posTable[window.id]) {
-					for (let id in window.posTable[window.id].ifEntry) {
-						if (window.posTable[id]) {
-							delete window.posTable[id].ifEntry[window.id];
-						}
-					}
-				}				
-				
-				// device의 position 정보 삭제
-				delete window.posTable[window.id];
-
-				// Device 삭제
-				save(window.id, null);
+			case 200:
+				close();
 
 				break;
-
 			default:
 				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
 			}
 		});
 	};
@@ -227,126 +199,97 @@ if (top.getDB("local", "level") === 0) {
 	
 		document.body.classList.add("loading");
 
-		// 생성
-		if(!window.id) {
-			const
-				ip = form.elements["ip"].value,
-				tcp = form.elements["tcp"].value.toString(),
-				appData = {
-					application: true,
-					address: ip +":"+ tcp,
-					name: form.elements["name"].value
-				},
-				monData = top.getDB("monitor", ip);
+		const
+			ip = form.elements["ip"].value,
+			tcp = form.elements["tcp"].value.toString(),
+			base = {
+				type: "application",
+				ip: ip +":"+ tcp,
+				name: form.elements["name"].value
+			};
+			
+		top.postRequest({
+			command: "put",
+			database: "node",
+			key: window.id || "",
+			value: base
+		}, function () {
+			switch (this.status) {
+			case 200:
+				close();
 
-			if (monData && "tcp" in monData && tcp in monData.tcp) {
-				alert("이미 존재하는 응용프로그램 입니다.");
+				break;
+			case 409:
+				alert("사용중인 TCP/IP 주소 입니다.");
 
 				form.elements["ip"].select();
 
-				return;
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
 			}
+
+			document.body.classList.remove("loading");
+		});
+	};
+
+	// public
+	window.initialize = function (id) {
+		const opener = this.location;
+
+		window.close = function () {
+			opener && opener.reload();
 			
+			top.closeDialog();
+		};
+		
+		window.id = id;
+
+		if (id) {
 			top.postRequest({
-				command: "put",
-				database: "device",
-				key: "",
-				value: appData
+				command: "node",
+				id: id
 			}, function () {
 				switch (this.status) {
 				case 200:
+					window.node = JSON.parse(this.responseText);
+
 					const
-						response = JSON.parse(this.responseText),
-						pos = {
-							x: 0,
-							y: 0,
-							ifEntry: {}
-						},
-						parent = top.getDB("local", "parent");
+						ip = form.elements["ip"],
+						tcp = form.elements["tcp"],
+						name = form.elements["name"],
+						address = node.base.ip.split(":");
 					
-					for (let id in response) {
-						save(id, response[id]);
+					// ip는 한번 지정하면 변경할 수 없다.
+					ip.value = address[0];
+					ip.disabled = true;
 
-						top.putDB("position", id, pos);
+					tcp.value = address[1];
+					tcp.disabled = true;
 
-						break;
-					}
-					
-					if (parent) {
-						pos.parent = parent;
-					}
+					name.value = node.base.name || "";
+					name.select();
+
+					document.body.classList.add("edit");
 
 					break;
-				
+
 				default:
 					alert(top.getMessage(this.status));
+
+					console.log(this.responseText && JSON.parse(this.responseText).error);
 				}
 
 				document.body.classList.remove("loading");
 			});
 		}
-		// 수정
 		else {
-			const appData = JSON.parse(JSON.stringify(window.appData));
-
-			appData.name = form.elements["name"].value;
-
-			top.postRequest({
-				command: "put",
-				database: "device",
-				key: window.id,
-				value: appData
-			}, function () {
-				switch (this.status) {
-				case 200:
-					save(window.id, appData);
-
-					break;
-				
-				default:
-					alert(top.getMessage(this.status));
-				}
-
-				document.body.classList.remove("loading");
-			});
+			document.body.classList.remove("loading");
 		}
 	};
 
-	window.initialize = function (id) {
-		opener = this && this.location;
-	
-		if (id) {
-			const
-				appData = top.getDB("device", id);
-
-			if (!appData) {
-				throw "application not found.";
-			}
-
-			const
-				ip = form.elements["ip"],
-				tcp = form.elements["tcp"],
-				name = form.elements["name"],
-				address = appData.address.split(":");
-			
-			ip.value = address[0];
-			ip.disabled = true;
-
-			tcp.value = address[1];
-			tcp.disabled = true;
-
-			name.value = appData.name;
-			name.select();
-
-			form.classList.add("edit");
-
-			window.appData = appData;
-		}
-
-		window.id = id;
-
-		document.body.classList.remove("loading");
-	}
 }) (document.querySelector("form"));
 
 		</script>

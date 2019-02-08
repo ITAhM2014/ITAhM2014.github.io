@@ -22,10 +22,6 @@ body {
 	body {
 		color: #000;
 	}
-	
-	#edit {
-		display: none;
-	}
 }
 
 #chart {
@@ -162,13 +158,7 @@ form>div:last-child input:hover {
 	border-color: #0084ff;
 }
 
-body:not(.customized) form>div:nth-child(2),
-body:not(.dialog) form {
-	display: none;
-}
-
-body.ro #view,
-body.ro #edit {
+body.ro #view {
 	display: none;
 }
 
@@ -181,119 +171,50 @@ body.ro #edit {
 		</style>
 		<script>
 		
-function initialize(from, to, start, end, index) {
-	var entry = top.snmp.ifEntry[index],
-		request = {
-			command: "query",
-			ip: top.ip,
-			summary: true,
-			index: index,
-			start: from,
-			end: to
-		};
+function initialize(args) {
+	const indexData = args.snmp.ifEntry[args.index];
 	
-	window.detailRequest.index = index;
-	window.start = start;
-	window.end = end;
+	window.request.id = args.id;
+	window.request.index = args.index;
+	window.request.start = args.start;
+	window.request.end = args.end;
 	
-	(function (ifSpeed) {
-		if (ifSpeed) {
-			window.max = ifSpeed;
-			
-			document.body.classList.add("customized");			
+	window.max = indexData["speed" in indexData? "speed": "ifSpeed"];
+	
+	document.getElementById("if_name").textContent = indexData.ifName;
+	
+	top.postRequest(window.request, function () {
+		switch (this.status) {
+		case 200:
+			const data = JSON.parse(this.responseText);
+
+			window.chartInWindow.initialize(
+				new ITAhM.ChartSummaryData(data.in),
+				window.max,
+				"#7d7",
+				onValueToString);
+	
+			window.chartOutWindow.initialize(
+				new ITAhM.ChartSummaryData(data.in),
+				window.max,
+				"#f60",
+				onValueToString);
+
+			draw(args.position, args.limit);
+
+			break;
+		default:
+			alert(top.getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
 		}
-		else {
-			window.max = entry.ifSpeed;
-		}
-	})(top.getIFSpeed(index));
-	
-	document.getElementById("before").textContent = ITAhM.util.toBPSString(window.max);
-	
-	testDetail();
-	
-	document.getElementById("if_name").textContent = entry.ifName;
-	
-	request.database = "ifInOctets";
-	top.sendRequest(request, onSummaryInResponse);
-	
-	request.database = "ifOutOctets";
-	top.sendRequest(request, onSummaryOutResponse);
+	});
 	
 	document.getElementById("legend").textContent = ITAhM.util.toBPSString(window.max);
-	
-	window.form.elements["reset"].onclick = onResetIFSpeed.bind(undefined, index);
-	window.form.onsubmit = onSetIFSpeed.bind(window.form, index);
-}
-
-function onSummaryInResponse(data) {
-	const summaryData = new ITAhM.ChartSummaryData(data);
-	
-	window.summaryInData = summaryData.data;
-	
-	window.chartInWindow.initialize(summaryData, window.max, "#7d7", onValueToString);
-	
-	drawIn();
-}
-
-function onSummaryOutResponse(data) {
-	const summaryData = new ITAhM.ChartSummaryData(data);
-	
-	window.summaryOutData = summaryData.data;
-	
-	window.chartOutWindow.initialize(summaryData, window.max, "#f60", onValueToString);
-	
-	drawOut();
 }
 
 function onValueToString(value) {
 	return ITAhM.util.toBPSString(value);
-}
-
-/**
- * private
- */
-function sendDetailRequest(database, callback) {
-	window.detailRequest.start = window.start;
-	window.detailRequest.end = window.end;
-	window.detailRequest.database = database;
-	
-	top.sendRequest(window.detailRequest, callback);
-}
-
-/**
- * private
- */
-function onDetailInResponse(data) {
-	window.chartInWindow.detail(new ITAhM.ChartData(data));
-}
-
-/**
- * private
- */
-function onDetailOutResponse(data) {
-	window.chartOutWindow.detail(new ITAhM.ChartData(data));
-}
-
-/**
- * private
- */
-function drawIn() {
-	window.totalIn.textContent = getTotalBytes(window.summaryInData, window.start, window.end);
-	
-	if (window.chartInWindow.draw(window.start, window.end) && window.detail) {
-		sendDetailRequest("ifInOctets", onDetailInResponse);
-	}
-}
-
-/**
- * private
- */
-function drawOut() {
-	window.totalOut.textContent = getTotalBytes(window.summaryOutData, window.start, window.end);
-	
-	if (window.chartOutWindow.draw(window.start, window.end) && window.detail) {
-		sendDetailRequest("ifOutOctets", onDetailOutResponse);
-	}
 }
 
 function toBytesString(bytes) {
@@ -329,23 +250,42 @@ function getTotalBytes(summaryData, start, end) {
 	return toBytesString(total *60 *60 /8);
 }
 
-function testDetail() {
-	var date = new Date(window.start);
-	
-	window.detail = date.setDate(date.getDate() +1) === window.end;
-}
-
 /**
  * public
  */
-function draw(start, end) {
-	window.start = start;
-	window.end = end;
+function draw(position, limit) {
+	const date = new Date(position);
 	
-	testDetail();
-	
-	drawIn();
-	drawOut();
+	if (date.setDate(date.getDate() +1) === limit) {
+		window.request.summary = false;
+		window.request.start = position;
+		window.request.end = limit;
+
+		top.postRequest(window.request, function () {
+			switch (this.status) {
+			case 200:
+				const data = JSON.parse(this.responseText);
+
+				if (window.chartInWindow.draw(position, limit)) {
+					window.chartInWindow.detail(new ITAhM.ChartData(data.in));
+				}
+
+				if (window.chartOutWindow.draw(position, limit)) {
+					window.chartOutWindow.detail(new ITAhM.ChartData(data.out));
+				}
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+		});
+	}
+	else {
+		window.chartInWindow.draw(position, limit);
+		window.chartOutWindow.draw(position, limit);
+	}
 }
 
 /**
@@ -402,26 +342,6 @@ function buildSummaryFile(chartWindow, fileName) {
 	}), fileName);
 }
 
-function onResetIFSpeed(index, e) {
-	e.preventDefault();
-	
-	if (!confirm("bandwidth 설정을 초기화 하겠습니까?")) {
-		return;
-	}
-	
-	top.setIFSpeed(reload, index);
-}
-
-function onSetIFSpeed(index, e) {
-	e.preventDefault();
-	
-	top.setIFSpeed(reload, index, this.elements["speed"].value * this.elements["unit"].value);
-}
-
-function reload() {
-	window.location.reload();
-}
-
 /**
  * public
  */
@@ -445,29 +365,6 @@ function reload() {
 			<h2><i>"</i> <span id="if_name"></span> <i>"</i></h2>
 			<div class="legend">
 				<span id="legend"></span>
-				<button id="edit">수정</button>
-				<form>
-					<div>
-						<h3 id="before">변경전</h3>
-						<div class="arrow"></div>
-						<div>
-							<input type="number" min="1" name="speed" required>
-							<select name="unit">
-								<option value="1">bps
-								<option value="1000">Kbps
-								<option value="1000000" selected>Mbps
-								<option value="1000000000">Gbps
-							</select>
-						</div>
-					</div>
-					<div>
-						<label><input type="checkbox" name="reset">초기화</label>
-					</div>
-					<div>
-						<input type="reset" value="취소">
-						<input type="submit" value="적용">
-					</div>
-				</form>
 			</div>
 		</header>
 		
@@ -496,37 +393,24 @@ function reload() {
 		<script src="js/object.js"></script>
 		<script>
 
-var chartIn = document.getElementById("chart_in"),
+var 
 	totalIn = document.getElementById("total_in"),
-	chartInWindow = chartIn.contentWindow,
-	chartOut = document.getElementById("chart_out"),
+	chartInWindow = document.getElementById("chart_in").contentWindow,
 	totalOut = document.getElementById("total_out"),
-	chartOutWindow = chartOut.contentWindow,
+	chartOutWindow = document.getElementById("chart_out").contentWindow,
 	form = document.querySelector("form"),
-	detailRequest = {
-		ip: top.ip,
+	request = {
 		command: "query",
-		summary: false
-	},
-	summaryInData, summaryOutData,
-	detail;
+		resource: "throughput",
+		summary: true
+	};
 
 /**
  * event
  */
 
-form.onreset = function () {
-	document.body.classList.remove("dialog");
-};
-
 document.getElementById("view").onchange = function () {
 	document.body.classList[this.value]("row");
-}
-
-document.getElementById("edit").onclick = function () {
-	document.body.classList.add("dialog");
-	
-	window.form.elements["speed"].focus();
 }
 
 /**

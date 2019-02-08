@@ -5,7 +5,7 @@
 		<title>dialog</title>
 		
 		<style>
-@import "css/itahm.css";
+@import "css/style.css";
 
 body {
 	margin: 0; padding: 0;
@@ -17,35 +17,44 @@ body {
 }
 
 form {
-	width: 300px;
+	width: 360px;
 	padding: 20px;
 	background-color: #fff;
-	/*box-shadow: 0px 0px 10px 10px #777;*/
 	position: relative;
 }
 
-.preview {
-	position: absolute; top: 20px; right: 20px;
+h2 {
+	margin: 0; padding: 10px;
+	background-color: #0084ff;
+	color: #fff;
 }
 
 div.table {
-	margin-bottom: 5px;
+	margin: 1em 0px;
 }
 
 div.table ul {
 	display: flex;
 	list-style: none;
-	padding: 0;
+	padding: 1px;
 	margin: 0;
 }
 
 div.table li:first-child {
-	flex: 1;
+	flex: none;
+	width: 100px;
 	padding: .5em;
 	text-align: right;
 }
 
-div.table li:last-child {
+div.table li:nth-child(2) {
+	flex: 1;
+	background-size: 2em;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+div.table li:nth-child(3) {
 	flex: 4;
 }
 
@@ -79,7 +88,25 @@ input[type="checkbox"] {
 	vertical-align: middle;
 }
 
-body:not(.customized) .customizable {
+#close {
+	font-size: 20px;
+	position: absolute; top: 5px; right: 5px;
+	border: 3px solid transparent;
+}
+
+#close:hover {
+	border-color: #c68e17;
+}
+
+#close::before, #close::after {
+	background-color: #c68e17;
+}
+
+.bg_loading {
+	position: absolute;
+}
+
+body:not(.edit) input[type=reset] {
 	display: none;
 }
 
@@ -89,120 +116,157 @@ body:not(.customized) .customizable {
 	
 	<body>
 	
-		<form class="rounded" autocomplete="off">
-			<div class="preview">
-				<img id="image" width="40px" height="40px">
-				<img id="disabled" width="40px" height="40px">
-			</div>
+		<form class="loading" autocomplete="off">
+				<i class="btn_close round" id="close"></i>
 			<h2>icon</h2>
 			<div class="table">
 				<ul>
-					<li>type
-					<li><input type="text" name="type" placeholder="type of device">
+					<li>타입
+					<li><input type="text" name="type" placeholder="아이콘 타입">
 				</ul>
 				<ul>
-					<li>group
-					<li><input type="text" name="group" placeholder="group name">
+					<li>그룹
+					<li><input type="text" name="group" placeholder="아이콘 그룹">
 				</ul>
 				<ul>
-					<li>image
+					<li>활성 이미지
+					<li></li>
 					<li><input type="text" name="url" placeholder="http://my.image.com/image.svg">
 				</ul>
 				<ul>
-					<li>disabled
+					<li>비활성 이미지
+					<li></li>
 					<li><input type="text" name="disabled" placeholder="http://my.image.com/image.svg">
+					
 				</ul>
-				<label class="customizable"><input type="checkbox" name="reset" disabled>reset</label>
 			</div>
 			<footer>
-				<input type="reset" value="Cancel">
-				<input type="submit" value="Apply" disabled>
+				<input type="reset" value="초기화" disabled>
+				<input type="submit" value="확인" disabled>
 			</footer>
+			<div class="bg_loading"></div>
 		</form>
 		
 		<script>
 
-var form = document.querySelector("form");
-
-form.addEventListener("reset", onCancel);
+document.getElementById("close").onclick = function () {
+	top.closeDialog(true);
+};
 
 if (top.account.level === 0) {
-	form.addEventListener("submit", onApply);
+	document.querySelector("input[type=reset]").disabled = false;
 	document.querySelector("input[type=submit]").disabled = false;
 }
 
- function onApply(e) {
-	e.preventDefault();
-	
-	put(form.elements.type.value, {
-			group: form.elements.group.value,
-			src: form.elements.url.value,
-			disabled: form.elements.disabled.value
+(function (form) {
+	var opener;
+
+	function postRequest(icon) {
+		document.body.classList.add("loading");
+		
+		top.postRequest({
+			command: "put",
+			database: "setting",
+			key: "icon",
+			value: icon
+		}, function () {
+			switch (this.status) {
+			case 200:
+				top.setting.icon = icon;
+
+				opener && opener.reload();
+				
+				top.closeDialog();
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+
+			document.body.classList.remove("loading");
 		});
-}
-
-function onReset(e) {
-	e.preventDefault();
-	
-	if (!confirm("아이콘 설정을 초기화 하겠습니까?")) {
-		return;
 	}
-	
-	put(form.elements.type.value, null);
-}
- 
-function onCancel(e) {
-	top.closeDialog();
-}
 
-window.initialize = function (type) {
-	window.opener = this && this.location;
+	form.onreset = function (e) {
+		e.preventDefault();
 	
-	if (type) {
-		window.icon = top.databases.icon[type];
-		
-		if (window.icon) {
-			document.body.classList.add("customized");
-		}
-		else {
-			window.icon = top.store.icon[type];
+		if (!confirm("아이콘 설정을 초기화 하겠습니까?")) {
+			return;
 		}
 		
-		document.getElementById("image").src = icon.src;
-		document.getElementById("disabled").src = icon.disabled;
+		const icon = JSON.parse(JSON.stringify(top.setting.icon));
+
+		delete(icon[form.elements["type"].value]);
+
+		postRequest(icon);
+	};
+
+	form.onsubmit = function (e) {
+		e.preventDefault();
 		
-		form.elements.type.value = type;
-		form.elements.group.value = icon.group;
-		form.elements.url.value = icon.src;
-		form.elements.disabled.value = icon.disabled;
-		
-		if (top.account.level === 0) {
-			form.elements.reset.onclick = onReset;
-			form.elements.reset.disabled = false;
-		}
+		const icon = JSON.parse(JSON.stringify(top.setting.icon));
+	
+		icon[form.elements["type"].value] = {
+			group: form.elements["group"].value,
+			src: form.elements["url"].value,
+			disabled: form.elements["disabled"].value
+		};
+
+		postRequest(icon);
+	};
+
+	function drawImage(input, url) {
+		input.parentNode.previousElementSibling.style.backgroundImage = "url("+url+")";
 	}
-	
-	form.elements.type.select();
-};
 
-function put(name, icon) {
-	document.body.classList.add("loading");
-	
-	top.sendRequest({
-		command: "put",
-		database: "icon",
-		key: name,
-		value: icon
-	}, function (data) {
-		top.databases.icon = data;
+	(function (delay) {
+		var active;
+
+		form.elements["url"].oninput =
+		form.elements["disabled"].oninput = function (e) {
+			const
+				input = this,
+				start = performance.now();
+			let id;
+			
+			active = id = requestAnimationFrame(function f(t) {
+				if (active != id) {
+					return;
+				}
+
+				if (t - start > delay) {
+					drawImage(input, input.value);
+				}
+				else {
+					requestAnimationFrame(f);
+				}
+			});
+		};
+	})(500);
+
+	window.initialize = function (type, icon) {
+		opener = this && this.location;
 		
-		if (window.opener) {
-			window.opener.reload();
+		if (type) {
+			if ("icon" in top.setting && type in top.setting.icon) {
+				document.body.classList.add("edit");
+			}
+			
+			form.elements["type"].value = type;
+			form.elements["group"].value = icon.group;
+			form.elements["url"].value = icon.src;
+			form.elements["disabled"].value = icon.disabled;
+
+			drawImage(form.elements["url"], icon.src);
+			drawImage(form.elements["disabled"], icon.disabled);
 		}
 		
-		top.closeDialog();
-	});
-}
+		form.elements["type"].select();
+	};
+}) (document.querySelector("form"));
+
 		</script>
 	
 	</body>

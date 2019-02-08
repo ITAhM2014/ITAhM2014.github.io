@@ -17,7 +17,7 @@ article {
 	display: flex;
 	flex-direction: column;
 	margin: auto;
-	height: 99%;
+	height: 100%;
 }
 
 aside {
@@ -116,14 +116,7 @@ li:nth-child(1) {
 	flex: none;
 	width: 4em;
 }
-/*
-li:nth-child(1) >img {
-	display: block;
-	margin: auto;
-	width: 24px; height: 24px;
-	vertical-align: middle;
-}
-*/
+
 li:nth-child(2) {
 	width: 200px;
 }
@@ -196,14 +189,29 @@ label {
 	background-color: #ffc;
 }
 
+footer {
+	float: none;
+	color: #fcba30;
+	font-weight: bold;
+	text-align: right;
+	padding: 1em;
+}
+
+#save {
+	cursor: pointer;
+}
+
+#save:hover {
+	color: #fff;
+}
+
 #count {
 	font-size: 30px; font-weight: bold; color: #fff;
 	display: inline-block;
 	margin: 0 30px;
 }
 
-#action >img,
-.action >img {
+#action >img {
 	width: 1.5em; height: 1.5em;
 	margin: 0 1em;
 }
@@ -289,10 +297,6 @@ function onEdit() {
 	top.showDialog.call(window, "/device_dialog.html", window.selectedID);
 }
 
-function onSetAlarm(){
-	top.showDialog.call(window, "/critical_dialog.html", window.selectedID);
-}
-
 function onMap() {
 	window.location.href = "/map_edit.html?"+ encodeURI(window.selectedID);
 }
@@ -302,15 +306,15 @@ function onShowStatus() {
 }
 
 function initialize() {
-	if ("custom" in top.config) {
-		var customs = top.config.custom;
+	if ("custom" in top.setting) {
+		var customs = top.setting.custom;
 		
 		if (customs) {
 			let df = document.createDocumentFragment();
 			
 			window.customs = customs.split(",");
 			
-			forEach(window.customs, function (custom) {
+			window.customs.forEach(function (custom) {
 				df.appendChild(document.createElement("li")).textContent = custom;
 			});
 			
@@ -331,8 +335,11 @@ function initialize() {
 			else if (ipA) {
 				return 1;
 			}
+			else if (ipB) {
+				return -1;
+			}
 			else {
-				return 2;
+				return 0;
 			}
 		});
 
@@ -366,6 +373,10 @@ function createRow(id, base, monitor) {
 	
 	row.appendChild(document.createElement("li")).textContent = base.ip || ""; // N.2
 	
+	if (!("type" in base)) {
+		base.type = "unknown";
+	}
+	
 	type = document.createElement("li");
 	type.dataset.type = base.type;
 	type.style.backgroundImage = "url('"+ getIcon(base.type).src +"')";
@@ -374,8 +385,8 @@ function createRow(id, base, monitor) {
 	
 	row.appendChild(document.createElement("li")).textContent = monitor && monitor.protocol || ""; // N.4
 	
-	if (window.customs) {
-		forEach(window.customs, function (custom) {
+	if (window.customs && base.custom) {
+		window.customs.forEach(function (custom) {
 			row.appendChild(document.createElement("li")).textContent = base.custom[custom] || "";
 		});
 	};
@@ -481,69 +492,62 @@ function onSelectStatus (src, className) {
 function onSave() {
 	var devices = {},
 		etc = [],
-		row = [],
-		labels, label, device;
+		row = [];
 	
 	row[0] = "label,name,type,ip";
 	
 	if (window.customs) {
-		forEach(window.customs, function (custom) {
+		window.customs.forEach(function (custom) {
 			row[0] += (","+ custom);
 		});
 	}
 	
-	top.forEachDB("device", function (id, device) {
-		if (device.group) {
-			return;
+	let node, label;
+
+	for (let id in window.node) {
+		node = window.node[id];
+
+		if(node.base.type === "group" || node.base.type === "application") {
+			continue;
 		}
-		
-		if (device.label) {
-			label = device.label.split(",")[0];
+
+		if (node.base.label) {
+			label = node.base.label.split(",")[0];
 			
 			if (!(label in devices)) {
 				devices[label] = [];
 			}
-			
-			devices[label][devices[label].length] = device;
+
+			devices[label].push(node);
 		}
 		else {
-			etc[etc.length] = device;
+			etc.push(node);
 		}
-	});
-	
-	labels = Object.keys(devices).sort(function (a, b) {
-		return a > b? 1: -1;
-	});
-	
-	for (var i=0, _i=labels.length; i<_i; i++) {
-		label = labels[i];
-		
-		forEach(devices[label], function (device) {
-			var columns = [label, device.name, device.type, device.ip];
-			
-			if (window.customs) {
-				forEach(window.customs, function (custom) {
-					columns[columns.length] = device[custom] || "";
-				});
-			}
-			
-			row[row.length] = columns.join(",");
-		});
 	}
 	
-	forEach(etc, function (device) {
-		var columns = ["", device.name, device.type, device.ip];
-		
-		if (window.customs) {
-			forEach(window.customs, function (custom) {
-				columns[columns.length] = device[custom] || "";
-			});
-		}
-		
-		row[row.length] = columns.join(",");
+	const keys = Object.keys(devices).sort(function (a, b) {
+		return a.localeCompare(b);
 	});
-	
-	ITAhM.util.download(new Blob([row.join("\n")] ,{
+
+	keys.push("");
+
+	devices[""] = etc;
+
+	keys.forEach(function (label) {
+		devices[label].forEach(function (node) {
+			const columns = [label, node.base.name, node.base.type, node.base.ip];
+
+			if (window.customs) {
+				window.customs.forEach(function (custom) {
+					columns.push("custom" in node.base? node.base.custom[custom] || "": "");
+				});
+			}
+
+			row.push(columns.join(","));
+		});
+	});
+
+	ITAhM.util.download(new Blob(["\ufeff", row.join("\n")] ,{
 		type: "text/csv;charset=utf-8;"
 	}), "list.csv");
 }
@@ -586,14 +590,10 @@ function forEach(a, f) {
 							</optgroup>
 						</select>
 					</div>
-					<div class="action">
-						<img id="save" src="img/save2.png" title="CSV 파일로 저장">
-					</div>
 					<div id="action">
 						<img id="map" src="img/location.png" title="구성도에서 장비보기">
 						<img id="edit" src="img/edit.png" title="장비의 정보 편집">
 						<img id="status" class="snmp" src="img/chart.png" title="장비의 상태 보기">
-						<img id="alarm" class="snmp" src="img/alarm.png" title="장비의 성능 임계 설정">
 					</div>
 				</nav>
 				<form>
@@ -632,6 +632,12 @@ function forEach(a, f) {
 			</header>
 			
 			<div id="list"></div>
+			<footer>
+				<a id="save" title="CSV 파일로 저장">
+					<img src="/img/download.png" width="12" height="12">
+					Download
+				</a>
+			</footer>
 		</article>
 		
 		<div class="bg_loading"></div>
@@ -688,7 +694,6 @@ document.getElementById("all").onclick = onSelectStatus.bind(window, "img/all.pn
 document.getElementById("save").onclick = onSave;
 document.getElementById("map").onclick = onMap;
 document.getElementById("edit").onclick = onEdit;
-document.getElementById("alarm").onclick = onSetAlarm;
 document.getElementById("status").onclick = onShowStatus;
 
 document.getElementById("sort").onclick = function (e) {
@@ -698,10 +703,40 @@ document.getElementById("sort").onclick = function (e) {
 
 	[].slice.call(window.list.children).sort(reverse?
 		function (a, b) {
-			return b.children[1].textContent.localeCompare(a.children[1].textContent);
+			const
+				ipA = a.children[1].textContent,
+				ipB = b.children[1].textContent;
+			
+			if (ipA && ipB) {
+				return IP2Int(ipB) - IP2Int(ipA);
+			}
+			else if (ipB) {
+				return 1;
+			}
+			else if (ipA) {
+				return -1;
+			}
+			else {
+				return 0;
+			}
 		}:
 		function (a, b) {
-			return a.children[1].textContent.localeCompare(b.children[1].textContent);
+			const
+				ipA = a.children[1].textContent,
+				ipB = b.children[1].textContent;
+			
+			if (ipA && ipB) {
+				return IP2Int(ipA) - IP2Int(ipB);
+			}
+			else if (ipA) {
+				return 1;
+			}
+			else if (ipB) {
+				return -1;
+			}
+			else {
+				return 0;
+			}
 		}).forEach(function (e) {
 			df.appendChild(e);
 		});
@@ -778,8 +813,8 @@ document.getElementById("sort").onclick = function (e) {
 		document.getElementById("count").textContent = count();
 	}
 
-	window.getIcon = function (type) {
-		return top.config.icon && top.config.icon[type] || top.store.icon[type];
+	window.getIcon = function (type = "unknown") {
+		return "icon" in top.setting && top.setting.icon[type] || top.store.icon[type];
 	};
 
 }) (document.querySelector("form"));

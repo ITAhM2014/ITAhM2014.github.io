@@ -181,12 +181,12 @@ var iFrame = document.querySelector("iframe"),
 top.clearLog();
 
 new ITAhM.Calendar("calendar", function (date) {
-	sendRequest(date.getTime());
+	postRequest(date.getTime());
 });
 
-sendRequest(today);
+postRequest(today);
 
-function sendRequest(mills) {
+function postRequest(mills) {
 	document.body.classList.add("loading");
 	
 	var log;
@@ -243,19 +243,19 @@ function createItem(event) {
 	case "snmp":
 	case "test":
 		if (!event.status) {
-			status = 1;
+			status = 1; // orange
 		}
 
 		break;
 	case "status":
 	case "updown":
 		if (!event.status) {
-			status = 2;
+			status = 2; // red
 		}
 
 		break;
 	case "warning":
-		status = 1;
+		status = 1; // orange
 
 		break;	
 	case "system":

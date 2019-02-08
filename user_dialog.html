@@ -6,7 +6,7 @@
 		
 		<style>
 @import "css/style.css";
-		
+
 body {
 	margin: 0; padding: 0;
 	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
@@ -29,8 +29,7 @@ h2 {
 	color: #fff;
 }
 
-input[type="text"],
-input[type="password"],
+input.text,
 input[type="submit"],
 input[type="reset"],
 select {
@@ -43,29 +42,31 @@ input[type="checkbox"] {
 	vertical-align: middle;
 }
 
-.table {
+div.table {
 	margin: 1em 0;
 }
 
-.table ul {
+div.table ul {
 	display: flex;
+	align-items: center;
 	list-style: none;
 	padding: 1px;
 	margin: 0;
 }
 
-.table li:first-child {
+div.table li:first-child {
 	text-align: right;
 	padding: .5em;
 	flex: 2;
 }
 
-.table li:last-child {
+div.table li:last-child {
 	flex: 3;
 }
 
-footer{
+footer {
 	display: flex;
+	margin-top: 1em;
 }
 
 footer> input {
@@ -82,6 +83,7 @@ footer> input:hover {
 	color: #0084ff;
 	border-color: #0084ff;
 }
+
 #close {
 	font-size: 20px;
 	position: absolute; top: 5px; right: 5px;
@@ -105,46 +107,35 @@ body:not(.edit) input[type=reset] {
 }
 
 		</style>
-		
+
 	</head>
 	
 	<body class="loading">
-		
+	
 		<form autocomplete="off">
 			<i class="btn_close round" id="close"></i>
-			<h2>account</h2>
+			<h2>수신자 정보</h2>
 			<div class="table">
 				<ul>
-					<li>username
+					<li>이름</li>
 					<li>
-						<input type="text" name="username" class="text" required autofocus>
+						<input type="text" name="name" class="table text"
+							placeholder="홍길동" autofocus required>
+					</li>
 				</ul>
 				<ul>
-					<li>password
+					<li>문자 수신번호</li>
 					<li>
-						<input type="password" name="password"
-							class="text"
-							placeholder="new password"
-							pattern=".{6,}"
-							title="at least 6 characters"
-							required>
-						<div>6자 이상</div>
+						<input type="text" name="sms" class="table text"
+							placeholder="기호(-) 없이 숫자만">
+					</li>
 				</ul>
 				<ul>
-					<li>confirm password
+					<li>메일 수신주소</li>
 					<li>
-						<input type="password" name="password2"
-							class="text"
-							placeholder="confirm password"
-							required>
-				</ul>
-				<ul>
-					<li>level
-					<li>
-						<select name="level">
-							<option value="0">root
-							<option value="2" selected>user
-						</select>
+						<input type="email" name="mail" class="table text"
+							placeholder="홍길동@example.com">
+					</li>
 				</ul>
 			</div>
 			<footer>
@@ -153,40 +144,34 @@ body:not(.edit) input[type=reset] {
 			</footer>
 			<div class="bg_loading"></div>
 		</form>
-
-		<script src="js/md5.js"></script>
+		
 		<script>
 
-document.getElementById("close").onclick = function () {
-	top.closeDialog(true);
-};
-
-if (top.account.level === 0) {
-	document.querySelector("input[type=submit]").disabled = false;
-	document.querySelector("input[type=reset]").disabled = false;
-}
-
 (function (form) {
-	let opener;
+	let opner;
 
-	function postRequest(username, account) {
+	form.onreset = function(e) {
+		if(!confirm("수신자 정보를 삭제하겠습니까?")) {
+			return;
+		}
+
+		e.preventDefault();
+
+		const user = form.elements["name"].value;
+
 		document.body.classList.add("loading");
-		
+
 		top.postRequest({
 			command: "put",
-			database: "account",
-			key: username,
-			value: account
-		}, function (data) {
+			database: "user",
+			key: user,
+			value: null
+		}, function () {
 			switch (this.status) {
 			case 200:
-				opener && opener.reload();
+				window.opener && window.opener.reload();
 				
 				top.closeDialog();
-
-				break;
-			case 409:
-				alert("계정을 삭제할 수 없습니다.\nRoot 레벨 계정이 하나 이상 존재해야 합니다.");
 
 				break;
 			default:
@@ -197,53 +182,76 @@ if (top.account.level === 0) {
 
 			document.body.classList.remove("loading");
 		});
-	}
-
-	form.onreset = function(e) {
-		e.preventDefault();
-
-		if (confirm("계정을 삭제하겠습니까?")) {
-			postRequest(form.elements.username.value, null);
-		}
 	};
 
 	form.onsubmit = function (e) {
 		e.preventDefault();
-		
-		var password = form.elements.password,
-			password2 = form.elements.password2;
-			
-		if (password.value !== password2.value) {
-			alert("password does not match the confirmation");
-			
-			password2.select();
-			
-			return;
+	
+		const
+			user = {
+				name: form.elements["name"].value
+			};
+	
+		if (!form.elements["sms"].value && !form.elements["mail"].value) {
+			return alert("수신 정보가 하나 이상 필요합니다.");
 		}
-		
-		var username = form.elements.username.value;
-		
-		postRequest(username, {
-			username: username,
-			password: hex_md5(password.value),
-			level: parseInt(form.elements.level.value)
+
+		user.sms = form.elements["sms"].value || undefined;
+		user.mail = form.elements["mail"].value || undefined;
+
+		document.body.classList.add("loading");
+
+		top.postRequest({
+			command: "put",
+			database: "user",
+			key: form.elements["name"].value,
+			value: user
+		}, function () {
+			switch (this.status) {
+			case 200:
+				opener && opener.reload();
+				
+				top.closeDialog();
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+
+			document.body.classList.remove("loading");
 		});
 	};
 
-	window.initialize = function (username, account) {
+// public
+	window.initialize = function (name, user) {
 		opener = this && this.location;
-		
-		if (username) {			
-			form.elements.username.value = username;
-			form.elements.username.disabled = true;
-			
-			form.elements.level.value = account.level;
-			
+
+		if (name) {
+			form.elements["name"].value = name;
+			form.elements["name"].disabled = true;
+
+			form.elements["sms"].value = user.sms || "";
+			form.elements["mail"].value = user.mail || "";
+
+			form.elements["sms"].select();
+
 			document.body.classList.add("edit");
 		}
-		
+
 		document.body.classList.remove("loading");
 	};
+
+	document.getElementById("close").onclick = function () {
+		top.closeDialog(true);
+	};
+
+	if (top.account.level === 0) {
+		document.querySelector("input[type=submit]").disabled = false;
+		document.querySelector("input[type=reset]").disabled = false;
+	}
+
 }) (document.querySelector("form"));
 
 		</script>

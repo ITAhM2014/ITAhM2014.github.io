@@ -38,7 +38,7 @@ header {
 	background-color: #4d525a; 
 }
 
-body.auto header {
+body:not(.menu) header {
 	height: 0;
 }
 
@@ -46,11 +46,11 @@ div.frame {
 	position: absolute; top: 80px; right: 0; bottom: 0; left: 0;
 }
 
-body.auto div.frame {
+body:not(.menu) div.frame {
 	top: 0;
 }
 
-body.auto header::after {
+body:not(.menu) header::after {
 	content: "";
 	position: absolute; bottom: -1em; left: 50%;
 	width: 2em; height: 1em;
@@ -61,14 +61,14 @@ body.auto header::after {
 	transform: translateX(-50%);
 }
 
-body.auto header::before {
+body:not(.menu) header::before {
 	content: "";
 	position: absolute; right: 0; left: 0; bottom: 0;
 	height: 3px;
 	background-color: #ccc;
 }
 
-body.auto header:hover {
+body:not(.menu) header:hover {
 	height: 80px;
 }
 
@@ -88,6 +88,7 @@ header a:hover {
 
 nav {
 	width: 1024px; height: 100%;
+	z-index: 1;
 	margin: auto;
 	position: relative;
 	display: flex;
@@ -96,44 +97,26 @@ nav {
 	justify-content: space-between;
 }
 
-nav >i {
-	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 2em;
-	color: rgba(200, 200, 200, 0.5);
-}
-
-nav >i:not(:empty)::before {
-	content: "라이선스가";
-}
-
-nav >i:not(:empty)::after {
-	content: " 에 만료됩니다.";
-}
-
-nav >ul {
+nav ul {
 	list-style: none;
 	padding: 0;
 	display: flex;
-	position: relative;
 }
 
-nav >ul:first-of-type a {
+nav ul.menu a {
 	text-shadow: 1px 1px 1px #000;
 	padding: 0.2em 1em;
 	border-radius: 1em;
 	position: relative;
 }
 
-nav >ul:first-of-type a:hover {
+nav ul.menu a:hover {
 	color: #4d525a;
 	text-shadow: none;
 	background-color: #fff;
 }
 
-nav ul:first-of-type a:hover::after {
+nav ul.menu a:hover::after {
 	content: "";
 	position: absolute;
 	top: 100%; left: 50%;
@@ -142,11 +125,11 @@ nav ul:first-of-type a:hover::after {
 	border-top-color: #fff;
 }
 
-nav ul:last-of-type {
+nav ul.setting {
 	color: #999;
 }
 
-nav ul:last-of-type a:hover {
+nav ul.setting a:hover {
 	color: #fff;
 }
 
@@ -155,7 +138,7 @@ nav h1 {
 	font-size: 16px;
 }
 
-nav ul:last-of-type li {
+nav ul.setting li {
 	margin: 5px;
 }
 
@@ -175,7 +158,9 @@ nav ul:last-of-type li {
 }
 
 #status {
-	position: absolute; top: 0; right: 0; bottom: 0; width: 100px;
+	position: absolute; top: 0; right: 0; bottom: 0;
+	z-index: 0;
+	width: 100px;
 	list-style: none; padding: 0; margin: 0;
 	overflow: hidden;
 	display: flex; flex-direction: column;
@@ -209,6 +194,7 @@ nav ul:last-of-type li {
 
 div.log {
 	position: fixed; right: 10px; top: 10px;
+	z-index: 2;
 	cursor: pointer;
 }
 
@@ -344,8 +330,8 @@ function showStatus(id, resource, index) {
 }
 
 // public
-function setMenu(b) {
-	document.body.classList[b? "remove": "add"]("auto");
+function setMenu(showMenu) {
+	document.body.classList[showMenu? "add": "remove"]("menu");
 } 
 
 // public
@@ -395,37 +381,6 @@ function getMessage(status) {
 	}
 }
 
-function notice(status, message) {
-	message = "\n"+ (message || "");
-
-	switch(status) {
-	case 401:	
-		alert("세션이 만료되었습니다.");
-	
-		window.location.reload();
-		
-		break;
-	case 409:		
-		alert("다른 관리자 계정이 데이터베이스를 수정하였습니다.\n"
-			+"콘솔을 다시 시작합니다.\n"+ message);
-		
-		window.location.reload();
-		
-		break;
-	case 400:
-		alert("잘못된 요청입니다"+ message);
-		
-		break;
-	case 503:
-		alert("서버가 올바르게 동작하지 않습니다."+ message);
-		
-		break;
-		
-		default:
-			alert("에이전트가 응답하지 않습니다.\n"+ "status: "+ status + message);
-	}
-}
-
 function toDateString(m) {
 	const d = new Date(m),
 		a = [d.getFullYear()];
@@ -470,7 +425,8 @@ function update() {
 	window.updateStart = new Date().getTime();
 
 	xhr.send(JSON.stringify({
-		command: "top",
+		command: "order",
+		order: "top"
 	}));
 }
 
@@ -505,9 +461,7 @@ function onEvent(e) {
 
 		window.log.textContent = event.message;
 
-		try {
-			window.frame.contentWindow.onEvent(event);
-		} catch(e) {}
+		sendEvent(event);
 		
 		document.body.classList.add("log");
 		
@@ -540,17 +494,16 @@ function initialize (account) {
 
 	postRequest({
 		command: "pull",
-		database: ["config", "position"]
+		database: ["setting", "position"]
 	}, function () {
 		switch (this.status) {
 		case 200:
 			const response = JSON.parse(this.responseText);
 
-			window.config = response.config || {};
-			window.config.menu = true;
+			window.setting = response.setting;
 			window.position = response.position.position;
 
-			setMenu(window.config.menu);
+			setMenu(window.setting.menu);
 
 			update();
 
@@ -655,17 +608,7 @@ function parseResponse(onResponse, custom) {
 		notice(this.status, response && response.error);
 	}
 }
-/*
-function sendRequest(request, onResponse, custom) {
-	const xhr = new XMLHttpRequest();
-	
-	xhr.open("POST", window.agent, true);
-	xhr.withCredentials = true;
-	xhr.onloadend = parseResponse.bind(xhr, onResponse, custom);
-	
-	xhr.send(JSON.stringify(request));
-}
-*/
+
 function onSignIn(e) {
 	e.preventDefault();
 	
@@ -750,6 +693,13 @@ function cancel() {
 	window.location.href = "/";
 }
 
+// public
+function sendEvent(event) {
+	try {
+		window.frame.contentWindow.onEvent(event);
+	} catch(e) {}
+}
+
 		</script>
 	</head>
 	
@@ -760,14 +710,13 @@ function cancel() {
 			</div>
 			<header>
 				<nav>
-					<i id="expire"></i>
-					<ul>
+					<ul class="menu">
 						<li><h1><a href="/dashboard.html" target="main">대시보드</a></h1>
 						<li><h1><a href="list.html" target="main">장비목록</a></h1>
 						<li><h1><a href="event.html" target="main">이벤트</a></h1>
-						<!--li><h1><a href="scrap.html" target="main">스크랩</a></h1-->
+						<li><h1><a href="scrap.html" target="main">스크랩</a></h1>
 					</ul>
-					<ul>
+					<ul class="setting">
 						<li><a id="signout" title="로그아웃">로그아웃</a>
 						<li><a href="setting.html" target="main">설정</a>
 						<li><a href="icon.html" target="main">아이콘</a>

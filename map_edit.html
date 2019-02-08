@@ -96,19 +96,12 @@ g.node >text {
 	font-size: 12px;
 }
 
-:not(#select) >#anchor {
+:not(#select) >#anchor,
+body.loading g {
 	display: none;
 }
 
-body.loading g,
-#anchor:not(.snmp) #alarm_anchor {
-	display: none;
-}
-
-g.node * {
-	pointer-events: none;
-}
-
+g.node *,
 g.node circle.drag {
 	pointer-events: none;
 }
@@ -685,7 +678,7 @@ function initialize() {
 		pos = top.position[id];
 
 		// 동기화 안된 node의 pos 정보가 없음
-		if (!pos) {
+		if (!pos) {console.log(id);
 			top.position[id] = pos = {
 				x: 0,
 				y: 0,
@@ -759,8 +752,6 @@ function onEnterGroup(id) {
 	window.location.reload();
 }
 
-function onEvent(e) {	
-}
 		</script>
 	</head>
 	
@@ -789,10 +780,6 @@ function onEvent(e) {
 					<image xlink:href="/img/svg/anchor.svg" id="link_anchor" class="root" x="-8" y="-42"
 						width="16" height="16" cursor="pointer"><!-- -16/2, -34 -16/2 -->
 						<title>이 앵커를 드래그하여 다른 장비와 연결합니다.</title>
-					</image>
-					<image xlink:href="/img/svg/alarm.svg" id="alarm_anchor" class="root" x="-42" y="-8"
-						width="16" height="16" cursor="pointer"><!-- -34 -16/2, -16/2 -->
-						<title>성능의 임계값을 설정합니다.</title>
 					</image>
 				</g>
 			</g>
@@ -1062,12 +1049,6 @@ document.getElementById("add").onclick = function () {
 
 document.getElementById("save").onclick = onSave;
 
-document.getElementById("alarm_anchor").onclick = function (e) {
-	top.showDialog.call(window, "/critical_dialog.html", window.selected.id);
-	
-	e.stopPropagation();
-};
-
 document.getElementById("edit_anchor").onclick = function (e) {
 	const
 		node = window.node[window.selected.id];
@@ -1142,12 +1123,12 @@ top.postRequest({
 	case 200:
 		window.node = JSON.parse(this.responseText);
 
-		if ("display" in top.config) {
-			document.body.classList[top.config.display == "name"? "add": "remove"]("name");
+		if ("display" in top.setting) {
+			document.body.classList[top.setting.display == "name"? "add": "remove"]("name");
 		}
 		
-		window.getIcon = function (type = "unkown") {
-			return "icon" in top.config && top.config.icon[type] || top.store.icon[type];
+		window.getIcon = function (type = "unknown") {
+			return "icon" in top.setting && top.setting.icon[type] || top.store.icon[type];
 		}
 		
 		initialize();

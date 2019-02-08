@@ -7,9 +7,10 @@
 		<title>Setting @ ITAhM</title>
 		
 		<style>
-@import "css/itahm.css";
+@import "css/style.css";
 
 body {
+	width: 1024px;
 	padding: 10px;
 	margin: 0 auto;
 }
@@ -31,28 +32,17 @@ ul {
 
 .item span {
 	margin-left: 10px;
-	padding: .5em 1em;
-	border: 1px solid transparent;
+	padding: .5em 2em;
 }
 
 .item span:hover {
 	cursor: pointer;
-	text-decoration: underline;
-	border-radius: 1em;
-	background-color: #0084ff;
-	color: #fff;
+	background-color: #ccc;
+	transition: background-color 0.5s linear;
 }
 
 .layout {
 	display: none;
-}
-
-#dashboard {
-	position: relative;
-}
-
-#dashboard> input[type=submit] {
-	position: absolute; top: 50%; left: 200px;
 }
 
 .list {
@@ -69,28 +59,13 @@ ul {
 	box-shadow: 0 8px 10px -4px #000;
 }
 
-.dashboard {
-	display: flex;
+.container {
+	position: relative;
 }
 
-.dashboard >form {
-	flex: 1;
-}
-
-#resources li {
-	overflow: hidden;
-}
-
-#resources li:not(:first-child):hover::after {
-	content: "";
-	border: .5em solid transparent;
-	border-bottom-color: #0084ff;
+.top {
 	display: inline-block;
-	
-}
-
-#resources li:not(:first-child):hover {
-	cursor: default;
+	vertical-align: top;
 }
 
 #expire:empty {
@@ -101,12 +76,12 @@ ul {
 	content: "라이선스 만료일: ";
 }
 
-#animation {
-	display: none;
-}
-
 input[type=checkbox] {
 	vertical-align: middle;
+}
+
+form {
+	position: relative;
 }
 
 form input,
@@ -123,8 +98,21 @@ input[name="clean"] {
 	float: right;
 }
 
-.common> li {
-	margin: .5em 0;
+ul.smtp {
+	display: inline-block;
+	width: 360px;
+}
+
+ul.smtp >li {
+	display: flex;
+}
+
+ul.smtp >li >span:first-child {
+	flex: 1;
+}
+
+ul.smtp >li >span:last-child {
+	flex: 2;
 }
 
 .color {
@@ -132,15 +120,15 @@ input[name="clean"] {
 	width: 20px; height: 20px;
 }
 
-.color.primary.red {
+.color.default.red {
 	background-color: #f00;
 }
 
-.color.primary.orange {
+.color.default.orange {
 	background-color: #ffa500;
 }
 
-.color.primary.green {
+.color.default.green {
 	background-color: #0f0;
 }
 
@@ -164,452 +152,119 @@ input[name="clean"] {
 	content: ")";
 }
 
-body:not(.debug) div.debug,
-#sms {
+.bg_loading {
+	position: absolute;
+}
+
+body:not(.loading) .bg_loading {
+	display: initial;
+}
+
+.container:not(.loading) >.bg_loading {
 	display: none;
+}
+
+.logo {
+	margin: 0 1em;
+	vertical-align: bottom;
+}
+
+.button {
+	border:none;
+	display:inline-block;
+	width: 2em; height: 2em;
+	vertical-align:middle;
+	overflow:hidden;
+	color:#000;
+	background-color:#0ff;
+	text-align:center;
+	cursor:pointer;
+	white-space:nowrap;
+	user-select:none;
+	transition:opacity 0s;
+	font-weight: bold;
+	outline: none;
+	border-radius:50%;
+	vertical-align: top;
+}
+
+.button:active{
+	opacity:0.5
+}
+
+.button:hover{
+  box-shadow:0 8px 16px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+}
+
+.button:disabled,{
+  cursor:not-allowed;
+  opacity:0.3
+}
+
+.button:disabled:hover {
+  box-shadow:none
 }
 
 		</style>
 		<script>
-		
-function initAccount() {
-	var list = document.getElementById("account_list"),
-		accountData = top.databases.account,
-		df = document.createDocumentFragment();
-	
-	for (var username in accountData) {
-		df.appendChild(createItem(accountData[username].level === 0? "img/svg/root.svg": "img/svg/user.svg", username, onSelectAccount));
-	}
-	
-	list.appendChild(df);
-}
 
-function initProfile() {
-	var list = document.getElementById("profile_list"),
-		profileData = top.databases.profile,
-		df = document.createDocumentFragment();
-	
-	for (var name in profileData) {
-		df.appendChild(createItem("img/svg/list.svg", name, onSelectProfile));
-	}
-	
-	list.appendChild(df);
-}
+function createItem(src, key, data, func) {
+	const li = document.createElement("li"),
+		img = document.createElement("img"),
+		span = document.createElement("span");
 
-function initSMS() {
-	var list = document.getElementById("sms_list"),
-		smsData = top.databases.sms,
-		df = document.createDocumentFragment();
-	
-	for (var id in smsData) {
-		df.appendChild(createItem("img/sms_list.png", id, onSelectSMS));
-	}
-	
-	list.appendChild(df);
-}
+	img.width = 20;
+	img.height = 20;
+	img.src = src;
 
-function onSelectAccount(username) {
-	top.showDialog.call(window, "/account_dialog.html", username);
-}
+	span.textContent = key;
+	span.onclick = func.bind(undefined, key, data);
+	
+	li.appendChild(img);
+	li.appendChild(span);
+	li.className = "item";
 
-function onSelectProfile(name) {
-	top.showDialog.call(window, "/profile_dialog.html", name);
-}
-
-function onSelectGCM(id) {
-	top.showDialog.call(window, "/gcm_dialog.html", id);
-}
-
-function createItem(src, key, func) {
-	var clone = window.listItem.cloneNode(true);
-	
-	clone.children[0].src = src;
-	clone.children[1].textContent = key;
-	clone.children[1].onclick = func.bind(undefined, key);
-	
-	return clone;
-}
-
-function initConfig() {
-	document.querySelector("input[name=clean]").value = window.configData.clean;
-	document.querySelector("select[name=interval]").value = window.configData.interval || 1;
-	document.querySelector("input[name=top]").value = window.configData.top || 10;
-	document.querySelector("select[name=display]").value = window.configData.display || "name";
-	document.getElementById("java").textContent = window.configData.java;
-	document.getElementById("version").textContent = window.configData.version;
-	
-	if ("load" in window.configData) {
-		const orders = [].sort.call(Object.keys(window.configData.load), function (a, b) {
-			return parseInt(b) - parseInt(a);
-		}), load = document.getElementById("load"),
-		text = [], title = [];
-
-		for (let i=0; i<4; i++) {
-			text[text.length] = window.configData.load[orders[i]];
-		}
-
-		load.textContent = text.join(", ") +"...";
-
-		for (let i=4; i<orders.length; i++) {
-			title[title.length] = window.configData.load[orders[i]];
-		}
-		
-		load.title = title.join(", ");
-	}
-	
-	document.getElementById("resource").textContent = window.configData.resource || 0;
-	document.getElementById("usage").textContent = window.configData.usage? ITAhM.util.toBytesString(window.configData.usage): 0;
-	document.getElementById("space").textContent = ITAhM.util.toBytesString(window.configData.space);
-	
-	if ("path" in window.configData) {
-		document.getElementById("path").textContent = window.configData.path;
-	}
-	
-	if ("expire" in window.configData && window.configData.expire > 0) {
-		document.getElementById("expire").textContent = new Date(window.configData.expire).toLocaleString();
-	}
-	
-	if ("custom" in window.configData) {
-		window.custom.elements["custom"].value = window.configData.custom.split(",").join(", ") || "";
-	}
-	
-	if ("iftype" in window.configData) {
-		window.iftype.elements["iftype"].value = window.configData.iftype.split(",").join(", ") || "";
-	}
-	
-	if ("dashboard" in window.configData) {
-		var resources = window.configData.dashboard,
-			orders = [].sort.call(Object.keys(resources), function (a, b) {
-				return parseInt(b) - parseInt(a);
-			}), resource;
-		
-		for (var i=0, _i=orders.length; i<_i; i++) {
-			resource = resources[orders[i]];
-			
-			window.resources.insertBefore(window.resources.querySelector("li[data-value="+ resource +"]")
-				, window.resources.firstElementChild);
-			
-			window.resources.querySelector("input[name="+ resource +"]").checked = true;
-		}
-	}
-	else {
-		[].forEach.call(window.resources.querySelectorAll("input[type=checkbox]"), function (resource) {
-			resource.checked = true;
-		});
-	}
-}
-
-function initCritical() {
-	const critical = document.getElementById("critical");
-	
-	critical.elements["all"].onclick = function () {
-		const ip = critical.elements["ip"];
-
-		ip.value = "";
-		
-		if (this.checked) {
-			ip.disabled = true;
-		}
-		else {
-			ip.disabled = false;
-			ip.focus();
-		}
-	};
-	
-	critical.onsubmit = function (e) {
-		e.preventDefault();
-		
-		const monitorData = top.databases.monitor,
-			overwrite = this.elements["overwrite"].checked;
-		
-		if (overwrite) {
-			if (!confirm("기존 설정을 덮어쓰기 하겠습니까?")) {
-				return;
-			}
-		}
-		
-		var target;
-		
-		if (!this.elements["all"].checked) {
-			const ip = critical.elements["ip"];
-			
-			target = ip.value;
-			
-			if (!target) {
-				return ip.focus();
-			}
-			
-			if (!(target in monitorData && monitorData[target].protocol === "snmp")) {
-				alert("존재하지 않는 모니터링 대상 IP 입니다.");
-				
-				return ip.select();
-			}
-		}
-		
-		document.body.classList.add("loading");
-		
-		top.postRequest({
-			command: "order",
-			order: "critical",
-			target: target,
-			resource: this.elements["resource"].value || undefined,
-			rate: this.elements["rate"].value,
-			overwrite: overwrite
-		}, function () {
-			switch(this.status) {
-			case 200:
-				alert("임계를 설정 하였습니다.\n"+
-					"서버와 동기화 하기 위해 재시작 합니다.");
-				
-				top.location.reload();
-				
-				break;
-			case 400:
-				alert("현재 버전에서 지원하지 않는 설정입니다.");
-				
-				break;
-			default:
-				return top.notice(this.status);
-			}
-			
-			document.body.classList.remove("loading");
-		});
-	};
-}
-
-function onSetStorage(clean) {	
-	var clean = parseInt(clean.value);
-	
-	document.body.classList.add("loading");
-	
-	top.sendRequest({
-		command: "config",
-		key: "clean",
-		value: clean
-	}, function (response) {
-		document.body.classList.remove("loading");
-		
-		top.databases.config.clean = clean;
-		
-		alert("데이터 보관 기간을 설정하였습니다.");
-	});
-}
-
-function onSetInterval(interval) {	
-	interval = parseInt(interval.value);
-	
-	document.body.classList.add("loading");
-	
-	top.sendRequest({
-		command: "config",
-		key: "interval",
-		value: interval
-	}, function (response) {
-		document.body.classList.remove("loading");
-		
-		top.databases.config.interval = interval;
-		
-		alert("데이터 수집 단위를 "+ interval +"분으로 설정하였습니다.");
-	});
-}
-
-function onModifyTopN (n) {
-	n = Math.max(n, 1);
-	
-	document.body.classList.add("loading");
-	
-	top.sendRequest({
-		command: "config",
-		key: "top",
-		value: n
-	}, function (response) {
-		document.body.classList.remove("loading");
-		
-		top.databases.config.top = n;
-		
-		alert("대시보드 Top N을 "+n+" 으로 변경하였습니다.");
-	});
-}
-
-function onModifyDisplay(display) {
-	document.body.classList.add("loading");
-	
-	top.sendRequest({
-		command: "config",
-		key: "display",
-		value: display.value
-	}, function (response) {
-		document.body.classList.remove("loading");
-		
-		top.databases.config.display = display.value;
-		
-		alert("장비 표시 방식을 변경하였습니다.");
-	});
-}
-
-function onSelectSMS(id) {
-	top.showDialog.call(window, "/sms_dialog.html", id);
-}
-
-function onModifyGCM(host) {
-	if (document.body.classList.contains("gcm")) {
-		onSelectGCM();
-	}
-	else {
-		if (host.value === "") {
-			return host.focus();
-		}
-		
-		document.body.classList.add("loading");
-		
-		top.sendRequest({
-			command: "config",
-			key: "gcm",
-			value: host.value
-		}, function (response) {
-			document.body.classList.remove("loading");
-			
-			top.databases.config.gcm = host.value;
-		
-			document.body.classList.add("gcm");
-			
-			alert("구글 클라우드 메세징 서비스를 사용하도록 설정하였습니다.");
-		});
-	}
-}
-
-function onDisableGCM(e) {
-	e.preventDefault();
-	
-	if (confirm("구글 클라우드 메세징 서비스를 사용하지 않도록 설정합니다.")) {
-		document.body.classList.add("loading");
-		
-		top.sendRequest({
-			command: "config",
-			key: "gcm",
-			value: null
-		}, function (response) {
-			document.body.classList.remove("loading");
-			
-			top.databases.config.gcm = null;
-		
-			document.body.classList.remove("gcm");
-		});
-	}
-}
-
-function initialize() {	
-	initConfig();
-	initCritical();
-	initAccount();
-	initProfile();
-	initSMS();
-	
-	(function (form) {
-		form.onsubmit = function (e) {
-			e.preventDefault();
-			
-			document.body.classList.add("loading");
-			
-			top.postRequest({
-				command: "config",
-				key: "requestTimer",
-				value: parseInt(this.elements["timer"].value)
-			}, function () {
-				switch(this.status) {
-				case 200:
-					alert("SNMP 요청주기를 설정 하였습니다.");
-					
-					break;
-				case 400:
-					alert("현재 버전에서 지원하지 않는 설정입니다.");
-					
-					break;
-				default:
-					top.notice(this.status);
-				}
-				
-				document.body.classList.remove("loading");
-			});	
-		};
-	
-		form.elements["timer"].value = window.configData.requestTimer || "10000";
-	}) (document.getElementById("request"));
-	
-	(function (form) {
-		function f(timeout, retry) {
-			return (retry << 4) | (0x0f & timeout);
-		}
-
-		form.onsubmit = function (e) {
-			e.preventDefault();
-			
-			document.body.classList.add("loading");
-			
-			top.postRequest({
-				command: "config",
-				key: "health",
-				value: (this.elements["timeout"].value & 0x0f) | (parseInt(this.elements["retry"].value) <<4)
-			}, function () {
-				switch(this.status) {
-				case 200:
-					alert("ICMP Helth 확인 방식을 변경 하였습니다.");
-					
-					break;
-				case 400:
-					alert("현재 버전에서 지원하지 않는 설정입니다.");
-					
-					break;
-				default:
-					top.notice(this.status);
-				}
-				
-				document.body.classList.remove("loading");
-			});	
-		};
-	
-		if ("health" in window.configData) {
-			form.elements["timeout"].value =  0x0f & window.configData.health;
-			form.elements["retry"].value = 0x0f & (window.configData.health >> 4);
-		}
-		else {
-			form.elements["timeout"].value = 10;
-			form.elements["retry"].value = 1;
-		}
-	}) (document.getElementById("health"));
-	
-	if (top.databases.config.gcm !== undefined && top.databases.config.gcm !== null) {
-		document.body.classList.add("gcm");
-	}
-	
-	window.menu.elements["menu"].value = top.databases.config.menu? "fix": "auto";
-	
-	window.sms.elements["enable"].checked = top.databases.config.sms? true: false;
-	
-	document.body.classList.remove("loading");
-	
+	return li;
 }
 
 		</script>
 	</head>
 	
-	<body class="loading content_width">
-		<h2>정보</h2>
-		<ul class="common box">
-			<li>자바 버전 : <span id="java"></span>
-			<li>에이전트 버전 : <span id="version"></span>
-			<li>
+	<body>
+		<h2>
+			<img width="24px" height="24px" src="/img/information.png" class="logo">
+			정보
+		</h2>
+		<div id="information" class="box container loading">
+			<p>
+				자바 버전 : <span id="java"></span>
+			</p>
+			<p>
+				에이전트 버전 : <span id="version"></span>
+			</p>
+			<p>
 				에이전트 저장공간 여유 :
 				<span id="space"></span>
 				<i id="path"></i>
-			<li>데이터베이스 로드 : <span id="load">N/A</span>
-			<li>관리 리소스 갯수 : <span id="resource"></span>
-			<li>전일 디스크 사용량 : <span id="usage"></span>
-			<li id="expire"></li>
-		</ul>
-		<h2>일반</h2>
-		<ul class="common box">
-			<li>
+			</p>
+			<p>
+				전일 디스크 사용량 : <span id="usage"></span>
+			</p>
+			<p>
+				데이터베이스 로드 : <span id="load">N/A</span>
+			</p>
+			<p>
+				관리 리소스 갯수 : <span id="resource"></span>
+			</p>
+			<p id="expire"></p>
+			<div class="bg_loading"></div>
+		</div>
+		<h2>
+			<img width="24px" height="24px" src="/img/run.png" class="logo">
+			동작
+		</h2>
+		<div id="common" class="box container loading">
+			<p>
 				<form id="health">
 					ICMP Health: <input type="submit" value="적용" class="root">
 					<ul>
@@ -619,46 +274,65 @@ function initialize() {
 								<option value="2">2
 								<option value="3">3
 								<option value="5">5
-								<option value="10">10
+								<option value="10" selected>10
 							</select>
 						</li>
 						<li>Retry :
 							<select name="retry">
-								<option value="1">1
+								<option value="1" selected>1
 								<option value="2">2
 								<option value="3">3
 							</select>
 						</li>
 					</ul>
 				</form>
-			<li>
-				<form id="request">
-					SNMP (ICMP) 요청 주기(초) :
-					<select name="timer">
+			</p>
+			<p>
+				<form id="snmp_interval">
+					SNMP 요청 주기(초) :
+					<select name="snmp_interval">
 						<option value="3000">3
-						<option value="10000">10
+						<option value="5000">5
+						<option value="10000" selected>10
 						<option value="30000">30
 						<option value="60000">60
 					</select>
 					<input type="submit" value="적용" class="root">
 				</form>
-			<li>
+			</p>
+			<p>
 				<form id="clean">
 					데이터 보관 기간(일) :
 					<input type="number" min="0" max="365" name="clean">
 					<input type="submit" value="적용" class="root">
 					<i>(데이터 정리 기능을 사용하지 않는 경우 0)</i>
 				</form>
-			<li>
-				<form id="interval">
+			</p>
+			<p>
+				<form id="save_interval">
 					데이터 저장 단위(분) :
-					<select name="interval">
+					<select name="save_interval">
 						<option value="1">1
 						<option value="5">5
 					</select>
 					<input type="submit" value="적용" class="root">
 				</form>
-			<li>
+			</p>
+			<p>
+				<form id="top">
+					Top N : 
+					<input type="number" min="1" name="top">
+					<input type="submit" value="적용" class="root">
+				</form>	
+			</p>
+			<div class="bg_loading"></div>
+		</div>
+		<h2>
+			<img width="24px" height="24px" src="/img/ui.png" class="logo">
+			UI
+		</h2>
+		<div id="setting" class="container box loading">
+			<p>
 				<form id="display">
 					표시 : 
 					<select name="display">
@@ -667,239 +341,182 @@ function initialize() {
 					</select>
 					<input type="submit" value="적용" class="root">
 				</form>
-			<li>
-				<form id="top">
-					Top N : 
-					<input type="number" min="1" name="top">
-					<input type="submit" value="적용" class="root">
-				</form>	
-			<li>
+			</p>
+			<p>
 				<form id="menu">
-					<label>
-						메뉴 고정 : 
-						<select name="menu">
-							<option value="auto">자동
-							<option value="fix">고정
-						</select>
-						<input type="submit" value="적용" class="root">
-					</label>
+					메뉴 고정 : 
+					<select name="menu">
+						<option value="false">자동
+						<option value="true">고정
+					</select>
+					<input type="submit" value="적용" class="root">
 				</form>
-			<li>
+			</p>
+			<p>
 				<form id="custom">
-					장비정보 항목 관리 : 
+					장비정보 항목 추가 : 
 					<input type="text" name="custom" placeholder="항목1 [,항목2 ...]">
 					<input type="submit" value="적용" class="root">
 					<i>콤마(,)로 구분</i>
 				</form>
-			<li>
-				<form id="iftype">
-					인터페이스 종류 : 
-					<input type="text" name="iftype" placeholder="종류1 [,종류2 ...]">
+			</p>
+			<p>
+				<form id="dashboard">
+					대시보드 :
+					<ol id="resources" class="top">
+						<li data-value="responseTime">
+							<input type="checkbox" name="responseTime">
+							응답시간
+						<li data-value="processor">
+							<input type="checkbox" name="processor">
+							프로세서 로드
+						<li data-value="memory">
+							<input type="checkbox" name="memory">
+							메모리 사용량
+						<li data-value="memoryRate">
+							<input type="checkbox" name="memoryRate">
+							메모리 사용율
+						<li data-value="storage">
+							<input type="checkbox" name="storage">
+							스토리지 사용량
+						<li data-value="storageRate">
+							<input type="checkbox" name="storageRate">
+							스토리지 사용율
+						<li data-value="throughput">
+							<input type="checkbox" name="throughput">
+							통신 사용량
+						<li data-value="throughputRate">
+							<input type="checkbox" name="throughputRate">
+							통신 사용율
+						<li data-value="throughputErr">
+							<input type="checkbox" name="throughputErr">
+							통신 오류
+					</ol>
 					<input type="submit" value="적용" class="root">
-					<i>콤마(,)로 구분</i>
 				</form>
-			<li>
-				<form id="backup">
-					설정 복구 : 
-					<input type="file" name="restore" value="복구" class="root">
-					<input type="submit" value="백업" class="root">
+			</p>
+			<p>
+				<form id="color">
+					색상 테마 :
+					<ul class="top">
+						<li>
+							<input type="radio" name="color" value="default" checked>
+							<span class="color default red"></span>
+							<span class="color default orange"></span>
+							<span class="color default green"></span>
+						</li>
+						<li>
+							<input type="radio" name="color" value="pastel">
+							<span class="color pastel red"></span>
+							<span class="color pastel orange"></span>
+							<span class="color pastel green"></span>
+						</li>
+					</ul>
+					<input type="submit" value="적용" class="root">
 				</form>
-		</ul>
-	
-		<h2>대시보드</h2>
-		<div class="box dashboard">
-			<form id="dashboard">
-				<ol id="resources">
-					<li data-value="responseTime">
-						<input type="checkbox" name="responseTime">
-						응답속도
-					<li data-value="processor">
-						<input type="checkbox" name="processor">
-						프로세서 로드
-					<li data-value="memory">
-						<input type="checkbox" name="memory">
-						메모리 사용량
-					<li data-value="memoryRate">
-						<input type="checkbox" name="memoryRate">
-						메모리 사용율
-					<li data-value="storage">
-						<input type="checkbox" name="storage">
-						스토리지 사용량
-					<li data-value="storageRate">
-						<input type="checkbox" name="storageRate">
-						스토리지 사용율
-					<li data-value="throughput">
-						<input type="checkbox" name="throughput">
-						통신 사용량
-					<li data-value="throughputRate">
-						<input type="checkbox" name="throughputRate">
-						통신 사용율
-					<li data-value="throughputErr">
-						<input type="checkbox" name="throughputErr">
-						통신 오류
-					<li data-value="failureRate">
-						<input type="checkbox" name="failureRate">
-						snmp 오류
-				</ol>
-				<input type="submit" value="적용" class="root">
-			</form>
-			<form id="color">
-				<h3>테마</h3>
-				<ul>
-					<li>
-						<input type="radio" name="color" value="primary">
-						<span class="color primary red"></span>
-						<span class="color primary orange"></span>
-						<span class="color primary green"></span>
-					</li>
-					<li>
-						<input type="radio" name="color" value="pastel">
-						<span class="color pastel red"></span>
-						<span class="color pastel orange"></span>
-						<span class="color pastel green"></span>
-					</li>
-				</ul>
-				<input type="submit" value="적용" class="root">
-			</form>
-			<form id="animation">
-				<h3>애니메이션</h3>
-				<ul>
-					<li><input type="radio" name="animation" value="none" required>없음</li>
-					<li><input type="radio" name="animation" value="blink" required>Blink</li>
-				</ul>
-				<input type="submit" value="적용" class="root">
-			</form>
+			</p>
+			<div class="bg_loading"></div>
 		</div>
-
-		<form id="critical">
-			<h2>임계 일괄 설정</h2>
-			<div class="box">
-				<p>
-					적용 노드 :
-					<input type="text" name="ip">
-					<label><input type="checkbox" name="all">모두</label>
-				</p>
-				<p>
-					성능 지표 :
-					<select name="resource" required>
-						<option value="processor">프로세서 로드</option>
-						<option value="memory">메모리</option>
-						<option value="storage">스토리지</option>
-						<option value="throughput">통신</option>
-						<optgroup>
-							<option value="" selected>모두</option>
-						</optgroup>
-						
-					</select>
-				</p>
-				<p>
-					임계값(%) : <input type="number" min="0" max="100" name="rate" required>
-					<i>임계값을 0으로 설정하면 임계가 삭제됩니다.</i>
-				</p>
-				<p>
-					<label><input type="checkbox" name="overwrite">기존 설정 덮어쓰기</label>
-					<input type="submit" value="실행"><i>서버와 동기화 하기 위해 실행 후 Console을 재시작 합니다.</i>
-				</p>
-			</div>
-		</form>
 		
-		<form id="account">
-			<h2>계정 <input type="submit" value="추가" title="계정 추가" class="root"></h2>
+		<form id="account" class="container loading">
+			<h2>
+				<img width="24px" height="24px" src="/img/account.png" class="logo">
+				계정
+				<input class="button" type="submit" value="+" title="계정 추가" class="root">
+			</h2>
 			<div class="box">
 				<ul id="account_list" class="list"></ul>
 			</div>
+			<div class="bg_loading"></div>
 		</form>
 		
-		<form id="profile">
-			<h2>프로파일 <input type="submit" value="추가" title="프로파일 추가" class="root"></h2>
+		<form id="profile" class="container loading">
+			<h2>
+				<img width="24px" height="24px" src="/img/profile.png" class="logo">
+				SNMP 프로파일
+				<input class="button" type="submit" value="+" title="수신자 추가" class="root">
+			</h2>
 			<div class="box">
 				<ul id="profile_list" class="list"></ul>
 				<i>등록된 Profile은 변경할 수 없습니다. 삭제후 추가하십시오. (사용중인 Profile은 삭제할 수 없습니다.)</i>
 			</div>
+			<div class="bg_loading"></div>
 		</form>
 		
-		<form id="sms">
+		<form id="event" class="container loading">
 			<h2>
-				<input type="checkbox" name="enable" class="root">
-				SMS
-				<input type="submit" value="추가" title="알림 추가" class="root">
+				<img width="24px" height="24px" src="/img/send_mail.png" class="logo">
+				이벤트 통지
+				<input class="button" type="button" name="add" value="+" title="수신자 추가" class="root">
 			</h2>
 			<div class="box">
-				<ul id="sms_list" class="list"></ul>
-			</div>
-		</form>
-		
-		<form id="email">
-			<h2>
-				메일연동
-				<input type="button" name="add" value="추가" title="알림 추가" class="root">
-			</h2>
-			<div class="box">
+				<ul class="smtp">
+					<li>
+						<span>
+							SMTP 서버:
+						</span>
+						<span>
+							<input type="text" name="server" placeholder="smtp.example.com" required>
+						</span>
+					</li>
+					<li>
+						<span>
+							보안 프로토콜:
+						</span>
+						<span>
+							<select name="protocol" required>
+								<option value="tls">TLS</option>
+								<option value="ssl">SSL</option>
+								<option value="" selected>사용안함</option>
+							</select>
+						</span>
+					</li>
+					<li>
+						<span>
+							계정:
+						</span>
+						<span>
+							<input type="text" name="username" placeholder="홍길동@example.com" required>
+						</span>
+					</li>
+					<li>
+						<span>
+							비밀번호:
+						</span>
+						<span>
+							<input type="password" name="password" placeholder="계정 비밀번호" required>
+						</span>
+					</li>
+				</ul>
 				<input type="submit" value="적용">
-				<p>
-					SMTP 서버:
-					<input type="text" name="server" placeholder="smtp.example.com" required>
-				</p>
-				<p>
-					보안 프로토콜:
-					<select name="protocol" required>
-						<option value="tls" selected>TLS</option>
-						<option value="ssl">SSL</option>
-						<option value="">사용안함</option>
-					</select>
-				</p>
-				<p>
-					계정:
-					<input type="text" name="username" placeholder="홍길동@example.com" required>
-				</p>
-				<p>
-					비밀번호:
-					<input type="password" name="password" placeholder="계정 비밀번호" required>
-				</p>
-				<ul id="smtp_list" class="list"></ul>
+				<ul id="user_list" class="list"></ul>
 			</div>
+			<div class="bg_loading"></div>
 		</form>
-
-		<h2>고객 지원</h2>
+		<h2>
+			<img width="24px" height="24px" src="/img/restore.png" class="logo">
+			백업 및 복구
+		</h2>
+		<form id="backup" class="container box">
+			설정 복구 : 
+			<input type="file" name="restore" value="복구" class="root">
+			<input type="submit" value="백업" class="root">
+		</form>
+		<h2>
+			<img width="24px" height="24px" src="/img/support.png" class="logo">
+			고객 지원
+		</h2>
 		<form class="box" id="support">
 			<input type="text" name="url" placeholder="company/service.html">
 			<input type="submit" value="이동">
 		</form>
-
-		<h2>개발자 도구</h2>
-		<form class="box" id="debug">
-			<input type="password" name="password">
-			<input type="submit" value="확인">
-		</form>
-		
-		<div class="box debug">
-			<button id="test">테스트</button>
-			<button id="test_pos">존재하지 않는 position 확인</button>
-			<button id="remove_pos">존재하지 않는 position 삭제</button>
-		</div>	
-		
-		<div class="bg_loading"></div>
-		
-		<div class="layout">
-			<ul>
-				<li class="item">
-					<img width="20" height="20">
-					<span></span>
-			</ul>
-		</div>
 		
 		<script src="js/ITAhM.js"></script>
 		<script src="js/object.js"></script>
 		<script src="js/md5.js"></script>
 		<script>
 
-var configData = top.databases.config,
-	resources = document.getElementById("resources"),
-	sms = document.getElementById("sms"),
-	listItem = document.querySelector(".item"),
-	menu = document.getElementById("menu"),
-	custom = document.getElementById("custom"),
-	iftype = document.getElementById("iftype"),
+var 
 	backup = document.getElementById("backup");
 
 if (top.account.level > 0) {
@@ -909,124 +526,459 @@ if (top.account.level > 0) {
 		});
 }
 
-document.getElementById("account").onsubmit = function (e) {
-	e.preventDefault();
-	
-	onSelectAccount();
-};
+(function(container) {
+	top.postRequest({
+		command: "information"
+	}, function () {
+		switch (this.status) {
+			case 200:
+				const information = JSON.parse(this.responseText);
 
-document.getElementById("profile").onsubmit = function (e) {
-	e.preventDefault();
-	
-	onSelectProfile();
-};
+				document.getElementById("java").textContent = information.java;
+				document.getElementById("version").textContent = information.version;
+				document.getElementById("resource").textContent = information.resource;
+				document.getElementById("usage").textContent = ITAhM.util.toBytesString(information.usage);
+				document.getElementById("space").textContent = ITAhM.util.toBytesString(information.space);
+				document.getElementById("path").textContent = information.path;
+				document.getElementById("expire").textContent
+					= information.expire > 0? new Date(information.expire).toLocaleString(): "";
 
-document.getElementById("profile").onsubmit = function (e) {
-	e.preventDefault();
-	
-	onSelectProfile();
-};
+				const
+					orders = [].sort.call(Object.keys(information.load), function (a, b) {
+						return parseInt(b) - parseInt(a);
+					}), load = document.getElementById("load"),
+					text = [], title = [];
 
-document.getElementById("clean").onsubmit = function (e) {
-	e.preventDefault();
-	
-	onSetStorage(this.elements["clean"]);	
-};
+				for (let i=0; i<4; i++) {
+					text[text.length] = information.load[orders[i]];
+				}
 
-document.getElementById("interval").onsubmit = function (e) {
-	e.preventDefault();
-	
-	onSetInterval(this.elements["interval"]);	
-};
+				load.textContent = text.join(", ") +"...";
 
-(function (form) {
-	const color = form.elements["color"];
+				for (let i=4; i<orders.length; i++) {
+					title[title.length] = information.load[orders[i]];
+				}
+				
+				load.title = title.join(", ");
 
-	color.value = "color" in window.configData? window.configData.color: "primary";
+				container.classList.remove("loading");	
 
-	form.onsubmit = function (e) {
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+}) (document.getElementById("information"));
+
+(function(container) {
+
+	document.getElementById("health").onsubmit = function (e) {
+		e.preventDefault();
+		
+		container.classList.add("loading");
+		
+		top.postRequest({
+			command: "config",
+			key: "health",
+			value: (parseInt(this.elements["timeout"].value )& 0x0f) | (parseInt(this.elements["retry"].value) <<4)
+		}, function () {
+			switch(this.status) {
+			case 200:
+				alert("ICMP Helth 확인 방식을 변경 하였습니다.");
+				
+				break;
+			case 400:
+				alert("현재 버전에서 지원하지 않는 설정입니다.");
+				
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+			
+			container.classList.remove("loading");
+		});	
+	};
+		
+	document.getElementById("snmp_interval").onsubmit = function (e) {
+		e.preventDefault();
+		
+		container.classList.add("loading");
+		
+		top.postRequest({
+			command: "config",
+			key: "snmpInterval",
+			value: parseInt(this.elements["snmp_interval"].value)
+		}, function () {
+			switch(this.status) {
+			case 200:
+				alert("SNMP 요청 주기를 설정 하였습니다.");
+				
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+			
+			container.classList.remove("loading");
+		});	
+	};
+
+	document.getElementById("clean").onsubmit = function (e) {	
+		e.preventDefault();
+
+		window.common.classList.add("loading");
+
+		top.postRequest({
+			command: "config",
+			key: "clean",
+			value: parseInt(this.elements["clean"].value) || 0
+		}, function (response) {
+			switch (this.status) {
+			case 200:
+				alert("데이터 보관 기간을 설정하였습니다.");
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+
+			container.classList.remove("loading");
+		});
+	};
+
+	document.getElementById("save_interval").onsubmit = function (e) {	
+		e.preventDefault();
+
+		container.classList.add("loading");
+		
+		top.postRequest({
+			command: "config",
+			key: "saveInterval",
+			value: parseInt(this.elements["save_interval"].value)
+		}, function () {
+			switch(this.status) {
+			case 200:
+				alert("SNMP 정보 저장 주기를 설정하였습니다.");
+				
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+
+			container.classList.remove("loading");
+		});
+	};
+
+	document.getElementById("top").onsubmit = function (e) {
 		e.preventDefault();
 		
 		document.body.classList.add("loading");
-
-		top.sendRequest({
+		
+		top.postRequest({
 			command: "config",
-			key: "color",
-			value: color.value
+			key: "top",
+			value: Math.max(this.elements["top"].value, 1)
 		}, function (response) {
-			top.putDB("config", "color", color.value);
+			switch(this.status) {
+			case 200:
+				alert("대시보드 Top N을 변경하였습니다.");
+				
+				break;
+			default:
+				alert(top.getMessage(this.status));
 
-			alert("대시보드의 색상 테마를 변경하였습니다.");
-
-			document.body.classList.remove("loading");
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+			
+			container.classList.remove("loading");
 		});
 	};
-}) (document.getElementById("color"));
 
-(function (form) {
-	const animation = form.elements["animation"];
+	top.postRequest({
+		command: "pull",
+		database: "config"
+	}, function () {
+		switch (this.status) {
+			case 200:
+				const config = JSON.parse(this.responseText);
+				
+				document.querySelector("input[name=clean]").value = "clean" in config? config.clean: 0;
+				document.querySelector("select[name=save_interval]").value = "saveInterval" in config? config.saveInterval: 1;
+				document.querySelector("input[name=top]").value = "top" in config? config.top: 10;
+				document.querySelector("select[name=snmp_interval]").value = "snmpInterval" in config? config.snmpInterval: 10000;
 
-	animation.value = "animation" in window.configData? window.configData.animation: "none";
+				if ("health" in config) {
+					document.querySelector("select[name=timeout]").value =  0x0f & config.health;
+					document.querySelector("select[name=retry]").value = 0x0f & (config.health >> 4);
+				}
+
+				initSMTP(config.smtp);
+
+				container.classList.remove("loading");
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+}) (document.getElementById("common"));
+
+(function (container) {
 	
-	form.onsubmit = function (e) {
+	function postRequest(key, value, callback) {
+		container.classList.add("loading");
+
+		top.postRequest({
+			command: "put",
+			database: "setting",
+			key: key,
+			value: value
+		}, function () {
+			switch(this.status) {
+			case 200:
+				top.setting[key] = value;
+
+				callback && callback(key, value);
+
+				alert("UI 설정을 변경하였습니다.");
+				
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+
+			container.classList.remove("loading");
+		});
+	}
+
+	document.getElementById("display").onsubmit = function (e) {
 		e.preventDefault();
 		
-		document.body.classList.add("loading");
+		postRequest("display", this.elements["display"].value);
+	};
 
-		top.sendRequest({
-			command: "config",
-			key: "animation",
-			value: animation.value
-		}, function (response) {
-			top.putDB("config", "animation", animation.value);
-
-			alert("대시보드의 애니메이션을 변경하였습니다.");
-
-			document.body.classList.remove("loading");
+	document.getElementById("menu").onsubmit = function (e) {
+		e.preventDefault();
+		
+		postRequest("menu", this.elements["menu"].value === "true", function (key, value) {
+			top.setMenu(value);
 		});
 	};
-	
-}) (document.getElementById("animation"));
 
-(function (form) {
-	
-	const smtp = top.getDB("config", "smtp"),
-		elements = form.elements,
-		server = elements["server"],
-		protocol = elements["protocol"],
-		username = elements["username"],
-		password = elements["password"],
-		smtpData = top.getDB("smtp"),
-		df = document.createDocumentFragment();
+	document.getElementById("custom").onsubmit = function (e) {
+		e.preventDefault();
 		
-	if (smtp) {
-		server.value = smtp.server;
-		protocol.value = smtp.protocol || "";
-		username.value = smtp.username;
-		password.value = smtp.password;
-	}
-
-	for (let user in smtpData) {
-		df.appendChild(createItem("/img/email.png", user, onSelectSMTP));
-	}
-
-	document.getElementById("smtp_list").appendChild(df);
-
-	form.elements["add"].onclick = function () {
-		top.showDialog.call(window, "/smtp_dialog.html");
+		const customs = this.elements["custom"].value.split(",");
+		
+		for (var i=0, _i=customs.length; i<_i; i++) {
+			customs[i] = customs[i].trim();
+		}
+		
+		postRequest("custom", customs.join(","));
 	};
 
-	form.onsubmit = function (e) {
+	document.getElementById("dashboard").onsubmit = function (e) {
+		e.preventDefault();
+		
+		var order = [];
+		
+		[].forEach.call(this.querySelectorAll("li"), function (li) {
+			if (li.querySelector("input:checked")) {
+				order.push(li.dataset.value);
+			}
+		});
+		
+		if (order.length == 0) {
+			return alert ("선택한 리소스가 없습니다.");
+		}
+		
+		document.body.classList.add("loading");
+		
+		postRequest("dashboard", order);
+	};
+	
+	document.getElementById("color").onsubmit = function (e) {
+		e.preventDefault();
+		
+		postRequest("color", this.elements["color"].value);
+	};
+
+	[].forEach.call(document.getElementById("resources").querySelectorAll("li"), function (li) {
+		li.draggable = true;
+		
+		li.addEventListener("dragstart", function (e) {
+			e.stopPropagation();
+			
+			window.draggable = this;
+		});
+		
+		li.addEventListener("dragover", function (e) {
+			e.preventDefault();
+			
+			if (window.draggable === this) {
+				return;
+			}
+			
+			switch (window.draggable) {
+			case this.previousElementSibling:
+				this.parentNode.insertBefore(this, window.draggable);
+				
+				break;
+			default:
+				this.parentNode.insertBefore(window.draggable, this);
+			}
+		});
+	});
+
+	if("display" in top.setting) {
+		document.querySelector("select[name=display]").value = top.setting.display;
+	}
+
+	if ("menu" in top.setting) {
+		document.querySelector("select[name=menu]").value = top.setting.menu;
+	}
+	
+	if ("color" in top.setting) {
+		document.querySelector("input[name=color][value="+top.setting.color+"]").checked = true;
+	}
+
+	if ("custom" in top.setting) {
+		window.custom.elements["custom"].value = top.setting.custom.split(",").join(", ");
+	}
+	
+	if ("dashboard" in top.setting) {
+		const list = document.getElementById("resources"),
+			order = top.setting.dashboard;
+		
+		for (let i=order.length, li; i > 0;) {
+			li = list.querySelector("li[data-value="+ order[--i] +"]");
+
+			list.insertBefore(li, list.firstElementChild);
+			
+			li.querySelector("input").checked = true;
+		}
+	}
+	else {
+		[].forEach.call(document.getElementById("resources").querySelectorAll("input[type=checkbox]"), function (input) {
+			input.checked = true;
+		});
+	}
+
+	container.classList.remove("loading");	
+
+}) (document.getElementById("setting"));
+
+(function (container) {
+	
+	container.onsubmit = function (e) {
+		e.preventDefault();
+
+		top.showDialog.call(window, "/account_dialog.html");
+	};
+
+	function onSelectAccount(name, account) {
+		top.showDialog.call(window, "/account_dialog.html", name, account);
+	}
+	
+	top.postRequest({
+		command: "pull",
+		database: "account",
+	}, function () {
+		switch (this.status) {
+		case 200:
+			const
+				account = JSON.parse(this.responseText);
+				df = document.createDocumentFragment();
+
+			for (let name in account) {
+				df.appendChild(createItem(
+					account[name].level === 0? 
+					"/img/svg/root.svg":
+					"img/svg/user.svg", name, account[name], onSelectAccount));
+			}
+
+			document.getElementById("account_list").appendChild(df);
+	
+			break;
+		default:
+			alert(top.getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+
+		container.classList.remove("loading");
+	});
+
+}) (document.getElementById("account"));
+
+(function (container) {
+	container.onsubmit = function(e) {
+		e.preventDefault();
+
+		onSelectProfile();
+	}
+
+	function onSelectProfile(name, profile) {
+		top.showDialog.call(window, "/profile_dialog.html", name, profile);
+	}
+
+	top.postRequest({
+		command: "pull",
+		database: "profile"
+	}, function () {
+		switch (this.status) {
+			case 200:
+				const
+					profile = JSON.parse(this.responseText)
+					df = document.createDocumentFragment();
+
+				for (let name in profile) {
+					df.appendChild(createItem("/img/svg/list.svg", name, profile[name], onSelectProfile));
+				}
+
+				document.getElementById("profile_list").appendChild(df);
+
+				container.classList.remove("loading");	
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+}) (document.getElementById("profile"));
+
+(function (container) {
+	
+	container.elements["add"].onclick = function () {
+		top.showDialog.call(window, "/user_dialog.html");
+	};
+
+	container.onsubmit = function (e) {
 		e.preventDefault();
 
 		const smtp = {
-				server: server.value,
-				protocol: protocol.value? protocol.value: undefined,
-				username: username.value,
-				password: password.value
+				server: container.elements["server"].value,
+				protocol: container.elements["protocol"].value || undefined,
+				username: container.elements["username"].value,
+				password: container.elements["password"].value
 			};
 
-		document.body.classList.add("loading");
+			container.classList.add("loading");
 
 		top.postRequest({
 			command: "config",
@@ -1035,13 +987,11 @@ document.getElementById("interval").onsubmit = function (e) {
 		}, function () {
 			switch(this.status) {
 			case 200:
-				top.putDB("config", "smtp", smtp);
-				
-				alert("다음과 같이 등록을 성공하였습니다.\n"+ server.value +"\n"+ (protocol.value? protocol.value + "\n": "") + username.value);
+				alert("SMTP 서버와 연결하였습니다.");
 
 				break;
 			case 501:
-				alert("서버 "+ server.value +"에 연결할 수 없습니다.");
+				alert("NMTP 서버에 연결할 수 없습니다.");
 				
 				break;
 
@@ -1049,80 +999,57 @@ document.getElementById("interval").onsubmit = function (e) {
 				alert(top.getMessage(this.status));
 			}
 
-			document.body.classList.remove("loading");
+			container.classList.remove("loading");
 		});
 	};
 
-	function onSelectSMTP(user) {
-		top.showDialog.call(window, "/smtp_dialog.html", user);
+	function onSelectUser(name, user) {
+		top.showDialog.call(window, "/user_dialog.html", name, user);
 	}
 	
-}) (document.getElementById("email"));
-
-window.sms.onsubmit = function (e) {
-	e.preventDefault();
-	
-	onSelectSMS();
-};
-
-document.getElementById("display").onsubmit = function (e) {
-	e.preventDefault();
-	
-	onModifyDisplay(this.elements["display"]);
-};
-
-document.getElementById("top").onsubmit = function (e) {
-	e.preventDefault();
-	
-	onModifyTopN(this.elements["top"].value);
-};
-
-document.getElementById("test_pos").onclick = function () {
-	const p = top.getDB("position"),
-		d = top.getDB("device");
-		var i=0;
-
-	for (let id in p) {
-		if (!(id in d)) {
-			i++;
+	window.initSMTP = function (smtp) {
+		if (smtp) {
+			server = container.elements["server"].value = smtp.server,
+			protocol = container.elements["protocol"].value = smtp.protocol || "",
+			username = container.elements["username"].value = smtp.username,
+			password = container.elements["password"].value = smtp.password,
+			smtpData = smtp && smtp.email;
 		}
-	}
-	
-	alert("존재하지 않는 position 정보 : "+ i +" 개 확인");
-};
 
-document.getElementById("remove_pos").onclick = function () {
-	const p = top.getDB("position"),
-		d = top.getDB("device");
-		var i=0;
+		top.postRequest({
+			command: "pull",
+			database: "user",
+		}, function () {
+			switch (this.status) {
+			case 200:
+				const
+					user = JSON.parse(this.responseText);
+					df = document.createDocumentFragment();
 
-	for (let id in p) {
-		if (!(id in d)) {
-			delete p[id];
+				for (let name in user) {
+					df.appendChild(createItem("/img/email.png", name, user[name], onSelectUser));
+				}
 
-			i++;
-		}
-	}
+				document.getElementById("user_list").appendChild(df);
 
-	document.write(JSON.stringify(p));
+				break;
+			default:
+				alert(top.getMessage(this.status));
 
-return ;
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
 
-	top.sendRequest({
-		command: "push",
-		database: "position",
-		data: p
-	}, function (response) {
-		alert("존재하지 않는 position 정보 : "+ i +" 개 삭제");
-	});
-};
+			container.classList.remove("loading");
+		});
+	};
+}) (document.getElementById("event"));
 
 backup.onsubmit = function (e) {
 	e.preventDefault();
 	
 	document.body.classList.add("loading");
 	
-	top.sendRequest({
+	top.postRequest({
 		command: "order",
 		order: "backup"
 	}, function (backup) {
@@ -1151,7 +1078,7 @@ backup.elements["restore"].onchange = function (e) {
 	reader.onload = function () {
 		document.body.classList.add("loading");
 		
-		top.sendRequest({
+		top.postRequest({
 			command: "order",
 			order: "restore",
 			backup: JSON.parse(this.result)
@@ -1171,205 +1098,13 @@ backup.elements["restore"].onchange = function (e) {
 	reader.readAsText(file);
 };
 
-document.getElementById("dashboard").onsubmit = function (e) {
-	e.preventDefault();
-	
-	var elements = window.resources.children,
-		li
-		resources = {};
-	
-	for (var i=0, _i=elements.length; i<_i; i++) {
-		li = elements[i];
-		
-		if (li.querySelector("input:checked")) {
-			resources[i.toString()] = elements[i].dataset.value;
-		}
-	}
-	
-	if (Object.keys(resources).length == 0 && !confirm("선택한 리소스가 없습니다.\n대시보드에 리소스 정보를 표시하지 않겠습니까?")) {
-		return;
-	}
-	
-	document.body.classList.add("loading");
-	
-	top.sendRequest({
-		command: "config",
-		key: "dashboard",
-		value: resources
-	}, function (response) {
-		document.body.classList.remove("loading");
-		
-		top.databases.config.dashboard = resources;
-		
-		alert("대시보드 리소스 정보를 변경하였습니다.");
-	});
-};
-
-document.getElementById("test").onclick = function (e) {
-	document.body.classList.add("loading");
-	
-	top.sendRequest({
-		command: "order",
-		order: "test"
-	}, function (data) {
-		document.body.classList.remove("loading");
-		
-		var rows = ["ip, sysObjectID, hrProcessorEntry, hrStorageEntry, ifEntry"], row;
-		
-		for (var ip in data) {
-			row = data[ip];
-			
-			rows[rows.length] = 
-				[ip, row.sysObjectID, row.hrProcessorEntry, row.hrStorageEntry, row.ifEntry].join(',');
-		}
-		
-		ITAhM.util.download(new Blob([rows.join("\n")] ,{
-			type: "text/csv;charset=utf-8;"
-		}), "test.csv");
-	});
-};
-
-window.sms.elements["enable"].onclick = function (e) {
-	var checked = this.checked;
-	
-	if (confirm("SMS 발송 기능을 "+
-		(checked? "사용 하도록": "사용하지 않도록") +
-		"설정하겠습니까?")) {
-		document.body.classList.add("loading");
-		
-		top.sendRequest({
-			command: "config",
-			key: "sms",
-			value: checked
-		}, function (response) {
-			document.body.classList.remove("loading");
-			
-			top.databases.config.sms = checked;
-		
-			window.location.reload();
-		});
-	}
-	else {
-		e.preventDefault();
-	}
-};
-
-custom.onsubmit = function (e) {
-	e.preventDefault();
-	
-	var customs = this.elements["custom"].value.split(","),
-		custom;
-	
-	for (var i=0, _i=customs.length; i<_i; i++) {
-		customs[i] = customs[i].trim();
-	}
-	
-	custom = customs.join(",");
-	
-	document.body.classList.add("loading");
-	
-	top.sendRequest({
-		command: "config",
-		key: "custom",
-		value: custom
-	}, function () {
-		document.body.classList.remove("loading");
-		
-		top.databases.config.custom = custom;
-	
-		window.custom.elements["custom"].value = customs.join(", ");
-		
-		alert("장비 정보의 관리 항목을 설정 하였습니다.");
-	});
-};
-
-iftype.onsubmit = function (e) {
-	e.preventDefault();
-	
-	var iftypes = [];
-	
-	for (let arr = this.elements["iftype"].value.split(","), i=0, _i=arr.length, n; i<_i; i++) {
-		n = arr[i].trim();
-		
-		if (!isNaN(n)) {
-			iftypes[iftypes.length] = n;
-		}
-	}
-	
-	document.body.classList.add("loading");
-	
-	top.postRequest({
-		command: "config",
-		key: "iftype",
-		value: iftypes.join(",")
-	}, function () {		
-		switch(this.status) {
-		case 200:
-			top.databases.config.iftype = iftypes.join(",");
-		
-			window.iftype.elements["iftype"].value = iftypes.join(", ");
-			
-			alert("인터페이스 성능 수집 대상을 설정 하였습니다.");
-			
-			break;
-		case 400:
-			alert("현재 버전에서 지원하지 않는 설정입니다.");
-			
-			break;
-		default:
-			return top.notice(this.status);
-		}
-		
-		document.body.classList.remove("loading");
-	});
-};
-
-menu.onsubmit = function (e) {
-	e.preventDefault();
-	
-	var menu = this.elements["menu"].value === "fix"? true: false;
-	
-	document.body.classList.add("loading");
-	
-	top.sendRequest({
-		command: "config",
-		key: "menu",
-		value: menu
-	}, function () {
-		document.body.classList.remove("loading");
-		
-		top.databases.config.menu = menu;
-	
-		top.setMenu(menu);
-	});
-};
-
-window.resources.onclick = function (e) {
-	var li = e.target, ul;
-	
-	if (li.nodeName.toLowerCase() !== "li" || !li.previousElementSibling) {
-		return;
-	}
-	
-	li.parentNode.insertBefore(li, li.previousElementSibling);
-};
-
-document.getElementById("debug").onsubmit = function (e) {
-	e.preventDefault();
-
-	if (hex_md5(this.elements["password"].value) === "ea5c17d2b6786fce92b087d40b1abb42") {
-
-		document.body.classList.add("debug");
-	}
-};
-
 (function(form) {
-	form.onsubmit = function () {
+	form.onsubmit = function (e) {
+		e.preventDefault();
+
 		window.open("/"+ form.elements["url"].value);
 	};
 }) (document.getElementById("support"));
-
-initialize();
 
 		</script>
 	

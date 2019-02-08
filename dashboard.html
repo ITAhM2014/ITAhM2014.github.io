@@ -347,19 +347,7 @@ function initialize() {
 			mapWindow.initialize();
 		};
 
-		if ("animation" in top.config) {
-			switch(top.config.animation) {
-				case "none":
-					map.src = "/map_dashboard.html";
-				break;
-
-				default:
-					map.src = "/map_dashboard_"+ top.config.animation +".html";
-			}
-		}
-		else {
-			map.src = "/map_dashboard.html";
-		}
+		map.src = "/map_dashboard.html";
 	}) (document.getElementById("map"));
 	
 	removeClass(document.body, "loading");
@@ -404,10 +392,10 @@ function update() {
 					}
 				}
 				
-				if (node.monitor.shutdown) {
+				if (!node.monitor.status) {
 					labelData[labels[i]].shutdown++;
 				}
-				else if (node.monitor.critical) {
+				else if ("critical" in node.monitor && !node.monitor.critical) {
 					labelData[labels[i]].critical++;
 				}
 				else {
@@ -416,10 +404,10 @@ function update() {
 			}
 		}
 		
-		if (node.monitor.shutdown) {
+		if (!node.monitor.status) {
 			shutdown++;
 		}
-		else if (node.monitor.critical) {
+		else if ("critical" in node.monitor && !node.monitor.critical) {
 			critical++;
 		}
 		else {

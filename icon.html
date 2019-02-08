@@ -114,14 +114,14 @@ var list = document.getElementById("list"),
 	var iconData = {},
 		data, type;
 	
-	data = top.store.icon;
-	for (type in data) {
-		iconData[type] = data[type];
+	for (type in top.store.icon) {
+		iconData[type] = top.store.icon[type];
 	}
 	
-	data = top.databases.icon;
-	for (type in data) {
-		iconData[type] = data[type];
+	if ("icon" in top.setting) {
+		for (type in top.setting.icon) {
+			iconData[type] = top.setting.icon[type];
+		}
 	}
 	
 	list.appendChild(initIcon(iconData));
@@ -129,8 +129,8 @@ var list = document.getElementById("list"),
 	document.body.classList.remove("loading");
 }) ();
 
-function onSelectIcon(type) {
-	top.showDialog.call(window, "/icon_dialog.html", type);
+function onSelectIcon(type, icon) {
+	top.showDialog.call(window, "/icon_dialog.html", type, icon);
 }
 
 function createGroup(name) {
@@ -172,7 +172,7 @@ function initIcon(iconData) {
 			map[groupName] = groupElement;
 		}
 		
-		groupElement.appendChild(createIcon(icon.src, type)).onclick = onSelectIcon.bind(undefined, type);
+		groupElement.appendChild(createIcon(icon.src, type)).onclick = onSelectIcon.bind(undefined, type, iconData[type]);
 	}
 	
 	return df;
