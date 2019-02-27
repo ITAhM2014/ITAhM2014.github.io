@@ -2,13 +2,10 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<meta http-equiv="Content-Script-Type" content="text/javascript">
-		<meta http-equiv="Content-Style-Type" content="text/css">
 		<title>Event @ ITAhM</title>
 		
 		<style>
-@import "css/itahm.css";
-@import "css/calendar.css";
+@import "css/style.css";
 
 body {
 	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
@@ -18,8 +15,8 @@ h1, h2 {
 	color: #fff;
 }
 
-.content_width {
-	height: 99%;
+form {
+	width: 1024px; height:100%;
 	padding: 10px;
 	margin: 0 auto;
 	display: flex;
@@ -27,30 +24,20 @@ h1, h2 {
 }
 
 header {
-	position: relative;
+	flex: none;
+	color: #fff;
+	padding: 1em;
+}
+
+input[type=date] {
+	font-family: arial, tahoma, "맑은 고딕";
+	padding: 0.5em;
 }
 
 .log {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
-}
-
-header>nav {
-	position: absolute; top: 10px; right: 10px; 
-}
-
-#calendar {
-	position: absolute; top: 0; right: 0;
-	display: none;
-	background-color: #fff;
-	border: 1px solid #0084ff;
-	padding: 5px;
-}
-
-header>nav:hover> #calendar,
-#calendar:hover {
-	display: block;
 }
 
 ul {
@@ -138,17 +125,11 @@ ul {
 	
 	<body class="loading">
 	
-		<div class="content_width">
+		<form class="content_width">
 			
 			<header>
-				<div>
-					<h1>이벤트 로그</h1>
-					<h2 id="date">Date</h2>
-				</div>
-				<nav>
-					<img src="img/calendar512.png" width="36" height="36">
-					<div id="calendar"></div>
-				</nav>
+				날짜 선택 :
+				<input type="date" name="date">
 			</header>
 			
 			<div class="log">
@@ -163,74 +144,101 @@ ul {
 				<div id="list"></div>
 			</div>
 			
-		</div>
+		</form>
 		
 		<div class="bg_loading"></div>
 		
-		<script src="js/ITAhM.js"></script>
-		<script src="js/object.js"></script>
 		<script>
-if (top === window) {
-	throw "";
-}
 
-var iFrame = document.querySelector("iframe"),
-	list = document.getElementById("list"),
-	today = new Date().setHours(0, 0, 0, 0);
-
-top.clearLog();
-
-new ITAhM.Calendar("calendar", function (date) {
-	postRequest(date.getTime());
-});
-
-postRequest(today);
-
-function postRequest(mills) {
-	document.body.classList.add("loading");
+(function (form) {
+	const today = new Date(),
+		list = document.getElementById("list");
 	
-	var log;
-	while(log = window.list.firstChild) {
-		window.list.removeChild(log);
-	}
-	
-	top.postRequest({
-		command: "log",
-		date: mills
-	}, function () {
-		switch (this.status) {
-		case 200:
-			const
-				data = JSON.parse(this.responseText),
-				df = document.createDocumentFragment(),
-				indexArray = Object.keys(data).sort(function (a, b) {
-					return parseInt(a) - parseInt(b);
-				}),
-				count = indexArray.length;
-			
-			for (var i=0; i<count; i++) {
-				df.appendChild(createItem(data[indexArray[i]]));
-			}
-			
-			window.list.appendChild(df);
-			
-			list.scrollTop = list.scrollHeight;	
-			
-			document.getElementById("count").textContent = count;
-			document.getElementById("date").textContent = getDateString(mills);
+	top.clearLog();
 
-			document.body.classList.remove("loading");
-	
-			break;
-		default:
-			alert(top.getMessage(this.status));
+	postRequest(today.setHours(0, 0, 0, 0));
 
-			console.log(this.responseText && JSON.parse(this.responseText).error);
+	// KST
+	today.setHours(9, 0, 0, 0);
+
+	form.elements["date"].valueAsDate = today;
+
+	form.elements["date"].onchange = function (e) {
+		postRequest(this.valueAsDate.setHours(0, 0, 0, 0));
+	};
+
+	function postRequest(mills) {
+		document.body.classList.add("loading");	
+
+		for(let log; log = window.list.firstChild;) {
+			window.list.removeChild(log);
 		}
-	});
-}
+		
+		top.postRequest({
+			command: "log",
+			date: mills
+		}, function () {
+			switch (this.status) {
+			case 200:
+				const
+					data = JSON.parse(this.responseText),
+					df = document.createDocumentFragment(),
+					indexArray = Object.keys(data).sort(function (a, b) {
+						return parseInt(a) - parseInt(b);
+					}),
+					count = indexArray.length;
+				
+				for (let i=0, item; i<count; i++) {
+					if (item = createItem(data[indexArray[i]])) {
+						df.appendChild(item);
+					}
+				}
+				
+				f(Object.keys(ar));
 
-function createItem(event) {
+				window.list.appendChild(df);
+				
+				list.scrollTop = list.scrollHeight;	
+				
+				document.getElementById("count").textContent = count;
+
+				document.body.classList.remove("loading");
+		
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+		});
+	}
+}) (document.querySelector("form"));
+
+function f(ipList) {console.log(ipList);
+	top.postRequest({
+			command: "pull",
+			database: "node"
+		}, function () {
+			switch (this.status) {
+			case 200:
+				const map = JSON.parse(this.responseText);
+				const list = [];
+				for (let id in map) {
+					if (map[id].ip && ipList.indexOf(map[id].ip) === -1) {
+						list.push(map[id].ip);
+					}
+					else {
+						console.log(map[id].ip);
+					}
+				}
+
+				console.log(list);
+				break;
+			}
+		});
+}
+const ar = {};
+function createItem(event) {ar[event.name] = true; ////
 	var ul = document.createElement("ul"),
 		icon = ul.appendChild(document.createElement("li")).appendChild(document.createElement("img")),
 		status = 0;
@@ -239,6 +247,9 @@ function createItem(event) {
 	ul.appendChild(document.createElement("li")).textContent = event.name;
 	
 	switch(event.origin) {
+	case "exception":
+		return;
+		
 	case "critical":
 	case "snmp":
 	case "test":
@@ -260,6 +271,7 @@ function createItem(event) {
 		break;	
 	case "system":
 		break;
+		default: console.log(event.message);
 	}
 
 	ul.appendChild(document.createElement("li")).textContent = event.message;

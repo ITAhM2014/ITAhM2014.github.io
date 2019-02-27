@@ -526,53 +526,12 @@ function onClose(e) {
 	for (let ip in window.statusWindow) {
 		window.statusWindow[ip].close();
 	}
-	
-	// listen 중인 세션이 종료되면서 onEvent notice 가 발생함
-	window.notice = new Function();
 }
 		</script>
 		<script>
 /** signin **/
  
 // private
-function onConnect(e) {
-	e.preventDefault();
-	
-	const ip = this.elements["ip"];
-	
-	/* domain 일 수도
-	if (!isIPv4(ip.value)) {
-		return ip.select();
-	}*/
-	
-	const tcp = this.elements["tcp"];
-	
-	if (isNaN(tcp.value) || tcp.value < 0 || tcp.value > 65535) {
-		return tcp.select();
-	}
-	
-	const agent = ip.value +":" +tcp.value;
-	
-	window.agent = "http://"+ agent;
-	
-	document.body.classList.add("loading");
-	
-	echo(function (status) {
-		switch(status) {
-		case 200:
-		case 400:
-			window.location.href = "?"+ agent;
-			
-			break;
-		default:
-			alert("에이전트가 응답하지 않습니다. 상태: "+ status);
-		
-			ip.select();
-		}
-		
-		document.body.classList.remove("loading");
-	});
-}
 
 function onCancel(e) {
 	e.preventDefault();
@@ -592,21 +551,6 @@ function postRequest(request, onResponse, timeout) {
 	}
 	
 	xhr.send(JSON.stringify(request));
-}
-
-// private
-function parseResponse(onResponse, custom) {
-	const response = this.responseText && JSON.parse(this.responseText) || undefined;
-	
-	if (this.status === 200) {
-		onResponse(response);
-	}
-	else if (custom) {
-		custom(this.status, notice);
-	}
-	else {
-		notice(this.status, response && response.error);
-	}
 }
 
 function onSignIn(e) {
@@ -636,6 +580,10 @@ function onSignIn(e) {
 			form.elements["username"].select();
 			
 			break;
+		case 503:
+			alert("아이탐 에이전트 서비스가 준비중입니다.");
+
+			break;
 		default:
 			alert("에이전트가 응답하지 않습니다. 상태: "+ this.status);
 			
@@ -644,21 +592,15 @@ function onSignIn(e) {
 	}, 10000);
 }
 
-function echo(f) {
-	postRequest({
-		command: "signin"
-	}, function () {
-		f(this.status, this.responseText && JSON.parse(this.responseText) || undefined);
-	}, 10000);
-}
-
 function trySignIn(username) {
 	document.body.classList.add("loading");
 	
-	echo(function (status, data) {
-		switch(status) {
-		case 200:
-			initialize(data);
+	postRequest({
+		command: "signin"
+	}, function () {
+		switch(this.status) {
+		case 200:console.log(this.responseText);
+			initialize(JSON.parse(this.responseText));
 			
 			break;
 		
@@ -666,17 +608,21 @@ function trySignIn(username) {
 			document.body.classList.add("set");
 			
 			break;
+		case 503:
+			alert("아이탐 에이전트 서비스가 준비중입니다.");
+
+			break;
 		default:
-			alert("에이전트가 응답하지 않습니다. 상태: "+ status);
+			alert("에이전트가 응답하지 않습니다. 상태: "+ this.status);
 			
-			cancel();	
+			cancel();
 		}
 		
 		document.body.classList.add("ready");
 		document.body.classList.remove("loading");
 		
 		username.select();
-	});
+	}, 10000);
 }
 
 function onSignOut() {
@@ -714,6 +660,7 @@ function sendEvent(event) {
 						<li><h1><a href="/dashboard.html" target="main">대시보드</a></h1>
 						<li><h1><a href="list.html" target="main">장비목록</a></h1>
 						<li><h1><a href="event.html" target="main">이벤트</a></h1>
+						<li><h1><a href="test.html" target="main">테스트</a></h1>
 						<li><h1><a href="scrap.html" target="main">스크랩</a></h1>
 					</ul>
 					<ul class="setting">
@@ -830,7 +777,44 @@ var agent,
 	signin.addEventListener("reset", onCancel);
 	signin.addEventListener("submit", onSignIn);
 	
-	connect.addEventListener("submit", onConnect);
+	connect.onsubmit = function (e) {
+		e.preventDefault();
+		
+		const ip = this.elements["ip"],
+			tcp = this.elements["tcp"];
+		
+		if (isNaN(tcp.value) || tcp.value < 0 || tcp.value > 65535) {
+			return tcp.select();
+		}
+		
+		const agent = ip.value +":" +tcp.value;
+		
+		window.agent = "http://"+ agent;
+		
+		document.body.classList.add("loading");
+		
+		postRequest({
+			command: "signin"
+		}, function () {
+			switch(this.status) {
+			case 200:
+			case 400:
+				window.location.href = "?"+ agent;
+				
+				break;
+			case 503:
+				alert("아이탐 에이전트 서비스가 준비중입니다.");
+
+				break;
+			default:
+				alert("에이전트가 응답하지 않습니다. 상태: "+ this.status);
+			
+				ip.select();
+			}
+			
+			document.body.classList.remove("loading");
+		}, 10000);
+	};
 	
 	if (agent) {
 		const args = agent.split(":");

@@ -239,9 +239,21 @@ function trimLabel(labels) {
 var monitor = "none",
 	custom = {};
 
-document.getElementById("close").onclick = function () {
+
+function close() {
 	top.closeDialog(true);
-};
+}
+
+document.addEventListener("keydown", function (e) {
+	switch (e.keyCode) {
+	case 27:
+		close();
+		
+		break;
+	}
+});
+
+document.getElementById("close").onclick = close;
 
 (function (form) {
 	if (top.account.level === 0) {
@@ -290,7 +302,7 @@ document.getElementById("close").onclick = function () {
 
 				break;
 			case 409:
-				alert("사용중인 IP 주소 입니다.");
+				alert("error!\n\n이미 사용중인 IP 주소 입니다.");
 
 				form.elements["ip"].select();
 
@@ -308,7 +320,7 @@ document.getElementById("close").onclick = function () {
 	form.onreset = function (e) {
 		e.preventDefault();
 
-		if (!confirm("Warning!\n\n노드의 정보를 모두 삭제하고, 삭제된 정보는 되돌릴 수 없습니다.\n노드를 삭제하겠습니까?")) {
+		if (!confirm("Warning!\n\n노드를 삭제하겠습니까?")) {
 			return;
 		}
 
@@ -352,7 +364,7 @@ document.getElementById("close").onclick = function () {
 			command: "order",
 			order: "monitor",
 			id: window.id,
-			protocol: this.value === "none"? null: this.value
+			protocol: this.value === "none"? undefined: this.value
 		}, function () {
 			switch (this.status) {
 				case 200:
@@ -417,33 +429,33 @@ document.getElementById("close").onclick = function () {
 			}, function () {
 				switch (this.status) {
 				case 200:
-					window.node = JSON.parse(this.responseText);
+					window.base = JSON.parse(this.responseText);
 
-					if (!node.base.type) {
-						node.base.type = "unknown";
+					if (!base.type) {
+						base.type = "unknown";
 					}
 					
-					form.elements["name"].value = window.node.base.name || "";
-					form.elements["ip"].value = window.node.base.ip || "";
-					form.elements["type"].value = window.node.base.type;
+					form.elements["name"].value = base.name || "";
+					form.elements["ip"].value = base.ip || "";
+					form.elements["type"].value = base.type;
 					// 저장할때는 trim으로 다 붙여서 넣지만 보여줄때는 보기 좋게 한칸씩 띈다.
-					form.elements["label"].value = window.node.base.label && (window.node.base.label.split(",")).join(", ") || "";
+					form.elements["label"].value = base.label && (base.label.split(",")).join(", ") || "";
 			
-					if ("custom" in window.node.base) {
+					if ("custom" in base) {
 						for (let custom in window.custom) {
-							window.custom[custom].value = window.node.base.custom[custom] || "";
+							window.custom[custom].value = base.custom[custom] || "";
 						}
 					}
 
-					if ("monitor" in window.node) {
-						form.elements["monitor"].value = window.node.monitor.protocol;
+					if (base.protocol) {
+						form.elements["monitor"].value = base.protocol;
 					}
 					else {
 						form.elements["monitor"].value = "none";
 					}
 						
 					// ip는 한번 지정하면 변경할 수 없다.
-					if (window.node.base.ip) {
+					if (base.ip) {
 						form.elements["ip"].disabled = true;
 					}
 

@@ -489,7 +489,8 @@ setEvent(section);
 section = section.cloneNode(true);
 
 top.postRequest({
-	command: "node"
+	command: "pull",
+	database: "node"
 }, function () {
 	switch (this.status) {
 	case 200:
@@ -511,8 +512,8 @@ top.postRequest({
 			df = document.createDocumentFragment(),
 			idList = Object.keys(window.node).sort(function (a, b) {
 				const
-					ipA = window.node[a].base.ip,
-					ipB = window.node[b].base.ip;
+					ipA = window.node[a].ip,
+					ipB = window.node[b].ip;
 				
 				if (ipA && ipB) {
 					return IP2Int(ipA) - IP2Int(ipB);
@@ -525,15 +526,15 @@ top.postRequest({
 				}
 			});
 
-		for (let i=0, _i=idList.length, id, node, option; i<_i; i++) {
+		for (let i=0, _i=idList.length, id, base, option; i<_i; i++) {
 			id = idList[i];
 		
-			node = window.node[id];
+			base = window.node[id];
 
-			if ("monitor" in node && node.monitor.protocol === "snmp") {
+			if (base.protocol === "snmp") {
 				option = document.createElement("option");
 
-				option.text = node.base.ip;
+				option.text = base.ip;
 				option.value = id;
 
 				df.appendChild(option);

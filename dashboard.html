@@ -364,7 +364,7 @@ function clearElement(e) {
 function update() {
 	var 
 		df = document.createDocumentFragment(),
-		node,
+		base,
 		shutdown = 0,
 		critical = 0,
 		normal = 0,
@@ -374,14 +374,14 @@ function update() {
 	clearElement(window.summaryList);
 	
 	for (let id in window.node) {
-		node = window.node[id];
+		base = window.node[id];
 	
-		if (!node.monitor) {
+		if (!base.protocol) {
 			continue;
 		}
 		
-		if (node.base.label) {
-			labels = node.base.label.split(",");
+		if (base.label) {
+			labels = base.label.split(",");
 			
 			for (var i=0, length=labels.length; i<length; i++) {
 				if (!labelData[labels[i]]) {
@@ -392,10 +392,10 @@ function update() {
 					}
 				}
 				
-				if (!node.monitor.status) {
+				if ("status" in base && !base.status) {
 					labelData[labels[i]].shutdown++;
 				}
-				else if ("critical" in node.monitor && !node.monitor.critical) {
+				else if ("critical" in base && !base.critical) {
 					labelData[labels[i]].critical++;
 				}
 				else {
@@ -404,10 +404,10 @@ function update() {
 			}
 		}
 		
-		if (!node.monitor.status) {
+		if ("status" in base && !base.status) {
 			shutdown++;
 		}
-		else if ("critical" in node.monitor && !node.monitor.critical) {
+		else if ("critical" in base && !base.critical) {
 			critical++;
 		}
 		else {
@@ -702,7 +702,8 @@ document.getElementById("edit").onclick = function () {
 }) (1000);
 
 top.postRequest({
-	command: "node"
+	command: "pull",
+	database: "node"
 }, function () {
 	switch (this.status) {
 	case 200:

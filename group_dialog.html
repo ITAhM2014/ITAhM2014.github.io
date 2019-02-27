@@ -228,14 +228,14 @@ document.getElementById("close").onclick = function () {
 			}, function () {
 				switch (this.status) {
 				case 200:
-					window.node = JSON.parse(this.responseText);
+					window.base = JSON.parse(this.responseText);
 
-					if (node.base.type !== "group") {
+					if (base.type !== "group") {
 						throw "group이 아닌 노드를 dialog에 표시할 수 없습니다.";
 					}
 					
-					form.elements.name.value = window.node.base.name;
-					 
+					form.elements.name.value = base.name;
+					
 					document.body.classList.add("edit");
 
 					break;

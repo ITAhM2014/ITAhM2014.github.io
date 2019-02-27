@@ -467,6 +467,31 @@ ul.storage.item.critical >li.status::after {
 	pointer-events: none;
 }
 
+section.information table {
+	border-collapse: collapse;
+	width: 280px;
+	table-layout: fixed;
+}
+
+section.information th {
+	border: 1px solid transparent;
+	border-right-color: #fff;
+	text-align: right;
+	width: 80px;
+}
+
+section.information td { 
+	text-align: left;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+
+section.information th,
+section.information td {
+	padding: 3px 1em;
+}
+
 #setting {
 	float: right;
 	cursor: pointer;
@@ -475,20 +500,6 @@ ul.storage.item.critical >li.status::after {
 
 #setting:hover {
 	border-color: #fff;
-}
-
-section.information ul {
-	display: flex;
-}
-
-section.information li {
-	padding: 5px;
-}
-
-section.information li:first-child {
-	width: 80px;
-	border-right: 1px solid #ddd;
-	text-align: right;
 }
 
 #status::before {
@@ -747,16 +758,16 @@ function createIFaceItem(admin, oper, index, name, descr, alias, type, bandwidth
 }
 
 function initialize() {
-	document.title = window.node.base.ip + (window.node.snmp.sysName? " ["+ window.node.snmp.sysName +"]": "");
+	document.title = window.base.ip + (window.base.snmp.sysName? " ["+ window.base.snmp.sysName +"]": "");
 	
-	document.getElementById("sys_name").textContent = window.node.snmp.sysName;
-	document.getElementById("sys_name").title = window.node.snmp.sysDescr;
-	document.getElementById("sys_enterprise").textContent = ITAhM.util.enterpriseFromOID(window.node.snmp.sysObjectID);
-	document.getElementById("sys_enterprise").title = window.node.snmp.sysObjectID;
-	document.getElementById("ip").textContent = window.node.base.ip;
-	document.getElementById("last_response").textContent = toDateString(window.node.snmp.lastResponse);
+	document.getElementById("sys_name").textContent = window.base.snmp.sysName;
+	document.getElementById("sys_name").title = window.base.snmp.sysDescr;
+	document.getElementById("sys_enterprise").textContent = ITAhM.util.enterpriseFromOID(window.base.snmp.sysObjectID);
+	document.getElementById("sys_enterprise").title = window.base.snmp.sysObjectID;
+	document.getElementById("ip").textContent = window.base.ip;
+	document.getElementById("last_response").textContent = toDateString(window.base.snmp.lastResponse);
 	
-	if (!window.node.monitor.status) {
+	if (!("status" in window.base) || !window.base.status) {
 		document.body.classList.add("shutdown");
 	}
 	else {
@@ -805,7 +816,7 @@ function initialize() {
 			section.onclick = onSelectResource.bind(window, "processor", "0");
 		}
 
-	})(window.node.snmp.hrProcessorEntry, document.querySelector("section.processor"));
+	})(window.base.snmp.hrProcessorEntry, document.querySelector("section.processor"));
 	
 	(function (entry) {
 		var storage;
@@ -826,19 +837,19 @@ function initialize() {
 				break;
 			}
 		}
-	}) (window.node.snmp.hrStorageEntry);
+	}) (window.base.snmp.hrStorageEntry);
 	
 	(function (entry) {
 		for (let index in entry) {
 			initIFace(entry[index], index);
 		}
-	}) (window.node.snmp.ifEntry);
+	}) (window.base.snmp.ifEntry);
 	
-	if ("hrSWRunName" in window.node.snmp && Object.keys(window.node.snmp.hrSWRunName).length > 0) {
+	if ("hrSWRunName" in window.base.snmp && Object.keys(window.base.snmp.hrSWRunName).length > 0) {
 		document.body.classList.add("process");
 	
 		document.getElementById("process").dataset.value
-			= Object.keys(window.node.snmp.hrSWRunName).length;
+			= Object.keys(window.base.snmp.hrSWRunName).length;
 	}
 	
 	document.body.classList.remove("loading");
@@ -931,7 +942,7 @@ function initIFace(indexData, index) {
 
 function onSelectResource(resource, index) {
 	window.frame.onload = function () {
-		this.contentWindow.initialize(window.name, window.node.snmp, resource, index || "0");
+		this.contentWindow.initialize(window.name, window.base.snmp, resource, index || "0");
 	}
 	
 	window.frame.src = "chart.html";
@@ -948,26 +959,28 @@ function onSelectResource(resource, index) {
 		
 			<section class="information">
 				<img id="setting" src="/img/set.png" width="30" height="30" title="설정">
-				<ul>
-					<li>장비명
-					<li id="sys_name">
-				</ul>
-				<ul>
-					<li>공급자
-					<li id="sys_enterprise">
-				</ul>
-				<ul>
-					<li>IP 주소
-					<li id="ip">
-				</ul>
-				<ul>
-					<li>마지막 응답
-					<li id="last_response">
-				</ul>
-				<ul>
-					<li>상태
-					<li id="status">
-				</ul>
+				<table>
+					<tr>
+						<th>장비명</th>
+						<td id="sys_name"></td>
+					</tr>
+					<tr>
+						<th>공급자</th>
+						<td id="sys_enterprise"></td>
+					</tr>
+					<tr>
+						<th>IP 주소</th>
+						<td id="ip"></td>
+					</tr>
+					<tr>
+						<th>마지막 응답</th>
+						<td id="last_response"></td>
+					</tr>
+					<tr>
+						<th>상태</th>
+						<td id="status"></td>
+					</tr>
+				</table>
 			</section>
 			
 			<section class="process">
@@ -1147,7 +1160,7 @@ if (window.name) {
 	}, function (snmp) {
 		switch (this.status) {
 			case 200:
-				window.node = JSON.parse(this.responseText);
+				window.base = JSON.parse(this.responseText);
 
 				initialize();
 

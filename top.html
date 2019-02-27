@@ -243,14 +243,14 @@ function setTop(topData, section) {
 
 function createTopItem(id, value, rate, resource, index) {
 	var 
-		node = window.node[id],
+		base = window.node[id],
 		item = document.createElement("ul"),
 		bar;
 
 	item.className = "list_item";
 	
-	item.appendChild(document.createElement("li")).textContent = node.base.name || node.base.ip || id;
-	item.appendChild(document.createElement("li")).textContent = node.base.ip;
+	item.appendChild(document.createElement("li")).textContent = base.name || base.ip || id;
+	item.appendChild(document.createElement("li")).textContent = base.ip;
 	
 	bar = item.appendChild(document.createElement("li"));
 	bar.dataset.value = value;
@@ -336,7 +336,8 @@ if ("color" in top.setting) {
 }
 
 top.postRequest({
-	command: "node"
+	command: "pull",
+	database: "node"
 }, function () {
 	switch (this.status) {
 	case 200:

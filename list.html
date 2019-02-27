@@ -55,6 +55,12 @@ header {
 	position: relative;
 }
 
+button >img {
+	vertical-align: middle;
+	margin: 0.5em;
+	height: 1em; width: 1em;
+}
+
 #sort::after {
 	content: "▲";
 	cursor: pointer;
@@ -326,8 +332,8 @@ function initialize() {
 		df = document.createDocumentFragment(),
 		ipList = Object.keys(window.node).sort(function (a, b) {
 			const
-				ipA = window.node[a].base.ip,
-				ipB = window.node[b].base.ip;
+				ipA = window.node[a].ip,
+				ipB = window.node[b].ip;
 			
 			if (ipA && ipB) {
 				return IP2Int(ipA) - IP2Int(ipB);
@@ -343,16 +349,16 @@ function initialize() {
 			}
 		});
 
-	for (let i=0, _i=ipList.length, id, node; i<_i; i++) {
+	for (let i=0, _i=ipList.length, id, base; i<_i; i++) {
 		id = ipList[i];
 	
-		node = window.node[id];
-	
-		if (node.base.type === "group" || node.base.type === "application") {
+		base = window.node[id];
+	/*
+		if (base.type === "group" || base.type === "application") {
 			continue;
 		}
-		
-		df.appendChild(createRow(id, node.base, node.monitor));
+	*/	
+		df.appendChild(createRow(id, base));
 	}
 	
 	list.appendChild(df);
@@ -364,7 +370,7 @@ function initialize() {
 	initLabel();
 }
 
-function createRow(id, base, monitor) {
+function createRow(id, base) {
 	var
 		row = document.createElement("ul"),
 		type, labels, label;
@@ -383,7 +389,7 @@ function createRow(id, base, monitor) {
 	
 	row.appendChild(type); // N.3
 	
-	row.appendChild(document.createElement("li")).textContent = monitor && monitor.protocol || ""; // N.4
+	row.appendChild(document.createElement("li")).textContent = base.protocol || ""; // N.4
 	
 	if (window.customs && base.custom) {
 		window.customs.forEach(function (custom) {
@@ -412,11 +418,11 @@ function createRow(id, base, monitor) {
 		window.labelMap[""].push(row);
 	}
 	
-	if (monitor) {
-		if (!monitor.status) {
+	if (base.protocol) {
+		if ("status" in base && !base.status) {
 			row.dataset.shutdown = true;
 		}
-		else if ("critical" in monitor && !monitor.critical) {
+		else if ("critical" in base && !base.critical) {
 			row.dataset.critical = true;
 		}
 		else {
@@ -427,12 +433,14 @@ function createRow(id, base, monitor) {
 		row.dataset.disabled = true;
 	}
 	
-	row.onclick = onSelectDevice.bind(row, id, monitor);
+	row.onclick = function () {
+		selectDevice(this, id, base);
+	};
 	
 	return row;
 }
 
-function selectDevice(row, id, monitor) {
+function selectDevice(row, id, base) {
 	if (window.selected) {
 		window.selected.classList.remove("selected");
 	}
@@ -443,7 +451,7 @@ function selectDevice(row, id, monitor) {
 		
 		window.action.className = "selected";
 		
-		if (monitor && monitor.protocol === "snmp") {
+		if ("protocol" in base && base.protocol === "snmp") {
 			window.action.classList.add("snmp");
 		}
 		
@@ -455,8 +463,8 @@ function selectDevice(row, id, monitor) {
 	}
 }
 
-function onSelectDevice(id, monitor) {
-	selectDevice(this, id, monitor);	
+function onSelectDevice(id, base) {
+	selectDevice(this, id, base);	
 }
 
 function initLabel() {
@@ -490,11 +498,11 @@ function onSelectStatus (src, className) {
 }
 
 function onSave() {
-	var devices = {},
+	var baseMap = {},
 		etc = [],
 		row = [];
 	
-	row[0] = "label,name,type,ip";
+	row[0] = "Label,Name,Type,Address";
 	
 	if (window.customs) {
 		window.customs.forEach(function (custom) {
@@ -502,44 +510,44 @@ function onSave() {
 		});
 	}
 	
-	let node, label;
+	let base, label;
 
 	for (let id in window.node) {
-		node = window.node[id];
-
-		if(node.base.type === "group" || node.base.type === "application") {
+		base = window.node[id];
+/*
+		if(base.type === "group" || base.type === "application") {
 			continue;
 		}
-
-		if (node.base.label) {
-			label = node.base.label.split(",")[0];
+*/
+		if (base.label) {
+			label = base.label.split(",")[0];
 			
-			if (!(label in devices)) {
-				devices[label] = [];
+			if (!(label in baseMap)) {
+				baseMap[label] = [];
 			}
 
-			devices[label].push(node);
+			baseMap[label].push(base);
 		}
 		else {
-			etc.push(node);
+			etc.push(base);
 		}
 	}
 	
-	const keys = Object.keys(devices).sort(function (a, b) {
+	const keys = Object.keys(baseMap).sort(function (a, b) {
 		return a.localeCompare(b);
 	});
 
 	keys.push("");
 
-	devices[""] = etc;
+	baseMap[""] = etc;
 
 	keys.forEach(function (label) {
-		devices[label].forEach(function (node) {
-			const columns = [label, node.base.name, node.base.type, node.base.ip];
+		baseMap[label].forEach(function (base) {
+			const columns = [label, base.name, base.type, base.ip];
 
 			if (window.customs) {
 				window.customs.forEach(function (custom) {
-					columns.push("custom" in node.base? node.base.custom[custom] || "": "");
+					columns.push("custom" in base? base.custom[custom] || "": "");
 				});
 			}
 
@@ -598,8 +606,8 @@ function forEach(a, f) {
 				</nav>
 				<form>
 					<input type="text" name="keyword" placeholder="IP, Type, Name">
-					<input type="submit" value="찾기">
-					<input type="reset" value="초기화">
+					<button class="submit"><img src="/img/btn/search.png">찾기</button>
+					<button class="reset"><img src="/img/btn/cancel.png">초기화</button>
 				</form>
 			</aside>
 			
@@ -746,7 +754,7 @@ document.getElementById("sort").onclick = function (e) {
 
 (function (form) {
 	// 키워드로 필터링
-	form.onsubmit = function (e) {
+	form.querySelector("button.submit").onclick = form.onsubmit = function (e) {
 		e.preventDefault();
 		
 		document.body.classList.add("loading", "keyword");
@@ -787,7 +795,7 @@ document.getElementById("sort").onclick = function (e) {
 		document.getElementById("count").textContent = count();
 	};
 
-	form.onreset =  function (e) {
+	form.querySelector("button.reset").onclick =  function (e) {
 		e.preventDefault();
 	
 		form.elements["keyword"].value = "";
@@ -820,7 +828,8 @@ document.getElementById("sort").onclick = function (e) {
 }) (document.querySelector("form"));
 
 top.postRequest({
-	command: "node"
+	command: "pull",
+	database: "node"
 }, function () {
 	switch (this.status) {
 	case 200:

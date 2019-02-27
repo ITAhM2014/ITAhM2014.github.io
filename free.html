@@ -33,13 +33,13 @@ article.signin {
 header {
 	color: #fff;
 	display: flex;
-	position: absolute; top: 0; right: 0; left: 0; height: 80px;
+	position: absolute; top: 0; right: 0; left: 0; height: 50px;
 	transition: height .5s;
 	background-color: #4d525a; 
 }
 
 div.frame {
-	position: absolute; top: 80px; right: 0; bottom: 0; left: 0;
+	position: absolute; top: 50px; right: 0; bottom: 0; left: 0;
 }
 
 header a {
@@ -56,54 +56,27 @@ header a:hover {
 	text-decoration: none;
 }
 
-nav {
-	width: 1024px; height: 100%;
-	margin: auto;
-	position: relative;
-	display: flex;
-	overflow: hidden;
-	align-items: center;
-	justify-content: space-between;
-}
-
-nav >i {
-	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 2em;
-	color: rgba(200, 200, 200, 0.5);
-}
-
-nav >i:not(:empty)::before {
-	content: "라이선스가";
-}
-
-nav >i:not(:empty)::after {
-	content: " 에 만료됩니다.";
-}
-
-nav >ul {
+header ul {
 	list-style: none;
-	padding: 0;
+	padding: 0; margin: 0;
 	display: flex;
 	position: relative;
 }
 
-nav >ul:first-of-type a {
+header a {
 	text-shadow: 1px 1px 1px #000;
 	padding: 0.2em 1em;
 	border-radius: 1em;
 	position: relative;
 }
 
-nav >ul:first-of-type a:hover {
+header a:hover {
 	color: #4d525a;
 	text-shadow: none;
 	background-color: #fff;
 }
 
-nav ul:first-of-type a:hover::after {
+header a:hover::after {
 	content: "";
 	position: absolute;
 	top: 100%; left: 50%;
@@ -112,21 +85,9 @@ nav ul:first-of-type a:hover::after {
 	border-top-color: #fff;
 }
 
-nav ul:last-of-type {
-	color: #999;
-}
-
-nav ul:last-of-type a:hover {
-	color: #fff;
-}
-
-nav h1 {
+header h1 {
 	color: #fff;
 	font-size: 16px;
-}
-
-nav ul:last-of-type li {
-	margin: 5px;
 }
 
 #frame {
@@ -337,41 +298,34 @@ function closeDialog() {
 	document.body.classList.remove("dialog");
 }
 
+// public
+function getMessage(status) {
+	switch(status) {
+	case 401:	
+		return "세션이 만료되었습니다.";
+	
+		break;
+	case 409:		
+		return "다른 관리자 계정이 데이터베이스를 수정하였습니다.";
+		
+	case 400:
+		return "잘못된 요청입니다.";
+		
+	case 500:
+		return "서버가 올바르게 동작하지 않습니다.";
+	
+	case 503:
+		return "서비스 준비중입니다.";
+
+	default:
+		return "에이전트가 응답하지 않습니다.";
+	}
+}
+
 function clearLog() {
 	window.logCount = 0;
 	
 	document.body.classList.remove("log");
-}
-
-function notice(status, message) {
-	message = "\n"+ (message || "");
-
-	switch(status) {
-	case 401:	
-		alert("세션이 만료되었습니다.");
-	
-		window.location.reload();
-		
-		break;
-	case 409:		
-		alert("다른 관리자 계정이 데이터베이스를 수정하였습니다.\n"
-			+"콘솔을 다시 시작합니다.\n"+ message);
-		
-		window.location.reload();
-		
-		break;
-	case 400:
-		alert("잘못된 요청입니다"+ message);
-		
-		break;
-	case 503:
-		alert("서버가 올바르게 동작하지 않습니다."+ message);
-		
-		break;
-		
-		default:
-			alert("에이전트가 응답하지 않습니다.\n"+ "status: "+ status + message);
-	}
 }
 
 function toDateString(m) {
@@ -502,9 +456,6 @@ function onClose(e) {
 	for (let ip in window.statusWindow) {
 		window.statusWindow[ip].close();
 	}
-	
-	// listen 중인 세션이 종료되면서 onEvent notice 가 발생함
-	window.notice = new Function();
 }
 		</script>
 		<script>
@@ -524,19 +475,11 @@ function postRequest(request, onResponse, timeout) {
 	xhr.send(JSON.stringify(request));
 }
 
-// private
-function parseResponse(onResponse, custom) {
-	const response = this.responseText && JSON.parse(this.responseText) || undefined;
-	
-	if (this.status === 200) {
-		onResponse(response);
-	}
-	else if (custom) {
-		custom(this.status, notice);
-	}
-	else {
-		notice(this.status, response && response.error);
-	}
+// public
+function sendEvent(event) {
+	try {
+		window.frame.contentWindow.onEvent(event);
+	} catch(e) {}
 }
 
 		</script>
@@ -548,15 +491,14 @@ function parseResponse(onResponse, custom) {
 				<iframe id="frame" name="main"></iframe>
 			</div>
 			<header>
-				<nav>
-					<i id="expire"></i>
-					<ul>
-						<li><h1><a href="/dashboard.html" target="main">대시보드</a></h1>
-						<li><h1><a href="list.html" target="main">장비목록</a></h1>
-						<li><h1><a href="event.html" target="main">이벤트</a></h1>
-					</ul>
-					<ul></ul>
-				</nav>
+				<ul>
+					<li><h1><a href="/dashboard.html" target="main">대시보드</a></h1>
+					<li><h1><a href="list.html" target="main">장비목록</a></h1>
+					<li><h1><a href="event.html" target="main">이벤트</a></h1>
+					<li><h1><a href="information.html" target="main">정보</a></h1>
+					<li><h1><a href="test.html" target="main">테스트</a></h1>
+					<li><h1><a href="setting.html" target="main">설정</a></h1>
+				</ul>
 				<ul id="status">
 					<li class="normal"></li>
 					<li></li>

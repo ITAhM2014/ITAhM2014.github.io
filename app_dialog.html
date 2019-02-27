@@ -254,13 +254,12 @@ function isIPv4(s) {
 			}, function () {
 				switch (this.status) {
 				case 200:
-					window.node = JSON.parse(this.responseText);
-
 					const
+						base = JSON.parse(this.responseText),
 						ip = form.elements["ip"],
 						tcp = form.elements["tcp"],
 						name = form.elements["name"],
-						address = node.base.ip.split(":");
+						address = base.ip.split(":");
 					
 					// ip는 한번 지정하면 변경할 수 없다.
 					ip.value = address[0];
@@ -269,7 +268,7 @@ function isIPv4(s) {
 					tcp.value = address[1];
 					tcp.disabled = true;
 
-					name.value = node.base.name || "";
+					name.value = base.name || "";
 					name.select();
 
 					document.body.classList.add("edit");

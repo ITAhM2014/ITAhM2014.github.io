@@ -188,13 +188,14 @@ function setPort(id, peerID, e1, e2, box, check, select) {
 	}, function () {
 		switch (this.status) {
 		case 200:
-			const node = JSON.parse(this.responseText);
+			const base = JSON.parse(this.responseText),
+				snmp = base.snmp;
 		
-			e1.textContent = node.base.ip;
-			e2.textContent = node.base.name;
+			e1.textContent = base.ip;
+			e2.textContent = base.name;
 
-			if ("snmp" in node && "ifEntry" in node.snmp) {
-				setSelectBox(select, node.snmp.ifEntry);
+			if (snmp && "ifEntry" in snmp) {
+				setSelectBox(select, snmp.ifEntry);
 
 				if (id in top.position) {
 					const pos = top.position[id];

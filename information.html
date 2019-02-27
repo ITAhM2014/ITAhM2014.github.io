@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Cache-Control" content="No-Cache">
+		
+		<title>Information @ ITAhM</title>
+		
+		<style>
+@import "css/style.css";
+
+body {
+	width: 1024px;
+	padding: 10px;
+	margin: 0 auto;
+}
+
+h2 {
+	color: #fff;
+	font-size: 20px;
+	text-shadow: 1px 1px 1px #000;
+}
+
+ul {
+	list-style: none;
+}
+
+.item {
+	display: flex;
+	align-items: center;
+}
+
+.item span {
+	margin-left: 10px;
+	padding: .5em 2em;
+}
+
+.item span:hover {
+	cursor: pointer;
+	background-color: #ccc;
+	transition: background-color 0.5s linear;
+}
+
+.layout {
+	display: none;
+}
+
+.list {
+	max-height: 100px;
+	overflow: auto;
+	padding: 1em;
+	border: 1px solid #ddd;
+	background-color: #fdfdfd;
+}
+
+.box {
+	padding: 1em;
+	background-color: #fdfdfd;
+	box-shadow: 0 8px 10px -4px #000;
+}
+
+.container {
+	position: relative;
+}
+
+.top {
+	display: inline-block;
+	vertical-align: top;
+}
+
+input[type=checkbox] {
+	vertical-align: middle;
+}
+
+form {
+	position: relative;
+}
+
+form input,
+form select {
+	padding: 3px;
+}
+
+input[name="clean"] {
+	width: 50px;
+	text-align: right;
+}
+
+#email [type=submit] {
+	float: right;
+}
+
+ul.smtp {
+	display: inline-block;
+	width: 360px;
+}
+
+ul.smtp >li {
+	display: flex;
+}
+
+ul.smtp >li >span:first-child {
+	flex: 1;
+}
+
+ul.smtp >li >span:last-child {
+	flex: 2;
+}
+
+.color {
+	display: inline-block;
+	width: 20px; height: 20px;
+}
+
+.color.default.red {
+	background-color: #f00;
+}
+
+.color.default.orange {
+	background-color: #ffa500;
+}
+
+.color.default.green {
+	background-color: #0f0;
+}
+
+.color.pastel.red {
+	background-color: #8e24aa;
+}
+
+.color.pastel.orange {
+	background-color: #f6bf26;
+}
+
+.color.pastel.green {
+	background-color: #00897b;
+}
+
+#path:not(:empty)::before {
+	content: "(";
+}
+
+#path:not(:empty)::after {
+	content: ")";
+}
+
+.bg_loading {
+	position: absolute;
+}
+
+body:not(.loading) .bg_loading {
+	display: initial;
+}
+
+.container:not(.loading) >.bg_loading {
+	display: none;
+}
+
+.logo {
+	margin: 0 1em;
+	vertical-align: bottom;
+}
+
+.button {
+	border:none;
+	display:inline-block;
+	width: 2em; height: 2em;
+	vertical-align:middle;
+	overflow:hidden;
+	color:#000;
+	background-color:#0ff;
+	text-align:center;
+	cursor:pointer;
+	white-space:nowrap;
+	user-select:none;
+	transition:opacity 0s;
+	font-weight: bold;
+	outline: none;
+	border-radius:50%;
+	vertical-align: top;
+}
+
+.button:active{
+	opacity:0.5
+}
+
+.button:hover{
+  box-shadow:0 8px 16px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+}
+
+.button:disabled,{
+  cursor:not-allowed;
+  opacity:0.3
+}
+
+.button:disabled:hover {
+  box-shadow:none
+}
+
+		</style>
+		<script>
+
+function createItem(src, key, data, func) {
+	const li = document.createElement("li"),
+		img = document.createElement("img"),
+		span = document.createElement("span");
+
+	img.width = 20;
+	img.height = 20;
+	img.src = src;
+
+	span.textContent = key;
+	span.onclick = func.bind(undefined, key, data);
+	
+	li.appendChild(img);
+	li.appendChild(span);
+	li.className = "item";
+
+	return li;
+}
+
+		</script>
+	</head>
+	
+	<body>
+		<h2>
+			<img width="24px" height="24px" src="/img/information.png" class="logo">
+			정보
+		</h2>
+		<div id="information" class="box container loading">
+			<p>
+				자바 버전 :
+				<span id="java"></span>
+			</p>
+			<p>
+				에이전트 버전 :
+				<span id="version"></span>
+			</p>
+			<p>
+				데이터 저장소 :
+				<span id="path"></span>
+			</p>
+			<p>
+				저장공간 여유 :
+				<span id="space"></span>
+			</p>
+			<p>
+				전일 디스크 사용량 :
+				<span id="usage"></span>
+			</p>
+			<p>
+				데이터베이스 로드 :
+				<span id="load">N/A</span>
+			</p>
+			<p>
+				관리 리소스 갯수 :
+				<span id="resource"></span>
+			</p>
+			<p>
+				라이선스 수량 : 무제한
+			</p>
+			<p>
+				라이선스 만료일 : 무기한
+			</p>
+			<div class="bg_loading"></div>
+		</div>
+		<h2>
+			<img width="24px" height="24px" src="/img/run.png" class="logo">
+			동작
+		</h2>
+		<div id="common" class="box container loading">
+			<p>
+				ICMP Health:
+				<ul>
+					<li>Timeout(초) :
+						<span id="timeout"></span>
+					</li>
+					<li>재시도 :
+						<span id="retry"></span>
+					</li>
+				</ul>
+				</form>
+			</p>
+			<p>
+				SNMP 요청 주기(초) :
+				<span id="snmp_interval"></span>
+			</p>
+			<p>
+				<form id="clean">
+					데이터 보관 기간(일) : 무제한
+				</form>
+			</p>
+			<p>
+				데이터 저장 단위(분) :
+				<span id="save_interval"></span>
+			</p>
+			<p>
+				대시보드 Top N :
+				<span id="top"></span>
+			</p>
+			<div class="bg_loading"></div>
+		</div>
+		
+		<script src="/js/ITAhM.js"></script>
+		<script src="/js/util.js"></script>
+		<script>
+
+(function(container) {
+	top.postRequest({
+		command: "information"
+	}, function () {
+		switch (this.status) {
+			case 200:
+				const information = JSON.parse(this.responseText);
+
+				document.getElementById("java").textContent = information.java;
+				document.getElementById("version").textContent = information.version;
+				document.getElementById("resource").textContent = information.resource;
+				document.getElementById("usage").textContent = ITAhM.util.toBytesString(information.usage);
+				document.getElementById("space").textContent = ITAhM.util.toBytesString(information.space);
+				document.getElementById("path").textContent = information.path;
+
+				const
+					orders = [].sort.call(Object.keys(information.load), function (a, b) {
+						return parseInt(b) - parseInt(a);
+					}), load = document.getElementById("load"),
+					text = [], title = [];
+
+				for (let i=0; i<4; i++) {
+					text[text.length] = information.load[orders[i]];
+				}
+
+				load.textContent = text.join(", ") +"...";
+
+				for (let i=4; i<orders.length; i++) {
+					title[title.length] = information.load[orders[i]];
+				}
+				
+				load.title = title.join(", ");
+
+				container.classList.remove("loading");	
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+}) (document.getElementById("information"));
+
+(function(container) {
+	top.postRequest({
+		command: "pull",
+		database: "config"
+	}, function () {
+		switch (this.status) {
+			case 200:
+				const config = JSON.parse(this.responseText);
+				
+				document.getElementById("save_interval").textContent = "saveInterval" in config? config.saveInterval: 1;
+				document.getElementById("top").textContent = "top" in config? config.top: 5;
+				document.getElementById("snmp_interval").textContent = "snmpInterval" in config? (config.snmpInterval /1000): 10;
+
+				if ("health" in config) {
+					document.getElementById("timeout").textContent =  0x0f & config.health;
+					document.getElementById("retry").textContent = (0x0f & (config.health >> 4)) || "없음";
+				}
+
+				container.classList.remove("loading");
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+}) (document.getElementById("common"));
+
+		</script>
+	
+	</body>
+	
+</html>

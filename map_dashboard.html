@@ -147,14 +147,6 @@ function resize() {
 function moveMap(x, y) {
 	transform.getItem(2).setTranslate(x, y);
 }
-	
-function restoreMap() {
-	var matrix = transform.getItem(2).matrix;
-
-	moveAllDevice(matrix.e, matrix.f);
-
-	moveMap(0, 0);
-}
 
 function onDragStart(e) {
 	window.click = false;
@@ -182,7 +174,7 @@ function moveAllDevice(x, y) {
 		pos = top.position[id];
 		
 		if (pos.parent !== group) {
-			return;
+			continue;
 		}
 		
 		pos.x = Math.round((x + pos.x) /10) *10; 
@@ -234,7 +226,7 @@ function moveAllDevice(x, y) {
 	}
 }
 
-function addNode(id, node, pos) {
+function addNode(id, base, pos) {
 	var 
 		svgDevice = document.createElementNS(svgNS, "g"),
 		svgIcon = document.createElementNS(svgNS, "image"),
@@ -256,14 +248,14 @@ function addNode(id, node, pos) {
 	
 	svgDevice.onmousedown = setClick;
 
-	if (node.base.type === "group") {
+	if (base.type === "group") {
 		svgDevice.onclick = function() {
 			top.store.parent = id;
 	
 			window.location.reload();
 		};
 	}
-	else if (node.monitor && node.monitor.protocol === "snmp") {
+	else if (base.protocol === "snmp") {
 		svgDevice.onclick = function () { //bind 사용하면 event가 arguments로 따라가서 안됨
 			if (window.click) {
 				top.showStatus(id);
@@ -271,8 +263,8 @@ function addNode(id, node, pos) {
 		};
 	}
 	
-	svgName.textContent = node.base.name || node.base.ip || "";
-	svgAddr.textContent = node.base.ip || node.base.name || "";
+	svgName.textContent = base.name || base.ip || "";
+	svgAddr.textContent = base.ip || base.name || "";
 	
 	svgLabel.appendChild(svgName);
 	svgLabel.appendChild(svgAddr);
@@ -291,25 +283,25 @@ function addNode(id, node, pos) {
 	
 	window.svgData[id] = svgDevice;
 	
-	drawDevice(id, node, svgDevice, pos);
+	drawDevice(id, base, svgDevice, pos);
 	
 	addLine(id, pos);
 }
 
-function drawDevice(id, node, svgDevice, pos) {
+function drawDevice(id, base, svgDevice, pos) {
 	var 
 		svgIcon = svgDevice.querySelector("image"),
-		icon = getIcon(node.base.type || "unknown");
+		icon = getIcon(base.type || "unknown");
 	
 	removeClass(svgDevice, "shutdown", "critical");
 	
-	if (node.monitor) {
+	if (base.protocol) {
 		svgIcon.setAttributeNS(xlinkNS, "xlink:href", icon.src);
 		
-		if (!node.monitor.status) {
+		if ("status" in base && !base.status) {
 			addClass(svgDevice, "shutdown");
 		}
-		else if ("critical" in node.monitor && !node.monitor.critical) {
+		else if ("critical" in base && !base.critical) {
 			addClass(svgDevice, "critical");
 		}
 	}
@@ -478,7 +470,8 @@ function initialize() {
 	}
 
 	top.postRequest({
-		command: "node"
+		command: "pull",
+		database: "node"
 	}, function () {
 		switch (this.status) {
 		case 200:
@@ -612,10 +605,10 @@ function draw() {
 	var
 		shutdown = {},
 		critical = {},
-		node, pos;
+		base, pos;
 
 	for (let id in window.node) {
-		node = window.node[id];
+		base = window.node[id];
 
 		pos = top.position[id];
 
@@ -630,17 +623,17 @@ function draw() {
 		}
 		
 		if (pos.parent === group) {
-			addNode(id, node, pos);
+			addNode(id, base, pos);
 		}
 
 		// upper 그룹일수도 lower 그룹일수도 있음
 		// upper 그룹은 대상이 아님
 		// 모니터링 대상장비 이어야 함
-		else if (pos.parent && node.monitor) {
-			if (!node.monitor.status) {
+		else if (pos.parent && base.protocol) {
+			if ("status" in base && !base.status) {
 				shutdown[pos.parent] = true;
 			}
-			else if (!node.monitor.critical) {
+			else if ("critical" in base && !base.critical) {
 				critical[pos.parent] = true;
 			}
 		}

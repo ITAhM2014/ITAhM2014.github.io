@@ -201,9 +201,20 @@ function getByteLength(s) {
 		</form>
 		<script>
 
-document.getElementById("close").onclick = function () {
+function close() {
 	top.closeDialog(true);
-};
+}
+
+document.addEventListener("keydown", function (e) {
+	switch (e.keyCode) {
+	case 27:
+		close();
+		
+		break;
+	}
+});
+
+document.getElementById("close").onclick = close;
 
 if (top.account.level === 0) {
 	document.querySelector("input[type=submit]").disabled = false;

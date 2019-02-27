@@ -279,7 +279,8 @@ function createItem(src, key, data, func) {
 						</li>
 						<li>Retry :
 							<select name="retry">
-								<option value="1" selected>1
+								<option value="0" selected>0
+								<option value="1">1
 								<option value="2">2
 								<option value="3">3
 							</select>
@@ -434,7 +435,7 @@ function createItem(src, key, data, func) {
 			<h2>
 				<img width="24px" height="24px" src="/img/profile.png" class="logo">
 				SNMP 프로파일
-				<input class="button" type="submit" value="+" title="수신자 추가" class="root">
+				<input class="button" type="submit" value="+" title="프로파일 추가" class="root">
 			</h2>
 			<div class="box">
 				<ul id="profile_list" class="list"></ul>
@@ -1052,22 +1053,31 @@ backup.onsubmit = function (e) {
 	top.postRequest({
 		command: "order",
 		order: "backup"
-	}, function (backup) {
-		document.body.classList.remove("loading");
-		
-		ITAhM.util.download(new Blob([JSON.stringify(backup)],
-			{ type: "text/json;charset=utf-8;"}), (function (d){
+	}, function () {
+		switch (this.status) {
+		case 200:
+		ITAhM.util.download(new Blob([this.responseText], {
+			type: "text/json;charset=utf-8;"}), (function (d){
 				const a = ["backup_", d.getFullYear()];
 				let n = d.getMonth() +1;
-			
-			a[a.length] = n > 9? n: ("0"+ n);
-			
-			n = d.getDate();
-			
-			a[a.length] = n > 9? n: ("0"+ n);
-			
-			return a.join("");
-		})(new Date()));
+				
+				a[a.length] = n > 9? n: ("0"+ n);
+				
+				n = d.getDate();
+				
+				a[a.length] = n > 9? n: ("0"+ n);
+				
+				return a.join("");
+			})(new Date()));
+
+			break;
+		default:
+			alert(top.getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+
+		document.body.classList.remove("loading");
 	});
 };
 
@@ -1081,13 +1091,22 @@ backup.elements["restore"].onchange = function (e) {
 		top.postRequest({
 			command: "order",
 			order: "restore",
-			backup: JSON.parse(this.result)
+			database: JSON.parse(this.result)
 		}, function () {
-			document.body.classList.remove("loading");
-			
-			alert("복구가 완료되었습니다.");
-			
-			top.location.reload();
+			switch (this.status) {
+			case 200:
+				alert("복구가 완료되었습니다.");
+
+				top.location.reload();
+				
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+
+			document.body.classList.remove("loading");	
 		});
 	};
 	
