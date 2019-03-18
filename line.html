@@ -217,6 +217,16 @@ footer {
 	margin: 0 30px;
 }
 
+#action >img {
+	width: 1.5em; height: 1.5em;
+	margin: 0 1em;
+}
+
+#action:not(.selected),
+#action:not(.snmp) >.snmp {
+	display: none;
+}
+
 .selector {
 	overflow: visible;
 }
@@ -289,20 +299,12 @@ function IP2Int(s) {
 		</script>
 		
 		<script>
-
-//public
-function reload() {
-	window.location.reload();
+function onEdit() {
+	top.showDialog.call(window, "/device_dialog.html", window.selectedID);
 }
 
-function onEdit() {
-	switch(window.node[window.selectedID].type) {
-	case "application": top.showDialog.call(window, "/app_dialog.html", window.selectedID);
-		break;
-	case "group": top.showDialog.call(window, "/group_dialog.html", window.selectedID);
-		break;
-	default: top.showDialog.call(window, "/device_dialog.html", window.selectedID);
-	}
+function onMap() {
+	window.location.href = "/map_edit.html?"+ encodeURI(window.selectedID);
 }
 
 function onShowStatus() {
@@ -336,10 +338,10 @@ function initialize() {
 			if (ipA && ipB) {
 				return IP2Int(ipA) - IP2Int(ipB);
 			}
-			else if (ipB) {
+			else if (ipA) {
 				return 1;
 			}
-			else if (ipA) {
+			else if (ipB) {
 				return -1;
 			}
 			else {
@@ -432,14 +434,37 @@ function createRow(id, base) {
 	}
 	
 	row.onclick = function () {
-		top.store.dashboard.search = this.id;
-		
-		top.search();
-		
-		window.location.href = "/dashboard.html";
+		selectDevice(this, id, base);
 	};
 	
 	return row;
+}
+
+function selectDevice(row, id, base) {
+	if (window.selected) {
+		window.selected.classList.remove("selected");
+	}
+	
+	if (row) {
+		window.selected = row;
+		window.selectedID = id;
+		
+		window.action.className = "selected";
+		
+		if ("protocol" in base && base.protocol === "snmp") {
+			window.action.classList.add("snmp");
+		}
+		
+		row.classList.add("selected");
+	}
+	else {
+		window.selected = undefined;
+		window.action.className = "";
+	}
+}
+
+function onSelectDevice(id, base) {
+	selectDevice(this, id, base);	
 }
 
 function initLabel() {
@@ -458,7 +483,9 @@ function initLabel() {
 }
 
 // 선택 초기화 (상태별로 필터링)
-function onSelectStatus (src, className) {	
+function onSelectStatus (src, className) {
+	selectDevice();
+	
 	document.body.classList.remove("normal", "critical", "shutdown", "disabled");
 	
 	if (className) {
@@ -571,6 +598,11 @@ function forEach(a, f) {
 							</optgroup>
 						</select>
 					</div>
+					<div id="action">
+						<img id="map" src="img/location.png" title="구성도에서 장비보기">
+						<img id="edit" src="img/edit.png" title="장비의 정보 편집">
+						<img id="status" class="snmp" src="img/chart.png" title="장비의 상태 보기">
+					</div>
 				</nav>
 				<form>
 					<input type="text" name="keyword" placeholder="IP, Type, Name">
@@ -628,6 +660,7 @@ var
 	list = document.getElementById("list"),
 	selector = document.querySelector(".selector"),
 	icon = document.getElementById("icon"),
+	action = document.getElementById("action"),
 	labelMap = {
 		"": []
 	},
@@ -646,6 +679,9 @@ label.onchange = function () {
 		}
 	}
 	else {
+		// 선택 초기화
+		selectDevice();
+
 		for (let row; row = window.list.firstElementChild;) {
 			df.appendChild(row).classList[window.labelMap[label].indexOf(row) == -1? "add": "remove"]("hidden");
 		}
@@ -664,6 +700,9 @@ document.getElementById("normal").onclick = onSelectStatus.bind(window, "img/nor
 document.getElementById("disabled").onclick = onSelectStatus.bind(window, "img/disabled.png", "disabled");
 document.getElementById("all").onclick = onSelectStatus.bind(window, "img/all.png", "");
 document.getElementById("save").onclick = onSave;
+document.getElementById("map").onclick = onMap;
+document.getElementById("edit").onclick = onEdit;
+document.getElementById("status").onclick = onShowStatus;
 
 document.getElementById("sort").onclick = function (e) {
 	const
@@ -697,10 +736,10 @@ document.getElementById("sort").onclick = function (e) {
 			if (ipA && ipB) {
 				return IP2Int(ipA) - IP2Int(ipB);
 			}
-			else if (ipB) {
+			else if (ipA) {
 				return 1;
 			}
-			else if (ipA) {
+			else if (ipB) {
 				return -1;
 			}
 			else {
@@ -720,6 +759,9 @@ document.getElementById("sort").onclick = function (e) {
 		
 		document.body.classList.add("loading", "keyword");
 
+		// 선택 취소
+		selectDevice();
+		
 		const keyword = form.elements["keyword"].value;
 
 		if (!keyword) {

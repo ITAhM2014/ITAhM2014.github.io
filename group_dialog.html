@@ -150,19 +150,22 @@ if (top.account.level === 0) {
 	document.querySelector("input[type=reset]").disabled = false;
 }
 
-document.getElementById("close").onclick = function () {
+function close() {
 	top.closeDialog(true);
-};
+}
 
-(function (form) {
-	let opener;
-
-	function close() {
-		opener && opener.reload();
+document.addEventListener("keydown", function (e) {
+	switch (e.keyCode) {
+	case 27:
+		close();
 		
-		top.closeDialog();
+		break;
 	}
-	
+});
+
+document.getElementById("close").onclick = close;
+
+(function (form) {	
 	form.onreset = function (e) {
 		if (!confirm("선택한 그룹을 삭제하겠습니까?")) {
 			return;
@@ -178,7 +181,11 @@ document.getElementById("close").onclick = function () {
 		}, function () {
 			switch (this.status) {
 				case 200:
-					close();
+					if ("editor" in top.store) {
+						delete top.store.editor.position[window.id];
+					}
+
+					reload();
 
 					break;
 				default:
@@ -205,7 +212,7 @@ document.getElementById("close").onclick = function () {
 		}, function () {
 			switch (this.status) {
 				case 200:
-					close();
+					reload();
 
 					break;
 				default:
@@ -218,7 +225,18 @@ document.getElementById("close").onclick = function () {
 
 	// public
 	window.initialize = function (id) {
-		opener = this && this.location;
+		const opener = this;
+
+		window.remove = function () {
+			opener && opener.position && delete opener.position[id];
+		};
+
+		window.reload = function () {
+			opener && opener.reload && opener.reload();
+			
+			close();
+		};
+		
 		window.id = id;
 
 		if (id) {

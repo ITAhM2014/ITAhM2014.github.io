@@ -157,22 +157,30 @@ body:not(.monitor) .monitor {
 		
 		<script>
 
-if (window === top) throw "";
-
 var form = document.querySelector("form"),
 	mask = document.getElementById("mask_bits");
 
-document.getElementById("close").onclick = function () {
+function close() {
 	top.closeDialog(true);
-};
+}
+
+document.addEventListener("keydown", function (e) {
+	switch (e.keyCode) {
+	case 27:
+		close();
+		
+		break;
+	}
+});
+
+document.getElementById("close").onclick = close;
 
 if (top.account.level === 0) {
 	document.querySelector("input[type=submit]").disabled = false;
 }
 
 (function (form) {
-	let opener;
-
+	
 	form.elements["mask"].onchange = function (e) {
 		document.getElementById("mask").textContent = this.value;
 	};
@@ -189,7 +197,7 @@ if (top.account.level === 0) {
 			case 200:
 				alert("자동 탐지 요청을 처리하고 있습니다.");
 
-				top.closeDialog(true);
+				close();
 
 				break;
 			default:
@@ -201,7 +209,6 @@ if (top.account.level === 0) {
 	};
 
 	window.initialize = function () {
-		opener = this && this.location;
 	};
 
 }) (document.querySelector("form"));

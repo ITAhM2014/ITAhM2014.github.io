@@ -151,7 +151,6 @@ body:not(.dialog) .dialog {
 }
 
 .dialog form {
-	width: 300px;
 	padding: 20px;
 	border-radius: 5px 5px 5px 5px;
 	background-color: #fff;
@@ -178,6 +177,7 @@ body:not(.dialog) .dialog {
 	align-items: center;
 	list-style: none;
 	padding: 0;
+	border-bottom: 3px solid #0084ff;
 }
 
 .dialog li {
@@ -226,12 +226,16 @@ body:not(.submap) .parent {
 		
 function zoom() {
 	transform.getItem(1).setScale(window.scale, window.scale);
-
-	top.store.scale = window.scale;
 }
 	
-function moveMap(x, y) {
-	
+function reload() {
+	top.store.editor = {
+		scale: window.scale,
+		position: window.position,
+		parent: window.upper
+	}
+
+	window.location.reload();
 }
 
 function isChecked(svgDevice) {
@@ -242,63 +246,18 @@ function isChecked(svgDevice) {
 	return svgDevice.parentNode === window.checkCanvas || svgDevice.parentNode === window.selectCanvas;
 }
 
-function onMoveGroup(parent) {
-	var pos;
+function onMoveGroup() {
+	const id = this.id || undefined;
 
-	if (window.selected) {
-		const id = window.selected.id;
-
-		pos = top.position[id];
-
-		for (let peerID in pos.ifEntry) {
-			delete top.position[peerID].ifEntry[id];
-		}
-
-		pos.ifEntry = {};
-		pos.parent = parent;
-	}
-	
-	[].forEach.call(window.checkCanvas.querySelectorAll("g.node"), function (svgDevice) {
-		const
-			id = svgDevice.id,
-			pos = top.position[id];
-
-		for (let peerID in pos.ifEntry) {
-			delete top.position[peerID].ifEntry[id];
-		}
-
-		pos.ifEntry = {};
-		pos.parent = parent;
+	[window.checkCanvas, window.selectCanvas].forEach(function (canvas) {
+		[].forEach.call(canvas.querySelectorAll("g.node"), function (node) {
+			window.position[node.id].parent = id;
+		});
 	});
 
-	window.location.reload();
-}
+	window.upper = id;
 
-function moveAllDevice(x, y) {
-	const
-		moved = [];
-	
-	[window.deviceCanvas, window.checkCanvas, window.selectCanvas].forEach(function (canvas) {
-		for (let ar = canvas.querySelectorAll("g.node"), i=0, _i=ar.length, svgDevice; i<_i; i++) {
-			svgDevice = ar[i];
-
-			moveDeviceTo(svgDevice, x, y);
-			moveLine(svgDevice, 0, 0).forEach(function (link) {
-				if (moved.indexOf(link) === -1) {
-					moved.push(link);
-				}
-			});
-		}
-	});
-	
-	// 위치가 변경된 라벨을 이동시킨다
-	moveLabel(moved);
-
-	if (window.selected) {
-		const pos = top.position[window.selected.id];
-		
-		moveAnchor(pos.x, pos.y);
-	}
+	reload();
 }
 
 function drawLine(link, pos1, pos2) {
@@ -337,11 +296,11 @@ function setCheck(svgDevice, check) {
 	}
 }
 
-function selectDevice(svgDevice) {
+function selectNode(svgDevice) {
 	const
 		id = svgDevice.id,
 		base = window.node[id],
-		pos = top.position[id];
+		pos = window.position[id];
 
 	if (window.selected) {
 		window.deviceCanvas.appendChild(window.selected);
@@ -356,62 +315,6 @@ function selectDevice(svgDevice) {
 	window.anchor.setAttribute("class", base.protocol || "none");
 	
 	moveAnchor(pos.x, pos.y);
-}
-
-function addDevice(id, pos) {
-	var
-		base = window.node[id],
-		svgDevice = document.createElementNS(SVG_NS, "g"),
-		svgIcon = document.createElementNS(SVG_NS, "image"),
-		svgBG = document.createElementNS(SVG_NS, "circle"),
-		svgLabel = document.createElementNS(SVG_NS, "text"),
-		svgAddr = document.createElementNS(SVG_NS, "tspan"),
-		svgName = document.createElementNS(SVG_NS, "tspan"),
-		icon = getIcon(base.type);
-	
-	svgIcon.setAttribute("x", ICON_SIZE *-1 /2);
-	svgIcon.setAttribute("y", ICON_SIZE *-1 /2);
-	svgIcon.setAttribute("width", ICON_SIZE +"px");
-	svgIcon.setAttribute("height", ICON_SIZE +"px");
-	
-	svgBG.setAttribute("r", OFFSET_C);
-	svgBG.setAttribute("cx", 0);
-	svgBG.setAttribute("cy", 0);
-
-	svgDevice.id = id;
-	svgDevice.setAttribute("transform", "translate("+ pos.x +","+ pos.y +")");
-	svgDevice.onclick = onClickDevice;
-	svgDevice.addEventListener("link", onLink);
-	
-	if (base.type === "group") {
-		svgDevice.ondblclick = onEnterGroup.bind(svgDevice, id);
-
-		svgDevice.addEventListener("movegroup", onMoveGroup.bind(undefined, id));
-		
-		addClass(svgDevice, "group");
-	}
-
-	svgName.textContent = base.name || base.ip || "";
-	svgAddr.textContent = base.ip || base.name || "";
-	
-	svgLabel.appendChild(svgName);
-	svgLabel.appendChild(svgAddr);
-	
-	svgLabel.setAttribute("x", 0);
-	svgLabel.setAttribute("y", OFFSET_C + 16);
-	// text baseline이 글자의 밑을 기준으로 하므로 글자 크기만큼 내려준다.
-	
-	svgDevice.appendChild(svgBG);
-	svgDevice.appendChild(svgIcon);
-	svgDevice.appendChild(svgLabel);
-	
-	addClass(svgDevice, "node");
-	
-	window.deviceCanvas.appendChild(svgDevice);
-	
-	svgIcon.setAttributeNS(XLINK_NS, "xlink:href", "/"+ icon[base.protocol?"src": "disabled"] );
-	
-	addLine(id, pos);
 }
 
 function addClass(e, className) {
@@ -465,7 +368,7 @@ function onClickDevice(e) {
 		window.isDragging = false;
 	}
 	else if (!e.ctrlKey) {
-		selectDevice(this);
+		selectNode(this);
 	}
 	else if (this === window.selected) {
 		resetSeleced();
@@ -512,131 +415,207 @@ function showStatus(index) {
 	top.showStatus();
 }
 
-function addLine(id, pos) {
-	var ifEntry = pos.ifEntry,
-		peerList = {},
-		peerPos, peerID, link, lineSvg, port, labelSvg;
-	
-	window.linkData[id] = peerList;
-	
-	for (var peerID in ifEntry) {
-		peerPos = top.position[peerID];
-		
-		port = ifEntry[peerID];
-		
-		labelSvg = undefined;
-
-		if (port) {
-			if (typeof(port) === typeof({})) {
-				if ("name" in port && "index" in port) {
-					labelSvg = document.createElementNS(SVG_NS, "text");
-
-					labelSvg.textContent = port.name;
-
-					labelSvg.onclick = top.showStatus.bind(undefined, id, "throughput", port.index);
-				}
-			}
-			else if (typeof(port) === typeof("")) {
-				labelSvg = document.createElementNS(SVG_NS, "text");
-
-				labelSvg.textContent = port;
-			}
-
-			if (labelSvg) {
-				labelSvg.setAttribute("x", (pos.x *2 + peerPos.x) /3);
-				labelSvg.setAttribute("y", (pos.y *2 + peerPos.y) /3);
-			}
-		}
-		
-		// peer가 먼저 svg 만들었다면 공유
-		if (window.linkData[peerID]) {
-			link = linkData[peerID][id];
-				
-			link.name2 = labelSvg;
-		}
-		else {
-			lineSvg = document.createElementNS(SVG_NS, "line");
-			
-			lineSvg.setAttribute("x1", pos.x);
-			lineSvg.setAttribute("y1", pos.y);
-			lineSvg.setAttribute("x2", peerPos.x);
-			lineSvg.setAttribute("y2", peerPos.y);
-
-			if (port && port.option) {
-				lineSvg.setAttribute("stroke-width", port.option.width);
-				lineSvg.setAttribute("stroke", port.option.color);
-			}
-			else {
-				lineSvg.setAttribute("stroke-width", LINE_WIDTH);
-				lineSvg.setAttribute("stroke", LINE_COLOR);
-			}
-			
-			link = {
-				peer1: id,
-				name: labelSvg,
-				peer2: peerID,
-				svg: lineCanvas.appendChild(lineSvg)
-			};
-		}
-		
-		// label이 선보다 위에 그려지도록 나중에 붙여줌
-		if (labelSvg) {
-			lineCanvas.appendChild(labelSvg);
-		}
-		
-		peerList[peerID] = link;
-	}
-}
-
-// canvas를 transform 하되 라인만 다시 그려줌
-function moveCheckedDevice(x, y) {
-	const moved = [];
-
-	window.checkCanvas.setAttribute("transform", "translate("+ x +","+ y +")");
-	window.selectCanvas.setAttribute("transform", "translate("+ x +","+ y +")");
-	
-	// 라인을 먼저 모두 이동시킨후
-	[window.selectCanvas, window.checkCanvas].forEach(function (canvas) {
-		for (let checked = canvas.querySelectorAll("g.node"), i=0, _i=checked.length; i<_i; i++) {
-			moveLine(checked[i], x, y).forEach(function (link) {
-				if (moved.indexOf(link) === -1) {
-					moved.push(link);
-				}
-			});
-		}
-	});
-	
-	// 위치가 변경된 라벨을 이동시킨다
-	moveLabel(moved);
-}
-
-function moveLine(svgDevice, x, y) {
+function Node(id, base) {
 	const
-		id = svgDevice.id,
-		pos = top.position[id],
-		peerList = window.linkData[id],
-		moved = [];
+		svgIcon = document.createElementNS(SVG_NS, "image"),
+		svgBG = document.createElementNS(SVG_NS, "circle"),
+		svgLabel = document.createElementNS(SVG_NS, "text"),
+		svgAddr = document.createElementNS(SVG_NS, "tspan"),
+		svgName = document.createElementNS(SVG_NS, "tspan"),
+		icon = getIcon(base.type);
 	
-	var link;
+	this.node = document.createElementNS(SVG_NS, "g");
+	this.pos = window.position[id];
+	this.lines = [];
 
-	for (let peerID in peerList) {
-		link = peerList[peerID];
-
-		if (link.peer1 === id) {
-			link.svg.setAttribute("x1", pos.x + x);
-			link.svg.setAttribute("y1", pos.y + y);
-		}
-		else {
-			link.svg.setAttribute("x2", pos.x + x);
-			link.svg.setAttribute("y2", pos.y + y);
-		}
-
-		if (moved.indexOf(link) === -1) {
-			moved.push(link);
-		}
+	if (!this.pos) {
+		window.position[id] = this.pos = {
+			x: 0,
+			y: 0,
+			parent: window.upper
+		};
+	}
+	else {
+		this.pos.x = Math.round(this.pos.x /10) *10;
+		this.pos.y = Math.round(this.pos.y /10) *10;
 	}
 
-	return moved;
+	svgIcon.setAttribute("x", ICON_SIZE *-1 /2);
+	svgIcon.setAttribute("y", ICON_SIZE *-1 /2);
+	svgIcon.setAttribute("width", ICON_SIZE +"px");
+	svgIcon.setAttribute("height", ICON_SIZE +"px");
+	
+	svgBG.setAttribute("r", OFFSET_C);
+	svgBG.setAttribute("cx", 0);
+	svgBG.setAttribute("cy", 0);
+
+	this.node.id = id;
+	this.node.setAttribute("transform", "translate("+ this.pos.x +","+ this.pos.y +")");
+	this.node.onclick = onClickDevice;
+	this.node.addEventListener("link", onLink);
+	
+	if (icon.group === "group") {
+		this.node.ondblclick = onEnterGroup;
+
+		this.node.addEventListener("movegroup", onMoveGroup);
+		
+		addClass(this.node, "group");
+	}
+
+	svgName.textContent = base.name || base.ip || "";
+	svgAddr.textContent = base.ip || base.name || "";
+	
+	svgLabel.appendChild(svgName);
+	svgLabel.appendChild(svgAddr);
+	
+	svgLabel.setAttribute("x", 0);
+	svgLabel.setAttribute("y", OFFSET_C + 16);
+	// text baseline이 글자의 밑을 기준으로 하므로 글자 크기만큼 내려준다.
+	
+	this.node.appendChild(svgBG);
+	this.node.appendChild(svgIcon);
+	this.node.appendChild(svgLabel);
+	
+	addClass(this.node, "node");
+	
+	svgIcon.setAttributeNS(XLINK_NS, "xlink:href", "/"+ icon[base.protocol?"src": "disabled"] );
+}
+
+Node.prototype = {
+	layer: function (layer) {
+		layer.appendChild(this.node);
+	},
+	set: function () {
+		this.x = this.pos.x;
+		this.y = this.pos.y;
+	},
+	move: function (x, y) {
+		this.pos.x = Math.round((x + this.x) /10) *10;
+		this.pos.y = Math.round((y + this.y) /10) *10;
+		if (isNaN(this.pos.x)) {
+			console.log(Math.round((x + this.x) /10));
+			console.log((x + this.x) /10);
+			console.log(x + this.x);
+			console.log(x, this.x);
+		}
+		if (isNaN(this.pos.y)) {
+			console.log(Math.round((y + this.y) /10));
+			console.log((y + this.y) /10);
+			console.log(y + this.y);
+			console.log(y , this.y);
+		}
+
+		this.node.setAttribute("transform", "translate("+ this.pos.x +","+ this.pos.y +")");
+
+		this.lines.forEach(function (line) {
+			line.move();
+		});
+	},
+	line: function (line) {
+		this.lines.push(line);
+	}
+};
+
+function Line(svg, pos1, pos2, x, y) {
+	this.line = svg;
+	this.pos1 = pos1;
+	this.pos2 = pos2;
+	this.x = x;
+	this.y = y;
+
+	this.line.setAttribute(x, this.pos1.x);
+	this.line.setAttribute(y, this.pos1.y);
+
+	this.move();
+}
+
+Line.prototype = {
+	move: function () {
+		this.line.setAttribute(this.x, this.pos1.x);
+		this.line.setAttribute(this.y, this.pos1.y);
+
+		if (this.label1) {
+			this.label(this.label1, this.pos1, this.pos2);
+		}
+
+		if (this.label2) {
+			this.label(this.label2, this.pos2, this.pos1);
+		}
+	},
+	set1: function (svg) {
+		this.label1 = svg;
+
+		this.label(svg, this.pos1, this.pos2);
+	},
+	set2: function (svg) {
+		this.label2 = svg;
+
+		this.label(svg, this.pos2, this.pos1);
+	},
+	label: function (svg, pos1, pos2) {
+		svg.setAttribute("x", (pos1.x *2 + pos2.x) /3);
+		svg.setAttribute("y", (pos1.y *2 + pos2.y) /3);
+	}
+};
+
+function addLine(id, line) {
+	const ar = id.split("."),
+		id1 = "node."+ ar[1],
+		id2 = "node."+ ar[2];
+
+	if (!(id1 in window.map) || !(id2 in window.map)) {
+		return;
+	}
+
+	const
+		svg = document.createElementNS(SVG_NS, "line"),
+		pos1 = window.position[id1],
+		pos2 = window.position[id2],
+		l1 = new Line(svg, pos1, pos2, "x1", "y1"),
+		l2 = new Line(svg, pos2, pos1, "x2", "y2");
+
+	var width = LINE_WIDTH,
+		color = LINE_COLOR;
+
+	window.map[id1].line(l1);
+	window.map[id2].line(l2);
+
+	if ("option" in line) {
+		if ("width" in line.option) {
+			width = line.option.width;
+		}
+
+		if ("color" in line.option) {
+			color = line.option.color;
+		}
+	}
+	
+	svg.setAttribute("stroke-width", width);
+	svg.setAttribute("stroke", color);
+
+	lineCanvas.appendChild(svg);
+	
+	if (id1 in line) {
+		const svg = document.createElementNS(SVG_NS, "text");
+
+		svg.textContent = line[id1].name;
+
+		l1.set1(svg);
+		l2.set2(svg);
+
+		lineCanvas.appendChild(svg);
+	}
+
+	if (id2 in line) {
+		const svg = document.createElementNS(SVG_NS, "text");
+
+		svg.textContent = line[id2].name;
+
+		l1.set2(svg);
+		l2.set1(svg);
+
+		lineCanvas.appendChild(svg);
+	}
 }
 
 function moveLabel(moved) {
@@ -658,57 +637,25 @@ function moveLabel(moved) {
 	});
 }
 
-// device 각각 transform
-function moveDeviceTo(svgDevice, x, y) {
-	const pos = top.position[svgDevice.id];
-	
-	pos.x = Math.round((x + pos.x) /10) *10;
-	pos.y = Math.round((y + pos.y) /10) *10;
-
-	svgDevice.setAttribute("transform", "translate("+ pos.x +","+ pos.y +")");
-}
 
 function initialize() {
-	var
-		pos;
-	
+	const df = document.createDocumentFragment();
+	var node;
+
 	for (let id in window.node) {
-		pos = top.position[id];
+		node = new Node(id, window.node[id]);
+		
+		if (node.pos.parent == window.upper) {
+			node.layer(df);
 
-		// 동기화 안된 node의 pos 정보가 없음
-		if (!pos) {
-			top.position[id] = pos = {
-				x: 0,
-				y: 0,
-				ifEntry: {},
-				parent: top.store.parent
-			};
-		}
-		else {
-			pos.x = Math.round(pos.x /10) *10;
-			pos.y = Math.round(pos.y /10) *10;
-		}
-
-		if (pos.parent === top.store.parent) {
-			addDevice(id, pos);
+			window.map[id] = node;
 		}
 	}
 	
-	if (window.location.search.substring(1)) {
-		const
-			id = window.location.search.substring(1),
-			pos = top.position[id],
-			idList = window.idMap.values;
-		
-		for (let ar = window.deviceCanvas.querySelectorAll("g.node"), i=0, _i=ar.length; i<_i; i++) {
-			if (ar[i].id === id) {
-				moveAllDevice(- pos.x, - pos.y);
+	window.deviceCanvas.appendChild(df);
 
-				selectDevice(ar[i]);
-
-				break;
-			}
-		}
+	for (let id in window.line) {
+		addLine(id, window.line[id]);
 	}
 	
 	zoom();
@@ -717,37 +664,33 @@ function initialize() {
 }
 
 function onLink(e) {
-	top.showDialog.call(window, "/line_dialog.html", this.id, e.detail.peer);
+	const id1 = this.id.split(".")[1],
+		id2 = e.detail.peer.split(".")[1],
+		id = "line."+ (new Number(id1) > new Number(id2)? (id1 +"."+ id2): (id2 +"."+ id1));
+
+	top.showDialog.call(window, "/line_dialog.html", id , window.line[id]);
 }
 
-function onSave() {
-	top.postRequest({
-		command: "put",
-		database: "position",
-		key: "position",
-		value: top.position
-	}, function () {
-		switch (this.status) {
-		case 200:
-			alert("구성의 변경사항을 저장하였습니다.");
-
-			break;
-		default:
-			const message = this.responseText? JSON.parse(this.responseText).error: "";
-
-			if (message) {
-				console.log(message);
-			}
-
-			alert(top.getMessage(this.status));
-		}
-	});
-}
-
-function onEnterGroup(id) {
-	top.store.parent = id;
+function restoreTranslation() {
+	const
+		matrix = window.transform.getItem(2).matrix,
+		x = matrix.e,
+		y = matrix.f;
+	var pos;
 	
-	window.location.reload();
+	for (let id in window.map) {
+		pos = window.map[id].pos;
+
+		pos.x += x;
+		pos.y += y;
+	}
+}
+function onEnterGroup() {
+	restoreTranslation();
+	
+	window.upper = this.id || undefined;
+
+	reload();
 }
 
 		</script>
@@ -758,7 +701,7 @@ function onEnterGroup(id) {
 			<defs>
 				<circle r="35" id="circle"></circle>
 			</defs>
-			<g id="parent" class="parent node group" transform="translate(100, 100)">
+			<g class="parent node group" transform="translate(100, 100)">
 				<circle cx="0" cy="0" r="40"></circle>
 				<image xlink:href="/img/group.png" x="-30" y="-30" width="60" height="60"></image>
 			</g>
@@ -800,6 +743,7 @@ function onEnterGroup(id) {
 				<i class="btn_close round" id="close" title="닫기"></i>
 				<h2>노드 추가</h2>
 				<ul class="table">
+					<li><span><input type="image" name="search" src="/img/search_btn.png" width="80" height="80" title="네트워크 대역 탐색"></span></li>
 					<li><span><input type="image" name="device" src="/img/node_btn.png" width="80" height="80" title="SNMP/ICMP 노드 추가"></span></li>
 					<li><span><input type="image" name="group" src="/img/group_btn.png" width="80" height="80" title="그룹 노드 추가"></span></li>
 					<li><span><input type="image" name="application" src="/img/app_btn.png" width="80" height="80" title="TCP 응용프로그램 노드 추가"></span></li>
@@ -829,16 +773,29 @@ var
 	linkSVG = linkCanvas.querySelector("line"),
 	anchor = document.getElementById("anchor"),
 	linkAnchor = document.getElementById("link_anchor"),
-	parentAnchor = document.getElementById("parent"),
+	parentAnchor = document.querySelector("g.parent.node"),
 	fragment = document.createDocumentFragment(),
-	linkData = {},
-	idMap = {},
-	animation,
-	scale = top.store.scale,
+	request = {
+		command: "pull",
+		database: ["node", "line"]
+	},
+	map = {},
+	scale = 1,
 	isDragging = false;
 
 if (top.account.level === 0) {
 	document.body.classList.add("root");
+}
+
+if ("editor" in top.store) {
+	window.scale = top.store.editor.scale;
+	window.position = top.store.editor.position;
+	window.upper = top.store.editor.parent;
+
+	delete top.store.editor;
+}
+else {
+	window.request.database.push("position");
 }
 
 document.onselectstart = function () {
@@ -848,8 +805,12 @@ document.onselectstart = function () {
 (function () {
 	const mapCanvas = document.getElementById("map"),
 		selector = document.getElementById("selector"),
-		area = document.querySelector("#selector>rect");
-	var schedule, rect;
+		area = document.querySelector("#selector>rect"),
+		origin = {
+			x: 0,
+			y: 0
+		};
+	var schedule, rect, action;
 
 	new Draggable(mapCanvas);
 
@@ -863,17 +824,31 @@ document.onselectstart = function () {
 			addClass(selector, "active");
 
 			selector.setAttribute("transform", "translate("+ data.x +","+ data.y +")");
+
+			action = "select";
 		}
-		else if (window.selected) {
-			if (target === linkAnchor) {
-				var pos = top.position[window.selected.id];
-				
-				window.linkCanvas.appendChild(linkAnchor);
-				window.linkCanvas.appendChild(linkSVG);
-				
-				linkSVG.setAttribute("x1", pos.x);
-				linkSVG.setAttribute("y1", pos.y);
-			}
+		else if (target === window.linkAnchor) {
+			const pos = window.map[window.selected.id].pos;
+			
+			window.linkCanvas.appendChild(window.linkAnchor);
+			window.linkCanvas.appendChild(window.linkSVG);
+			
+			window.linkSVG.setAttribute("x1", pos.x);
+			window.linkSVG.setAttribute("y1", pos.y);
+
+			action = "link"
+		}
+		else if (isChecked(target)) {
+			[window.selectCanvas, window.checkCanvas].forEach(function (canvas) {
+				for (let checked = canvas.querySelectorAll("g.node"), i=0, _i=checked.length; i<_i; i++) {
+					window.map[checked[i].id].set();
+				}
+			});
+
+			action = "move";
+		}
+		else {
+			action = "";
 		}
 		
 		window.isDragging = true;
@@ -885,23 +860,15 @@ document.onselectstart = function () {
 			x = Math.round(data.dragX / window.scale /10) *10,
 			y = Math.round(data.dragY / window.scale /10) *10;
 		
-		if (hasClass(window.selector, "active")) {
+		if (action === "select") {
 			area.setAttribute("transform", "scale("+ data.dragX +","+ data.dragY +")");
 		}
-		else if (isChecked(target)) {
+		else if (action === "link") {
 			const
-				checked =  window.checkCanvas.querySelectorAll("g.node"),
-				moved = [];
+				svgDevice = data.destination.parentNode,
+				pos = window.map[window.selected.id].pos;
 			
-			addClass(target, "drag");
-			
-			moveCheckedDevice(x, y);
-		}
-		else if (target === linkAnchor) {
-			const svgDevice = data.destination.parentNode,
-				pos = top.position[window.selected.id];
-			
-			linkAnchor.setAttribute("transform", "translate("+ (pos.x + x) +","+ (pos.y + y) +")");
+			window.linkAnchor.setAttribute("transform", "translate("+ (pos.x + x) +","+ (pos.y + y) +")");
 			
 			if (hasClass(svgDevice, "node") &&  svgDevice !== window.selected) {
 				var matrix = svgDevice.transform.baseVal.getItem(0).matrix;
@@ -921,90 +888,83 @@ document.onselectstart = function () {
 			window.linkSVG.setAttribute("x2", x);
 			window.linkSVG.setAttribute("y2", y);
 		}
+		else if (action === "move") {
+			addClass(target, "drag");
+			
+			[window.selectCanvas, window.checkCanvas].forEach(function (canvas) {
+				for (let nodes = canvas.querySelectorAll("g.node"), i=0, _i=nodes.length, id, node; i<_i; i++) {
+					id = nodes[i].id;
+					
+					node = window.map[id];
+
+					node.move(x, y);
+
+					if (window.selected && window.selected.id === id) {
+						moveAnchor(node.pos.x, node.pos.y);
+					}
+				}
+			});
+		}
 		else {
+			x += origin.x;
+			y += origin.y;
+			
 			window.transform.getItem(2).setTranslate(x, y);
 		}
 	});
 
 	mapCanvas.addEventListener("dragoff", function (e) {
-		const data = e.detail,
+		const
+			data = e.detail,
 			target = data.target;
 		
-		if (hasClass(selector, "active")) {;
-			let 
-				pos, matrix, x, y, x2, y2;
+		if (action === "select") {
+			let
+				matrix, x1, y1, x2, y2;
 
 			matrix = selector.transform.baseVal.getItem(0).matrix;
 
-			x = (matrix.e - rect.width /2) /window.scale;
-			y = (matrix.f - rect.height /2) /window.scale;
+			x1 = (matrix.e - rect.width /2) /window.scale;
+			y1 = (matrix.f - rect.height /2) /window.scale;
 
 			matrix = area.transform.baseVal.getItem(0).matrix;
 
 			if (matrix.a < 0) {
-				x2 = x;
-				x = x + matrix.a /window.scale;
+				x2 = x1;
+				x1 = x1 + matrix.a /window.scale;
 			}
 			else {
-				x2 = x + matrix.a /window.scale;
+				x2 = x1 + matrix.a /window.scale;
 			}
 			
 			if (matrix.d < 0) {
-				y2 = y;
-				y = y + matrix.d /window.scale;
+				y2 = y1;
+				y1 = y1 + matrix.d /window.scale;
 			}
 			else {
-				y2 = y + matrix.d /window.scale;
+				y2 = y1 + matrix.d /window.scale;
 			}
 
 			[].forEach.call(window.deviceCanvas.querySelectorAll("g.node"), function (svgDevice) {
-				const pos = top.position[svgDevice.id];
+				const pos = window.position[svgDevice.id];
 
-				if (x < pos.x && pos.x < x2 && y < pos.y && pos.y < y2) {
+				if (x1 < pos.x && pos.x < x2 && y1 < pos.y && pos.y < y2) {
 					setCheck(svgDevice, true);
 				}
 			});
 			
 			removeClass(selector, "active");
 		}
-		else if (isChecked(target)) {
-			const svgDevice = data.destination.parentNode;
-
-			removeClass(target, "drag");
+		else if (action === "link") {
+			const
+				svgDevice = data.destination.parentNode,
+				pos = window.position[window.selected.id];
 			
-			if (hasClass(svgDevice, "group")) {
-				svgDevice.dispatchEvent(ITAhM.util.createCustomEvent("movegroup"));
-			}
-			else {
-				const
-					x = Math.round(data.dragX / window.scale /10) *10,
-					y = Math.round(data.dragY / window.scale /10) *10;
-				
-				if (window.selected) {
-					const pos = top.position[window.selected.id];
-
-					moveDeviceTo(window.selected, x, y);
-
-					moveAnchor(pos.x, pos.y);
-				}
-				
-				for (let checked = checkCanvas.querySelectorAll("g.node"), i=0, _i=checked.length; i<_i; i++) {
-					moveDeviceTo(checked[i], x, y);
-				}
-
-				window.selectCanvas.setAttribute("transform", "translate(0,0)");
-				window.checkCanvas.setAttribute("transform", "translate(0,0)");
-			}
-		}
-		else if (target === linkAnchor) {
-			const svgDevice = data.destination.parentNode,
-				pos = top.position[window.selected.id];
+			window.anchor.appendChild(window.linkAnchor);
 			
-			window.anchor.appendChild(linkAnchor);
+			window.linkAnchor.setAttribute("transform", "translate(0, 0)");
 			
-			linkAnchor.setAttribute("transform", "translate(0, 0)");
-			
-			window.fragment.appendChild(linkSVG);
+			window.fragment.appendChild(window.linkSVG);
 			
 			if (hasClass(svgDevice, "node") &&  svgDevice !== window.selected) {				
 				svgDevice.dispatchEvent(ITAhM.util.createCustomEvent("link", {
@@ -1012,13 +972,28 @@ document.onselectstart = function () {
 				}));
 			}
 		}
-		else {
-			const x = Math.round(data.dragX / window.scale /10) *10,
-				y = Math.round(data.dragY / window.scale /10) *10;
-	
-			moveAllDevice(x, y);
+		else if (action ==="move") {
+			const svg = data.destination.parentNode;
 
-			transform.getItem(2).setTranslate(0, 0);
+			removeClass(target, "drag");
+			
+			if (!hasClass(svg, "group")) {
+				return;
+			}
+
+			[window.checkCanvas, window.selectCanvas].forEach(function (canvas) {
+				[].forEach.call(canvas.querySelectorAll("g.node"), function (node) {
+					window.map[node.id].move(0, 0);
+				});
+			});
+
+			svg.dispatchEvent(ITAhM.util.createCustomEvent("movegroup"));
+		}
+		else {
+			const matrix = window.transform.getItem(2).matrix;
+
+			origin.x  = matrix.e;
+			origin.y = matrix.f;
 		}
 	});
 
@@ -1032,6 +1007,8 @@ document.onselectstart = function () {
 		rect = mapCanvas.getBoundingClientRect();
 		
 		window.transform.getItem(0).setTranslate(rect.width /2, rect.height /2);
+
+		window.parentAnchor.setAttribute("transform", "translate("+ (rect.width -60) +","+ (rect.height -60) +")");
 	}
 
 	resize();
@@ -1045,28 +1022,38 @@ document.getElementById("add").onclick = function () {
 	document.body.classList.add("dialog");
 };
 
-document.getElementById("save").onclick = onSave;
+document.getElementById("save").onclick = function () {
+	restoreTranslation();
+	
+	top.postRequest({
+		command: "push",
+		database: "position",
+		data: window.position
+	}, function () {
+		switch (this.status) {
+		case 200:
+			alert("구성의 변경사항을 저장하였습니다.");
+
+			break;
+		default:
+			alert(top.getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+};
 
 document.getElementById("edit_anchor").onclick = function (e) {
-	const base = window.node[window.selected.id];
+	const base = window.node[window.selected.id],
+		icon = getIcon(base.type);
 
 	top.showDialog.call(window,
-		base.type === "group"? "/group_dialog.html":
-		base.type === "application"? "/app_dialog.html":
+		icon.group === "group"? "/group_dialog.html":
+		icon.group === "application"? "/app_dialog.html":
 		"/device_dialog.html", window.selected.id);
 	
 	e.stopPropagation();
 };
-
-if (top.store.group) {
-	const parent = top.position[top.store.group].parent; 
-
-	parentAnchor.onclick = onEnterGroup.bind(parentAnchor, parent);
-
-	parentAnchor.addEventListener("movegroup", onMoveGroup.bind(parentAnchor, parent));
-
-	document.body.classList.add("submap");
-}
 
 document.getElementById("zoom_in").onclick = function () {
 	zoom(window.scale *= 1.1);
@@ -1092,6 +1079,12 @@ window.addEventListener("wheel", function (e) {
 		e.preventDefault();
 	};
 
+	form.querySelector("input[name=search]").onclick = function () {
+		top.showDialog.call(window, "/search_dialog.html");
+
+		close();
+	};
+
 	form.querySelector("input[name=device]").onclick = function () {
 		top.showDialog.call(window, "/device_dialog.html");
 
@@ -1112,13 +1105,17 @@ window.addEventListener("wheel", function (e) {
 
 }) (document.querySelector("form"));
 
-top.postRequest({
-	command: "pull",
-	database: "node"
-}, function () {
+top.postRequest(request, function () {
 	switch (this.status) {
 	case 200:
-		window.node = JSON.parse(this.responseText);
+		const database = JSON.parse(this.responseText);
+
+		window.node = database.node;
+		window.line = database.line;
+
+		if ("position" in database) {
+			window.position = database.position;
+		}
 
 		if ("display" in top.setting) {
 			document.body.classList[top.setting.display == "name"? "add": "remove"]("name");
@@ -1127,18 +1124,27 @@ top.postRequest({
 		window.getIcon = function (type = "unknown") {
 			return "icon" in top.setting && top.setting.icon[type] || top.store.icon[type];
 		}
-		
+
+		if (window.upper) {
+			const parent = window.position[window.upper].parent; 
+			
+			if (parent) {
+				parentAnchor.id = parent;
+			}
+			
+			parentAnchor.onclick = onEnterGroup;
+			parentAnchor.addEventListener("movegroup", onMoveGroup);
+
+			document.body.classList.add("submap");
+		}
+
 		initialize();
 
 		break;
 	default:
-		const message = this.responseText? JSON.parse(this.responseText).error: "";
-
-		if (message) {
-			console.log(message);
-		}
-
 		alert(top.getMessage(this.status));
+
+		console.log(this.responseText && JSON.parse(this.responseText).error);
 	}
 });
 

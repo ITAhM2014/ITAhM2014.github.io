@@ -275,15 +275,23 @@ function createItem(src, key, data, func) {
 					<li>Timeout(초) :
 						<span id="timeout"></span>
 					</li>
-					<li>재시도 :
+					<li>재시도(회) :
 						<span id="retry"></span>
+						<i>(최초 실패 후 재 시도 횟수)</i>
 					</li>
 				</ul>
 				</form>
 			</p>
 			<p>
-				SNMP 요청 주기(초) :
-				<span id="snmp_interval"></span>
+				SNMP 
+				<ul>
+					<li>요청 주기(초) :
+						<span id="snmp_interval"></span>
+					</li>
+					<li>재시도(회) : 2
+						<i>(최초 실패 후 재 시도 횟수)</i>
+					</li>
+				</ul>
 			</p>
 			<p>
 				<form id="clean">

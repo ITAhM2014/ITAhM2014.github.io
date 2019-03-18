@@ -154,13 +154,27 @@ function isIPv4(s) {
 		<div class="bg_loading"></div>
 		<script>
 
-(function (form) {
+if (top.account.level === 0) {
+	document.querySelector("input[type=submit]").disabled = false;
+	document.querySelector("input[type=reset]").disabled = false;
+}
 
-	if (top.account.level === 0) {
-		document.querySelector("input[type=submit]").disabled = false;
-		document.querySelector("input[type=reset]").disabled = false;
+function close() {
+	top.closeDialog(true);
+}
+
+document.addEventListener("keydown", function (e) {
+	switch (e.keyCode) {
+	case 27:
+		close();
+		
+		break;
 	}
+});
 
+document.getElementById("close").onclick = close;
+
+(function (form) {
 	form.onreset = function(e) {
 		e.preventDefault();
 
@@ -179,7 +193,9 @@ function isIPv4(s) {
 		}, function () {
 			switch (this.status) {
 			case 200:
-				close();
+				remove();
+
+				reload();
 
 				break;
 			default:
@@ -216,7 +232,7 @@ function isIPv4(s) {
 		}, function () {
 			switch (this.status) {
 			case 200:
-				close();
+				reload();
 
 				break;
 			case 409:
@@ -237,12 +253,16 @@ function isIPv4(s) {
 
 	// public
 	window.initialize = function (id) {
-		const opener = this.location;
+		const opener = this;
 
-		window.close = function () {
-			opener && opener.reload();
+		window.remove = function () {
+			opener && opener.position && delete opener.position[id];
+		};
+
+		window.reload = function () {
+			opener && opener.reload && opener.reload();
 			
-			top.closeDialog();
+			close();
 		};
 		
 		window.id = id;

@@ -48,6 +48,22 @@ svg {
 	fill: #f60;
 }
 
+footer {
+	float: none;
+	color: #fcba30;
+	font-weight: bold;
+	text-align: right;
+	padding: 1em;
+}
+
+#save {
+	cursor: pointer;
+}
+
+#save:hover {
+	color: #000;
+}
+
 body.throughput #point {
 	fill: #7d7;
 }
@@ -273,6 +289,21 @@ function onIEResponse(response) {
 	}
 }
 
+function toDateTimeString(date) {
+	var year = date.getFullYear(),
+		month = date.getMonth() + 1,
+		day  = date.getDate(),
+		hh = date.getHours(),
+		mm = date.getMinutes(),
+		ss = date.getSeconds();
+	
+	return year +"-"+ 
+		(month > 9? "": "0") +month +"-"+
+		(day > 9? "": "0") + day +" "+
+		(hh > 9? "": "0") + hh +":"+
+		(mm > 9? "": "0") + mm +":"+
+		(ss > 9? "": "0") + ss;
+}
 function toMSString(value) {
 	return value +"ms";
 }
@@ -296,6 +327,8 @@ function parseData(value) {
 	
 	window.curText.textContent = format(value);
 	
+	window.download.push(toDateTimeString(new Date()) +","+ value);
+
 	draw();
 }
 
@@ -312,6 +345,8 @@ function parseITData(value1, value2) {
 	window.curText.textContent = format(value1);
 	window.curText2.textContent = format(value2);
 	
+	window.download.push(toDateTimeString(new Date()) +","+ value1 +","+ value2);
+
 	draw();
 }
 
@@ -412,6 +447,8 @@ function initialize(id, resource, index) {
 		
 		document.getElementById("resource").textContent = "Response time";
 		
+		window.download.push("시간,응답시간");
+
 		break;
 	case "processor":
 		window.onResponse = onPLResponse;
@@ -419,6 +456,8 @@ function initialize(id, resource, index) {
 		
 		document.getElementById("resource").textContent = "Processor load";
 		
+		window.download.push("시간,프로세서 로드 (%)");
+
 		break;
 	case "memory":
 		window.onResponse = onPMResponse;
@@ -426,6 +465,8 @@ function initialize(id, resource, index) {
 		
 		document.getElementById("resource").textContent = "Physical memory";
 		
+		window.download.push("시간,메모리 사용량 (Bytes)");
+
 		break;
 	case "storage":
 		window.onResponse = onSUResponse;
@@ -434,6 +475,8 @@ function initialize(id, resource, index) {
 		document.getElementById("resource").textContent = "Storage usage";
 		document.getElementById("index").textContent = "loading...";
 		
+		window.download.push("시간,스토리지 사용량 (Bytes)");
+
 		break;
 	case "throughput":
 		window.onResponse = onITResponse;
@@ -442,6 +485,8 @@ function initialize(id, resource, index) {
 		window.format = ITAhM.util.toBPSString;
 		window.draw = drawIT;
 		
+		window.download.push("시간,수신 (bps),송신 (bps)");
+
 		document.body.classList.add("throughput");
 		
 		document.getElementById("resource").textContent = "Interface throughput";
@@ -455,6 +500,8 @@ function initialize(id, resource, index) {
 		window.format = toString;
 		window.draw = drawIT;
 		
+		window.download.push("시간,수신 에러,송신 에러");
+
 		document.body.classList.add("throughput");
 		
 		document.getElementById("resource").textContent = "Interface error";
@@ -484,7 +531,12 @@ function initialize(id, resource, index) {
 			<g id="graph" transform="translate(0) scale(1 -1)"></g>
 			<circle id="point" r="5" /><circle id="point2" r="5" />
 		</svg>
-		
+		<footer>
+			<a id="save" title="CSV 파일로 저장">
+				<img src="/img/download.png" width="12" height="12">
+				Download
+			</a>
+		</footer>
 		<script src="js/ITAhM.js"></script>
 		<script src="js/object.js"></script>
 		<script>
@@ -507,6 +559,7 @@ var chart = document.getElementById("chart"),
 	minText = document.getElementById("min_text")
 	grid = new ITAhM.Path(document.getElementById("grid")),
 	realtimeData = new RealtimeData(PERIOD * 60000),
+	download = [],
 	request = {
 		command: "node",
 		snmp: true
@@ -519,6 +572,12 @@ window.addEventListener("resize", function() {
 	
 	window.timeout = setTimeout(onResize, 500);
 });
+
+document.getElementById("save").onclick = function () {
+	ITAhM.util.download(new Blob(["\ufeff", window.download.join("\n")] ,{
+		type: "text/csv;charset=utf-8;"
+	}), "realtime "+ document.getElementById("resource").textContent +".csv");
+};
 
 		</script>
 	

@@ -2,20 +2,35 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<meta http-equiv="Content-Script-Type" content="text/javascript">
-		<meta http-equiv="Content-Style-Type" content="text/css">
-		<title>Dashboard @ ITAhM</title>
+		<meta http-equiv="Cache-Control" content="no-cache">
+		
+		<title>ITAhM</title>
 		
 		<style>
-@import "/css/itahm.css";
+@import "css/itahm.css";
 
 body {
 	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
-	padding: 0; margin: 0;
+	background: url("img/world.png") no-repeat center center fixed;
+	background-size: cover;
 	display: flex;
-	align-items: stretch;
-	background-color: #4d525a;
-	color: #fff;
+}
+
+body::before {
+	content: "";
+	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+	background-color: rgba(0, 0, 0, 0.8);
+	z-index: -1;
+}
+
+body, input, button {
+	margin: 0;
+	padding: 0; 
+}
+
+article {
+	flex: 1 1 auto;
+	position: relative;
 }
 
 aside {
@@ -24,7 +39,13 @@ aside {
 	width: 300px;
 	box-sizing: border-box;
 	padding: .5em;
+	color: #fff;
 	text-shadow: 1px 1px 1px #000;
+}
+
+ul {
+	list-style: none;
+	padding: 0; margin: 0;
 }
 
 aside> .top {
@@ -38,68 +59,6 @@ aside> .top {
 	position: relative;
 	overflow-y: auto;
 	pointer-events: auto;
-}
-
-article {
-	flex: 1;
-	border: 3px solid #000;
-	box-sizing: border-box;
-	border-radius: 3px;
-	position: relative;
-	background: url("/img/world.png") no-repeat center center fixed;
-	background-size: cover;
-	user-select: none;
-	animation-duration: .5s;
-	animation-timing-function:  cubic-bezier(.9, .1, .9, .1);
-	overflow: hidden;
-}
-
-.map >nav {
-	position: absolute; top: 0; right: 0;
-	padding: 5px;
-	background-color: #ddd;
-}
-
-.map >nav >img {
-	display: block;
-}
-
-.map >nav >img:not(:nth-of-type(1)) {
-	border-top: 1px solid #777;
-}
-
-#map {
-	width: 100%; height: 100%;
-	background-color: rgba(0, 0, 0, 0.8);
-	border: none;
-}
-
-iframe.top {
-	width: 320px;
-	border: none;
-}
-
-section {
-	min-width: 260px;
-	margin: 0 .5em;
-	flex-direction: column;
-}
-
-.title,
-section >div:first-child {
-	padding: .5em 2em;
-	border-radius: 3px 3px 0 0;
-	border-bottom: none;
-	font-weight: bold;
-	color: #fff;
-	/*background-color: #0084ff;*/
-	background-color: #000;
-	text-shadow: 1px 1px 1px #777;
-}
-
-ul {
-	list-style: none;
-	padding: 0; margin: 0;
 }
 
 .list {
@@ -149,38 +108,102 @@ header> ul> li:nth-child(3) {
 	background-color: #0f0;
 }
 
-#summary_list> .summary> li:first-child {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-}
-
-.agent_status {
-	display: flex;
-	padding: .5em;
-}
-
-.agent_status li:first-child {
+iframe {
 	flex: none;
+	width: 320px;
+	border: none;
+}
+svg {
+	width: 100%; height: 100%;
+	animation-duration: .5s;
+	animation-timing-function:  cubic-bezier(.9, .1, .9, .1);
 }
 
-.agent_status li:last-child {
-	flex: 1;
-	text-align: right;
-}
-
-.agent_status li:first-child {
-	text-align: center;
-}
-
-.head {
-	flex: none; height: 12px;
+nav {
+	position: absolute; top: 0; right: 0;
+	padding: 5px;
 	background-color: #ddd;
-	border-radius: 3px;
 }
 
-.layout {
+nav >img {
+	display: block;
+}
+
+nav >img:not(:nth-of-type(1)) {
+	border-top: 1px solid #777;
+}
+
+/* svg*/
+text::selection {
+	background: none;
+}
+
+text {
+	font-family: tahoma, arial, "맑은 고딕";
+	font-size: 10px;
+	fill: #fff;
+	text-anchor: middle;
+}
+
+#line text {
+	font-size: 11px;
+	fill: #aaa;
+	cursor: pointer;
+}
+
+#link line {
+	stroke: #800;
+	stroke-width: 2;
+	stroke-dasharray: 2, 2;
+}
+
+#link.match line {
+	stroke: #0f0;
+}
+
+#device text {
+	font-size: 12px;
+}
+
+@keyframes initialize {
+	from {
+		transform: rotate(0) scale(.1);
+	}
+    to {
+    	transform: rotate(360deg) scale(1);
+    }
+}
+
+body.loading g {
 	display: none;
+}
+
+.device * {
+	pointer-events: none;
+}
+
+.device circle {
+	pointer-events: all;
+	stroke-width: 5px;
+	stroke: none;
+	fill: none;
+}
+
+.device.checked circle {
+	fill: #fff;
+}
+
+.device.critical circle {
+	stroke: #fa0;
+}
+
+.device.shutdown circle {
+	stroke: #f00; 
+}
+
+.parent {
+	fill: #fff;
+	stroke: #ddd; stroke-width: 5px;
 }
 
 /* bounce >> */
@@ -242,11 +265,11 @@ header> ul> li:nth-child(3) {
 	top: 5%;
 	background: linear-gradient(to bottom, rgba(232,232,232,1), rgba(255,255,255,0));
 }
-
-.ready::after {
+/*
+.ball::after {
 	content: attr(data-value);
 }
-
+*/
 .bounce div:last-child {
 	position: absolute; bottom: 0;
 	width: 100%;
@@ -310,202 +333,137 @@ header> ul> li:nth-child(3) {
 
 /* << bounce */
 
+/* 공통 */
+.fullscreen {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+}
+
+.no_pointer_event {
+	pointer-events: none;
+}
+
+body.name tspan:last-child,
+body:not(.name) tspan:first-child,
+body:not(.root) .root,
+body:not(.submap) .parent {
+	display: none;
+}
+
 		</style>
 		
 		<script>
 
-function initialize() {
-	update();
+function resize() {
+	const rect = mapCanvas.getBoundingClientRect();
 	
-	(function (map) {
-		map.onload = function () {
-			var mapWindow = window.map.contentWindow,
-				scale;
-			
-			function zoom(zoom) {
-				scale = zoom? scale * 1.1: scale / 1.1;
+	transform.getItem(0).setTranslate(rect.width /2, rect.height /2);
 
-				mapWindow.zoom(scale);
-				
-				window.top.store.scale = scale;
-			}
-			
-			document.getElementById("zoom_in").onclick = function () {
-				zoom(true);
-			};
-
-			document.getElementById("zoom_out").onclick = function () {
-				zoom(false);
-			};
-			
-			mapWindow.addEventListener("wheel", function (e) {
-				zoom(e.deltaY < 0);
-			});
-			
-			mapWindow.zoom(scale = top.store.scale);
-			
-			mapWindow.initialize();
-		};
-
-		map.src = "/map_dashboard.html";
-	}) (document.getElementById("map"));
+	window.parentAnchor.setAttribute("transform", "translate("+ (rect.width -60) +","+ (rect.height -60) +")");
+}
 	
-	removeClass(document.body, "loading");
-	
-	window.setInterval(update, 5000);
+function moveMap(x, y) {
+	window.transform.getItem(2).setTranslate(x, y);
 }
 
-function clearElement(e) {
-	for (let child; child=e.firstChild;) {
-		e.removeChild(child);
+function onDragStart(e) {
+	const matrix = window.transform.getItem(2).matrix;
+	
+	window.click = false;
+	window.pos = {
+		x: matrix.e,
+		y: matrix.f
+	};
+}
+
+function onDragMove(e) {
+	var drag = e.detail;
+	
+	moveMap(window.pos.x + drag.dragX / window.scale, window.pos.y + drag.dragY / window.scale);
+}
+function subMap() {
+	top.store.dashboard.parent = this.id || undefined;
+
+	window.location.reload();
+}
+
+function addNode(id, base, pos) {
+	const 
+		svgDevice = document.createElementNS(SVG_NS, "g"),
+		svgIcon = document.createElementNS(SVG_NS, "image"),
+		svgBG = document.createElementNS(SVG_NS, "circle"),
+		svgLabel = document.createElementNS(SVG_NS, "text"),
+		svgAddr = document.createElementNS(SVG_NS, "tspan"),
+		svgName = document.createElementNS(SVG_NS, "tspan"),
+		icon = getIcon(base.type || "unknown");
+	
+	svgIcon.setAttribute("x", window.ICON_SIZE *-1 /2);
+	svgIcon.setAttribute("y", window.ICON_SIZE *-1 /2);
+	svgIcon.setAttribute("width", window.ICON_SIZE +"px");
+	svgIcon.setAttribute("height", window.ICON_SIZE +"px");
+	
+	svgBG.setAttribute("r", window.OFFSET_C);
+	svgBG.setAttribute("cx", 0);
+	svgBG.setAttribute("cy", 0);
+	
+	svgDevice.setAttribute("transform", "translate("+ pos.x +","+ pos.y +")");
+	
+	svgDevice.id = id;
+
+	svgDevice.onmousedown = setClick;
+
+	if (icon.group === "group") {
+		svgDevice.onclick = subMap;
 	}
-}
-
-function update() {
-	var 
-		df = document.createDocumentFragment(),
-		base,
-		shutdown = 0,
-		critical = 0,
-		normal = 0,
-		labelData = {},
-		device, count;
-	
-	clearElement(window.summaryList);
-	
-	for (let id in window.node) {
-		base = window.node[id];
-	
-		if (!base.protocol) {
-			continue;
-		}
-		
-		if (base.label) {
-			labels = base.label.split(",");
-			
-			for (var i=0, length=labels.length; i<length; i++) {
-				if (!labelData[labels[i]]) {
-					labelData[labels[i]] = {
-						shutdown: 0,
-						critical: 0,
-						normal: 0
-					}
-				}
-				
-				if ("status" in base && !base.status) {
-					labelData[labels[i]].shutdown++;
-				}
-				else if ("critical" in base && !base.critical) {
-					labelData[labels[i]].critical++;
-				}
-				else {
-					labelData[labels[i]].normal++;
-				}
+	else if (base.protocol === "snmp") {
+		svgDevice.onclick = function () { //bind 사용하면 event가 arguments로 따라가서 안됨
+			if (window.click) {
+				top.showStatus(id);
 			}
-		}
+		};
+	}
+	
+	svgName.textContent = base.name || base.ip || "";
+	svgAddr.textContent = base.ip || base.name || "";
+	
+	svgLabel.appendChild(svgName);
+	svgLabel.appendChild(svgAddr);
+	
+	svgLabel.setAttribute("x", 0);
+	svgLabel.setAttribute("y", window.OFFSET_C + 16);
+	// text baseline이 글자의 밑을 기준으로 하므로 글자 크기만큼 내려준다.
+	
+	svgDevice.appendChild(svgBG);
+	svgDevice.appendChild(svgIcon);
+	svgDevice.appendChild(svgLabel);
+	
+	addClass(svgDevice, "device");
+	
+	window.deviceCanvas.appendChild(svgDevice);
+	
+	window.nodeSVGMap[id] = svgDevice;
+	
+	if ("protocol" in base) {
+		svgIcon.setAttributeNS(xlinkNS, "xlink:href", icon.src);
 		
 		if ("status" in base && !base.status) {
-			shutdown++;
+			addClass(svgDevice, "shutdown");
 		}
 		else if ("critical" in base && !base.critical) {
-			critical++;
+			addClass(svgDevice, "critical");
 		}
-		else {
-			normal++;
-		}		
+
+		if (base.protocol === "snmp") {
+			window.topList.push(id);
+		}
 	}
-	
-	window.alert.dataset.value = shutdown;
-	window.critical.dataset.value = critical;
-	window.normal.dataset.value = normal;
-	
-	window.alert.classList.add("ready");
-	window.critical.classList.add("ready");
-	window.normal.classList.add("ready");
-	
-	var labels = Object.keys(labelData).sort(function (a, b) {
-		return a > b? 1: -1;
-	});
-	
-	for (var i=0, _i=labels.length, label, values; i<_i; i++) {
-		label = labels[i];
-		values = labelData[label];
-		
-		df.appendChild(
-			createStatusItem(
-				label,
-				values.critical,
-				values.shutdown,
-				values.normal,
-				values.critical + values.shutdown + values.normal));
-	}
-	
-	
-	window.summaryList.appendChild(df);
-}
-
-function toErrorString(value) {
-	return (value /10).toFixed(0);
-}
-
-function toMillsString(value) {
-	return value +"ms";
-}
-
-function toPercentageString(value) {
-	return value +"%";
-}
-
-function clear(list) {
-	var child;
-	
-	while(child = list.firstChild) {
-		list.removeChild(child);
+	else {
+		svgIcon.setAttributeNS(xlinkNS, "xlink:href", icon.disabled);
 	}
 }
 
-function getTime() {
-	var date = new Date(),
-		h = date.getHours(),
-		m = date.getMinutes(),
-		s = date.getSeconds();
-	
-	return (h > 9? "": "0") + h +" : "+ (m > 9? "": "0") + m +" : "+ (s > 9? "": "0") + s;
+function setClick() {
+	window.click = true;
 }
-
-function createStatusItem(label, critical, alert, normal, sum) {
-	var ul = document.createElement("ul"),
-		li;
-	
-	ul.appendChild(document.createElement("li")).textContent = label;
-	
-	li = ul.appendChild(document.createElement("li"));
-	li.dataset.value = alert;
-	li.className = "ready";
-	
-	li = ul.appendChild(document.createElement("li"));
-	li.dataset.value = critical;
-	li.className = "ready";
-	
-	li = ul.appendChild(document.createElement("li"));
-	li.dataset.value = normal;
-	li.className = "ready";
-	
-	ul.className = "summary";
-	
-	return ul;
-}
-
-// static
-function toTimeString(mills) {
-	var date = new Date(mills),
-		hh = date.getHours(),
-		mm = date.getMinutes(),
-		ss = date.getSeconds();
-	
-	return (hh > 9? "": "0") + hh +":"+ (mm > 9? "": "0") + mm +":"+ (ss > 9? "": "0") + ss;
-}
-
 
 function addClass(e, className) {
 	var cls = e.getAttribute("class"),
@@ -551,13 +509,147 @@ function hasClass(e, className) {
 	return true;
 }
 
-		</script>
+function moveLabel(labelSvg, x1, y1, x2, y2) {
+	labelSvg.setAttribute("x", (x1 *2 + x2) /3);
+	labelSvg.setAttribute("y", (y1 *2 + y2) /3);
+}
+
+function addLine(id, line) {
+	const ar = id.split("."),
+		id1 = "node."+ ar[1],
+		id2 = "node."+ ar[2];
+
+	if (!(id1 in window.nodeSVGMap) || !(id2 in window.nodeSVGMap)) {
+		return;
+	}
+
+	const
+		pos1 = window.position[id1],
+		pos2 = window.position[id2];
+
+	var svg = document.createElementNS(SVG_NS, "line"),
+		width = LINE_WIDTH,
+		color = LINE_COLOR;
+
+	window.lineSVGMap[id] = svg;
+
+	svg.setAttribute("x1", pos1.x);
+	svg.setAttribute("y1", pos1.y);
+	svg.setAttribute("x2", pos2.x);
+	svg.setAttribute("y2", pos2.y);
+
+	if ("option" in line) {
+		if ("width" in line.option) {
+			width = line.option.width;
+		}
+
+		if ("color" in line.option) {
+			color = line.option.color;
+		}
+	}
+	
+	svg.setAttribute("stroke-width", width);
+	svg.setAttribute("stroke", color);
+
+	lineCanvas.appendChild(svg);
+
+	var
+		rotate = Math.atan2(pos2.y - pos1.y, pos2.x - pos1.x) * 180 / Math.PI,
+		x, y;
+
+	if (rotate <= 0) {
+		rotate += 90;
+	}
+	else if (rotate > 0) {
+		rotate -= 90;
+	}
+
+	if (id1 in line) {
+		svg = document.createElementNS(SVG_NS, "text");
+
+		svg.textContent = line[id1].name;
+
+		svg.onclick = top.showStatus.bind(undefined, id1, "throughput", line[id1].index);
 		
+		x = (pos1.x *2 + pos2.x) /3;
+		y = (pos1.y *2 + pos2.y) /3;
+
+		svg.setAttribute("x", x);
+		svg.setAttribute("y", y);
+		svg.setAttribute("transform", "rotate("+ rotate +","+x+","+y+")");
+		
+		lineCanvas.appendChild(svg);
+	}
+
+	if (id2 in line) {
+		const svg = document.createElementNS(SVG_NS, "text");
+
+		svg.textContent = line[id2].name;
+
+		svg.onclick = top.showStatus.bind(undefined, id2, "throughput", line[id2].index);
+
+		x = (pos1.x + pos2.x *2) /3;
+		y = (pos1.y + pos2.y *2) /3;
+
+		svg.setAttribute("x", x);
+		svg.setAttribute("y", y);
+		svg.setAttribute("transform", "rotate("+ rotate +","+x+","+y+")");
+
+		lineCanvas.appendChild(svg);
+	}
+}
+
+function getIcon (type) {
+	return top.setting.icon && top.setting.icon[type] || top.store.icon[type];
+}
+
+		</script>
 	</head>
 	
-	<body class="loading name">		
-		<article class="map">
-			<iframe id="map"></iframe>
+	<body class="loading name">
+		<article>
+			<aside>
+				<header>
+					<ul>
+						<li>장애
+						<li>임계
+						<li>정상
+					</ul>
+				</header>
+				
+				<div class="top">
+					<div class="bounce">
+						<div id="alert" class="ball red"></div>
+						<div></div>
+					</div>
+					<div class="bounce">
+						<div id="critical"  class="ball orange"></div>
+						<div></div>
+					</div>
+					<div class="bounce">
+						<div id="normal"  class="ball green"></div>
+						<div></div>
+					</div>
+				</div>
+	
+				<div id="summary_list"></div>	
+			</aside>
+			<svg id="map">
+				<defs>
+					<circle r="35" id="circle"></circle>
+				</defs>
+				<g class="parent">
+					<circle cx="0" cy="0" r="40"></circle>
+					<image class="no_pointer_event" xlink:href="img/group.png" x="-30" y="-30" width="60" height="60"></image>
+				</g>
+				<g id="transform" transform="translate(0, 0) scale(1, 1) translate(0, 0)">
+					<g id="line"></g>
+					<g id="link">
+						<line x1="0" y1="0" x2="0" y2="0" />
+					</g>
+					<g id="device"></g>
+				</g>
+			</svg>
 			<nav>
 				<img src="/img/zoomi.png" width="16" height="16" title="전체화면에서 편집" id="edit">
 				<img src="/img/plus.png" width="16" height="16" title="맵 확대" id="zoom_in">
@@ -565,125 +657,93 @@ function hasClass(e, className) {
 			</nav>
 		</article>
 		
-		<aside>
-			<header>
-				<ul>
-					<li>장애
-					<li>임계
-					<li>정상
-				</ul>
-			</header>
-			
-			<div class="top">
-				<div class="bounce">
-					<div id="alert" class="ball red"></div>
-					<div></div>
-				</div>
-				<div class="bounce">
-					<div id="critical"  class="ball orange"></div>
-					<div></div>
-				</div>
-				<div class="bounce">
-					<div id="normal"  class="ball green"></div>
-					<div></div>
-				</div>
-			</div>
-
-			<div id="summary_list"></div>
-			
-		</aside>
-		
 		<iframe class="top" src="/top.html"></iframe>
-			
-		<div class="bg_loading"></div>
-		<script src="/js/ITAhM.js"></script>
-		<script src="/js/Draggable.js"></script>
-		<script>
 
-var summaryList = document.getElementById("summary_list"),
-	eventList = document.getElementById("event_list"),
-	article = document.querySelector("article"),
-	alert = document.getElementById("alert"),
-	critical = document.getElementById("critical"),
-	normal = document.getElementById("normal"),
-	resources = {
-		responseTime: {
-			title: "응답시간",
-			id: "responseTime",
-			toString: toMillsString
-		},
-		processor: {
-			title: "프로세서 로드",
-			id: "processor",
-			toString: toPercentageString
-		},
-		memory: {
-			title: "메모리 사용량",
-			id: "memory",
-			toString: ITAhM.util.toBytesString
-		},
-		memoryRate: {
-			title: "메모리 사용율(%)",
-			id: "memory",
-			toString: ITAhM.util.toBytesString,
-			sortByRate: true
-		},
-		storage: {
-			title: "저장공간 사용량",
-			id: "storage",
-			toString: ITAhM.util.toBytesString
-		},
-		storageRate: {
-			title: "저장공간 사용율(%)",
-			id: "storage",
-			toString: ITAhM.util.toBytesString,
-			sortByRate: true
-		},
-		throughput: {
-			title: "통신 사용량",
-			id: "throughput",
-			toString: ITAhM.util.toBPSString
-		},
-		throughputRate: {
-			title: "통신 사용율(%)",
-			id: "throughput",
-			toString: ITAhM.util.toBPSString,
-			sortByRate: true
-		},
-		throughputErr: {
-			title: "통신 오류",
-			id: "error",
-			toString: toErrorString,
-			skipZero: true
-		},
-		failureRate: {
-			title: "SNMP 오류",
-			toString: toPercentageString,
-			skipZero: true
-		}
-	};
+		<script src="js/ITAhM.js"></script>
+		<script src="js/Draggable.js"></script>
+		<script>
+		
+var SVG_NS = "http://www.w3.org/2000/svg",
+	xlinkNS = "http://www.w3.org/1999/xlink",
+	ICON_SIZE = 40,
+	OFFSET_C = ICON_SIZE * Math.sin(Math.PI /4),
+	OFFSET_R = OFFSET_C - ICON_SIZE /2;
+
+const LINE_COLOR = "#d4af37",
+	LINE_WIDTH = 2;
+
+var 
+	mapCanvas = document.getElementById("map"),
+	deviceCanvas = document.getElementById("device"),
+	lineCanvas = document.getElementById("line"),
+	transform = document.getElementById("transform").transform.baseVal,
+	linkCanvas = document.getElementById("link"),
+	linkSVG = linkCanvas.querySelector("line"),
+	parentAnchor = document.querySelector("g.parent"),
+	fragment = document.createDocumentFragment(),
+	upper = top.store.dashboard.parent,
+	lineSVGMap = {},
+	nodeSVGMap = {},
+	topList = [],
+	checked = {},
+	scale = 1,
+	click = false;
+
+if (top.account.level === 0) {
+	document.body.classList.add("root");
+}
+
+new Draggable(mapCanvas);
+
+mapCanvas.addEventListener("dragon", onDragStart);
+mapCanvas.addEventListener("drag", onDragMove);
+
+mapCanvas.addEventListener("wheel", function (e) {
+	zoom(e.deltaY < 0);
+});
 
 document.getElementById("edit").onclick = function () {
 	window.location.href = "/map_edit.html";
 };
 
-(function (delay) {
-	var start, running = false;
+document.getElementById("zoom_in").onclick = function () {
+	zoom(true);
+};
 
+document.getElementById("zoom_out").onclick = function () {
+	zoom(false);
+};
+
+function zoom(zoomIn) {
+	window.scale = zoomIn? window.scale * 1.1: window.scale / 1.1;
+
+	window.transform.getItem(1).setScale(window.scale, window.scale);
+}
+
+if ("display" in top.setting) {
+	document.body.classList[top.setting.display == "name"? "add": "remove"]("name");
+}
+
+(function (delay) {
+	var running = false,
+		start;
+	
 	function optimize(timestamp) {
 		if (timestamp - start > delay) {
-			window.location.reload();
+			resize();
+			
+			start = undefined;
 		}
 		else {
 			requestAnimationFrame(optimize);
 		}
 	}
-
-	window.onEvent = function () {
+	
+	window.addEventListener("resize", function() {
 		if (running) {
 			return;
 		}
-		
+			
 		running = true;
 	
 		requestAnimationFrame(function(timestamp) {
@@ -698,31 +758,289 @@ document.getElementById("edit").onclick = function () {
 			
 			running = false;
 		});
-	};
-}) (1000);
+	});
+})(300);
 
 top.postRequest({
 	command: "pull",
-	database: "node"
+	database: ["node", "line", "position"]
 }, function () {
 	switch (this.status) {
 	case 200:
-		window.node = JSON.parse(this.responseText);
+		const database = JSON.parse(this.responseText);
+
+		resize();
+		
+		window.node = database.node;
+		window.line = database.line;
+		window.position = database.position;
+
+		(id => {
+			if (id) {
+				delete top.store.dashboard.search;
+			
+				if (id in window.position) {
+					const pos = window.position[id];
+
+					window.upper = top.store.dashboard.parent = pos.parent;
+					
+					moveMap(-pos.x, -pos.y);
+				}
+			}
+		})(top.store.dashboard.search);
 
 		initialize();
 
 		break;
 	default:
-		const message = this.responseText? JSON.parse(this.responseText).error: "";
-
-		if (message) {
-			console.log(message);
-		}
-
 		alert(top.getMessage(this.status));
+
+		console.log(this.responseText && JSON.parse(this.responseText).error);
 	}
 });
 
+function isChildNode(parent) {
+	for (let tmp; parent; parent = tmp) {
+		if (!(parent in window.position)) {
+			return;
+		}
+
+		tmp = window.position[parent].parent;
+		
+		if (tmp === window.upper) {
+			return parent;
+		}
+	}
+}
+
+function createStatusItem(label, count) {
+	const ul = document.createElement("ul");
+
+	ul.appendChild(document.createElement("li")).textContent = label;
+	ul.appendChild(document.createElement("li")).textContent = count.sCount;
+	ul.appendChild(document.createElement("li")).textContent = count.cCount;
+	ul.appendChild(document.createElement("li")).textContent = count.nCount;
+	
+	ul.className = "summary";
+	
+	return ul;
+}
+
+function initialize() {
+	const
+		df = document.createDocumentFragment(),
+		SHUTDOWN = 0,
+		CRITICAL = 1,
+		NORMAL = 2;
+	var
+		labelMap = {},
+		sMap = {},
+		cMap = {},
+		sCount = 0,
+		cCount = 0,
+		nCount = 0,
+		base, pos, parent;
+		
+	for (let id in window.node) {
+		base = window.node[id];
+
+		pos = window.position[id];
+
+		// 동기화 안된 node의 pos 정보가 없음
+		if (!pos) {
+			window.position[id] = pos = {
+				x: 0,
+				y: 0
+			};
+		}
+		
+		if (pos.parent === window.upper) {
+			addNode(id, base, pos);
+			
+			if ("protocol" in base) {
+				if ("status" in base && !base.status) {
+					window.addClass(window.nodeSVGMap[id], "shutdown");
+
+					sCount++;
+
+					if (base.label) {
+						base.label.split(",").forEach(function (label) {
+							if (!(label in labelMap)) {
+								labelMap[label] = {
+									sCount: 0,
+									cCount: 0,
+									nCount: 0
+								}
+							}
+
+							labelMap[label].sCount++;
+						});
+					}
+				}
+				else if ("critical" in base && !base.critical) {
+					window.addClass(window.nodeSVGMap[id], "critical");
+
+					cCount++;
+					
+					if (base.label) {
+						base.label.split(",").forEach(function (label) {
+							if (!(label in labelMap)) {
+								labelMap[label] = {
+									sCount: 0,
+									cCount: 0,
+									nCount: 0
+								}
+							}
+
+							labelMap[label].cCount++;
+						});
+					}
+				}
+				else {
+					nCount++;
+
+					if (base.label) {
+						base.label.split(",").forEach(function (label) {
+							if (!(label in labelMap)) {
+								labelMap[label] = {
+									sCount: 0,
+									cCount: 0,
+									nCount: 0
+								}
+							}
+
+							labelMap[label].nCount++;
+						});
+					}
+				}
+			}
+		}
+		else if (parent = isChildNode(pos.parent)) {
+			// 하위
+			if ("protocol" in base) {
+				if ("status" in base && !base.status) {
+					sMap[parent] = null;
+
+					sCount++;
+				}
+				else if ("critical" in base && !base.critical) {
+					cMap[parent] = null;
+
+					cCount++;
+				}
+				else {
+					nCount++;
+				}
+			}
+		}
+	}
+	
+	document.getElementById("alert").textContent = sCount;
+	document.getElementById("critical").textContent = cCount;
+	document.getElementById("normal").textContent = nCount;
+
+	for (let label in labelMap) {
+		df.appendChild(createStatusItem(label, labelMap[label]));
+	}
+		
+	document.getElementById("summary_list").appendChild(df);
+
+	for (let id in sMap) {
+		addClass(window.nodeSVGMap[id], "shutdown");
+	}
+	
+	for (let id in cMap) {
+		addClass(window.nodeSVGMap[id], "critical");
+	}
+
+	for (let id in window.line) {
+		addLine(id, window.line[id]);
+	}
+
+	if (window.upper) {
+		document.body.classList.add("submap");
+
+		const upper = window.position[window.upper].parent;
+
+		if (upper) {
+			parentAnchor.id = upper;
+		}
+		
+		parentAnchor.onclick = subMap;
+	}
+
+	refresh();
+	
+	document.body.classList.remove("loading");
+
+	mapCanvas.style.animationName = "initialize";
+}
+
+function refresh() {
+	top.postRequest({
+		command: "order",
+		order: "traffic",
+		line: window.line
+	}, function () {
+		switch (this.status) {
+		case 200:
+			const traffic = JSON.parse(this.responseText);
+			var line, ar, id1, id2, status;
+
+			for (let id in traffic) {
+				if (!(id in window.lineSVGMap)) {
+					continue;
+				}
+
+				line = traffic[id];
+
+				ar = id.split(".");
+
+				if (ar.length != 3 || ar[0] != "line") {
+					continue;
+				}
+
+				id1 = "node."+ ar[0];
+				id2 = "node."+ ar[1];
+
+				status = 0;
+
+				if (id1 in line) {
+					if ("ifOperStatus" in line[id1]) {
+						status = line[id1].ifOperStatus === 1? 1: -1;
+					}
+				}
+
+				if (status != -1 && id2 in line) {
+					if ("ifOperStatus" in line[id2]) {
+						status = line[id2].ifOperStatus === 1? 1: -1;
+					}
+				}
+
+				if (status === -1) {
+					window.lineSVGMap[id].setAttribute("stroke", "#f00");
+				}
+				else if (status === 0) {
+					window.lineSVGMap[id].setAttribute("stroke", "#ddd");
+				}
+				else if ("option" in line) {
+					window.lineSVGMap[id].setAttribute("stroke", line.option.color);
+				}
+				else {
+					window.lineSVGMap[id].setAttribute("stroke", "#0f0");
+				}
+			}
+
+			break;
+		default:
+			alert(top.getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+
+		setTimeout(refresh, 10000);
+	});
+}
 		</script>
 	
 	</body>

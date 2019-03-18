@@ -20,7 +20,6 @@ body >article {
 
 article.itahm {
 	display: flex;
-	flex-direction: column;
 }
 
 article.signin {
@@ -32,114 +31,100 @@ article.signin {
 
 header {
 	color: #fff;
-	display: flex;
-	position: absolute; top: 0; right: 0; left: 0; height: 80px;
-	transition: height .5s;
+	display: flex; flex-direction: column;
+	flex: none;
+	transition: width .5s;
 	background-color: #4d525a; 
+	position: relative;
 }
 
-body:not(.menu) header {
-	height: 0;
+header ul {
+	list-style: none;
+	padding: 0;
+	margin: 1em;
+}
+
+header li {
+	display: flex; flex-direction: column;
+	text-align: center;
+}
+
+header img {
+	display: block;
+	width: 50px; height: 50px;
+}
+
+body:not(.menu) header ul {
+	display: none;
 }
 
 div.frame {
-	position: absolute; top: 80px; right: 0; bottom: 0; left: 0;
-}
-
-body:not(.menu) div.frame {
-	top: 0;
+	flex: 1;
 }
 
 body:not(.menu) header::after {
 	content: "";
-	position: absolute; bottom: -1em; left: 50%;
-	width: 2em; height: 1em;
+	position: absolute; top: 50%; right: -1em;
+	width: 1em; height: 2em;
 	box-sizing: border-box;
 	background-color: red;
+	border-top-right-radius: 1em;
 	border-bottom-right-radius: 1em;
-	border-bottom-left-radius: 1em;
-	transform: translateX(-50%);
+	transform: translateY(-50%);
 }
 
-body:not(.menu) header::before {
-	content: "";
-	position: absolute; right: 0; left: 0; bottom: 0;
-	height: 3px;
-	background-color: #ccc;
+body:not(.menu) header:hover ul {
+	display: flex;
 }
 
-body:not(.menu) header:hover {
-	height: 80px;
+body:not(.menu) header:hover::after {
+	display: none;
 }
 
-header a {
+.icon {
+	flex: none;
+	display: flex; flex-direction: column;
+}
+
+.icon a {
 	display: inline-block;
 	height: 100%;
 	cursor: pointer;
+	margin: 3px 0;
 }
 
-header a:visited,
-header a:link,
-header a:active,
-header a:hover {
+.icon a::after {
+	content: attr(data-title);
+	text-align: center;
+}
+
+.icon a:visited,
+.icon a:link {
 	color: inherit;
 	text-decoration: none;
 }
 
-nav {
-	width: 1024px; height: 100%;
-	z-index: 1;
-	margin: auto;
-	position: relative;
-	display: flex;
-	overflow: hidden;
-	align-items: center;
-	justify-content: space-between;
-}
-
-nav ul {
-	list-style: none;
-	padding: 0;
-	display: flex;
-}
-
-nav ul.menu a {
+.icon a {
 	text-shadow: 1px 1px 1px #000;
-	padding: 0.2em 1em;
-	border-radius: 1em;
-	position: relative;
+	border-radius: 3px;
+	padding: 0.5em;
+	font-size: 0.8em;
 }
 
-nav ul.menu a:hover {
+.icon a:hover {
 	color: #4d525a;
 	text-shadow: none;
-	background-color: #fff;
+	background-color: rgba(255, 255, 255, 0.7);
 }
 
-nav ul.menu a:hover::after {
-	content: "";
-	position: absolute;
-	top: 100%; left: 50%;
-	transform: translateX(-50%);
-	border: 10px solid transparent;
-	border-top-color: #fff;
+.icon a:active {
+	background-color: rgba(255, 255, 255, 0.4);
 }
 
-nav ul.setting {
-	color: #999;
-}
-
-nav ul.setting a:hover {
-	color: #fff;
-}
-
-nav h1 {
-	color: #fff;
-	font-size: 16px;
-}
-
-nav ul.setting li {
-	margin: 5px;
+.icon a.selected {
+	background-color: rgba(255, 255, 255, 1);
+	color: #000;
+	text-shadow: 1px 1px 1px #fff;
 }
 
 #frame {
@@ -157,38 +142,34 @@ nav ul.setting li {
 	height: 100%;
 }
 
-#status {
-	position: absolute; top: 0; right: 0; bottom: 0;
-	z-index: 0;
-	width: 100px;
-	list-style: none; padding: 0; margin: 0;
-	overflow: hidden;
+.status {
+	flex: 1;
 	display: flex; flex-direction: column;
 }
 
-#status >li {
+header .status >li {
 	flex: 1;
 	margin: 1px;
 	border: 1px solid #ddd; border-radius: 3px;
 	display: flex; align-items: center; justify-content: center;
 }
 
-#status >li.normal {
+header .status >li.normal {
 	background-color: #0f0;
 	color: #097829;
 }
 
-#status >li.status {
+header .status >li.status {
 	background-color: #ffa500;
 	color: #ba4800;
 }
 
-#status >li.shutdown {
+header .status >li.shutdown {
 	background-color: #666;
 	color: #272727;
 }
 
-#status >li:empty {
+header .status >li:empty {
 	display: none;
 }
 
@@ -399,16 +380,6 @@ function toDateString(m) {
 }
 
 function onUpdate() {
-	if (this.status === 200) {
-		window.topList = JSON.parse(this.responseText);
-		
-		if (!window.initialized) {
-			window.initialized = true;
-			
-			window.frame.src = "/dashboard.html";
-		}
-	}
-	
 	setStatus(new Date().getTime() - window.updateStart, this.status);
 	
 	setTimeout(update, 10000);
@@ -426,7 +397,7 @@ function update() {
 
 	xhr.send(JSON.stringify({
 		command: "order",
-		order: "top"
+		order: "echo"
 	}));
 }
 
@@ -488,36 +459,31 @@ function listen() {
 function initialize (account) {
 	document.body.classList.add("authorized");
 	
-	document.getElementById("signout").textContent = account.username;
+	document.getElementById("signout").title = account.username +" 로그아웃";
 
 	window.account = account;
 
 	postRequest({
 		command: "pull",
-		database: ["setting", "position"]
+		database: "setting"
 	}, function () {
 		switch (this.status) {
 		case 200:
-			const response = JSON.parse(this.responseText);
-
-			window.setting = response.setting;
-			window.position = response.position.position;
-
+			window.setting = JSON.parse(this.responseText);
+			
 			setMenu(window.setting.menu);
 
 			update();
 
 			listen();
 
+			window.frame.src="/dashboard.html";
+
 			break;
 		default:
-			const message = this.responseText? JSON.parse(this.responseText).error: "";
-
-			if (message) {
-				console.log(message);
-			}
-
 			alert(getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
 		}
 	});
 }
@@ -599,7 +565,7 @@ function trySignIn(username) {
 		command: "signin"
 	}, function () {
 		switch(this.status) {
-		case 200:console.log(this.responseText);
+		case 200:
 			initialize(JSON.parse(this.responseText));
 			
 			break;
@@ -651,30 +617,56 @@ function sendEvent(event) {
 	
 	<body>
 		<article class="itahm">
-			<div class="frame">
-				<iframe id="frame" name="main"></iframe>
-			</div>
-			<header>
-				<nav>
-					<ul class="menu">
-						<li><h1><a href="/dashboard.html" target="main">대시보드</a></h1>
-						<li><h1><a href="list.html" target="main">장비목록</a></h1>
-						<li><h1><a href="event.html" target="main">이벤트</a></h1>
-						<li><h1><a href="test.html" target="main">테스트</a></h1>
-						<li><h1><a href="scrap.html" target="main">스크랩</a></h1>
-					</ul>
-					<ul class="setting">
-						<li><a id="signout" title="로그아웃">로그아웃</a>
-						<li><a href="setting.html" target="main">설정</a>
-						<li><a href="icon.html" target="main">아이콘</a>
-					</ul>
-				</nav>
-				<ul id="status">
+			<header class="test">
+				<ul class="icon">
+					<li>
+						<a href="/dashboard.html" target="main" data-title="대시보드" class="selected">
+							<img src="/img/header/dashboard.png">
+						</a>
+					</li>
+					<li>
+						<a href="list.html" target="main" data-title="목록">
+							<img src="/img/header/list.png">
+						</a>
+					</li>
+					<li>
+						<a href="line.html" target="main" data-title="회선">
+							<img src="/img/header/line.png">
+						</a>
+					</li>
+					<li>
+						<a href="event.html" target="main" data-title="이벤트">
+							<img src="/img/header/event.png">
+						</a>
+					</li>
+					<li>
+						<a href="setting.html" target="main" data-title="설정">
+							<img src="/img/header/setting.png">
+						</a>
+					</li>
+					<li>
+						<a href="icon.html" target="main" data-title="아이콘">
+							<img src="/img/header/icon.png">
+						</a>
+					</li>
+					<li>
+						<a id="signout" data-title="로그아웃">
+							<img src="/img/header/signout.png">
+						</a>
+					</li>
+					<li>
+						<a href="tmp.html" target="main"">테스트</a>
+					</li>
+				</ul>
+				<ul id="status" class="status">
 					<li class="normal"></li>
 					<li></li>
 					<li></li>
 				</ul>
 			</header>
+			<div class="frame">
+				<iframe id="frame" name="main"></iframe>
+			</div>
 		</article>
 		<article class="signin">
 			<div class="signin">
@@ -722,16 +714,14 @@ function sendEvent(event) {
 		<script>
 
 var agent,
-	initialized = false,
 	frame = document.getElementById("frame"),
 	listener = {
 		command: "listen"
 	},
 	store = {
-		scale: 1,
+		dashboard: {},
 		icon: ITAhM.iconData
 	},
-	position = {},
 	count = document.getElementById("count"),
 	dialog = document.getElementById("dialog"),
 	log = document.getElementById("log"),
@@ -837,6 +827,26 @@ var agent,
 		document.body.classList.add("ready");
 	}
 })(window.location.search && window.location.search.substring(1));
+
+(function (list) {
+	function remove(a) {
+		a.classList.remove("selected");
+	}
+
+	function addEvent(a) {
+		a.onclick = onClick;
+	}
+
+	function onClick(e) {
+		[].forEach.call(list, remove);
+
+		this.classList.add("selected");
+	}
+	
+	[].forEach.call(list, addEvent);
+
+	window.search = onClick.call(document.querySelector("header a.selected"));
+}) (document.querySelector("header").querySelectorAll("a"));
 
 document.getElementById("signout").addEventListener("click", onSignOut);
 window.addEventListener("unload", onClose);

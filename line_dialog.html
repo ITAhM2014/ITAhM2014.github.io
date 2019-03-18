@@ -24,7 +24,6 @@ h2 {
 
 .dialog {
 	position: relative;
-	width: 400px;
 	padding: 20px;
 	background-color: #fff;
 }
@@ -35,8 +34,7 @@ input[type="checkbox"] {
 
 .layout {
 	display: flex;
-	margin: 1em 0; padding: 1em;
-	border: 1px solid #aaa;
+	margin: 1em 0;
 }
 
 .layout_top {
@@ -48,6 +46,8 @@ input[type="checkbox"] {
 	padding: 10px;
 	box-sizing: border-box;
 	width: 180px;
+	border: 1px solid #aaa;
+	margin: 1em;
 }
 
 .layout_bottom {
@@ -162,10 +162,13 @@ function setSelectBox(e, ifEntry) {
 	e.selectedIndex = -1;
 }
 
-function setPort(id, peerID, e1, e2, box, check, select) {
-	if (id in top.position && "ifEntry" in top.position[id] && peerID in top.position[id].ifEntry) {
-		document.body.classList.add("edit");
-	}
+function setPort(id, dir, port) {
+	const
+		container = document.querySelector(".layout_box."+ dir),
+		select = document.getElementById(dir +"_select"),
+		check = document.getElementById(dir +"_check");
+
+	container.classList.add("loading");
 
 	check.onclick = function () {
 		if (this.checked) {
@@ -191,18 +194,14 @@ function setPort(id, peerID, e1, e2, box, check, select) {
 			const base = JSON.parse(this.responseText),
 				snmp = base.snmp;
 		
-			e1.textContent = base.ip;
-			e2.textContent = base.name;
+			document.getElementById(dir +"_ip").textContent = base.ip || "";
+			document.getElementById(dir +"_name").textContent = base.name || "";
 
 			if (snmp && "ifEntry" in snmp) {
 				setSelectBox(select, snmp.ifEntry);
 
-				if (id in top.position) {
-					const pos = top.position[id];
-
-					if ("ifEntry" in pos && peerID in pos.ifEntry) {
-						select.value = pos.ifEntry[peerID].index;
-					}
+				if (port) {
+					select.value = port.index;
 				}
 
 				select.disabled = false;
@@ -217,7 +216,7 @@ function setPort(id, peerID, e1, e2, box, check, select) {
 			console.log(this.responseText && JSON.parse(this.responseText).error);
 		}
 		
-		box.classList.remove("loading");
+		container.classList.remove("loading");
 	});
 }
 
@@ -231,10 +230,10 @@ function setPort(id, peerID, e1, e2, box, check, select) {
 			<h2>Line</h2>
 			
 				<div class="layout">
-					<div class="layout_box left loading">
+					<div class="layout_box left">
 						<div class="layout_top">
-							<h3 id="name" class="name"></h3>
-							<i id="ip"></i>
+							<h3 id="left_name" class="name"></h3>
+							<i id="left_ip"></i>
 						</div>
 						<div class="layout_bottom">
 							<input type="checkbox" id="left_check">
@@ -245,10 +244,10 @@ function setPort(id, peerID, e1, e2, box, check, select) {
 						</div>
 						<div class="loading_mask"></div>
 					</div>
-					<div class="layout_box right loading">
+					<div class="layout_box right">
 						<div class="layout_top">
-							<h3 id="peer_name" class="name"></h3>
-							<i id="peer_ip"></i>
+							<h3 id="right_name" class="name"></h3>
+							<i id="right_ip"></i>
 						</div>
 						<div class="layout_bottom">
 							<input type="checkbox"  id="right_check">
@@ -296,36 +295,53 @@ document.getElementById("close").onclick = function () {
 	form.onsubmit = function (e) {
 		e.preventDefault();
 
-		const
-			lSelect = document.getElementById("left_select"),
-			rSelect = document.getElementById("right_select"),
-			left = {},
-			right = {};
+		const line = {};
+		var select;
 
 		if (this.elements["option"].checked) {
-			left.option = {};
-			right.option = {};
-
-			left.option.color = right.option.color = this.elements["color"].value;
-			left.option.width = right.option.width = Math.max(this.elements["width"].value, 1);
+			line.option = {
+				color: this.elements["color"].value,
+				width: Math.max(this.elements["width"].value, 1)
+			};
 		}
 
-		if (!lSelect.disabled) {
-			left.index = lSelect.value;
-			left.name = lSelect.options[lSelect.selectedIndex].text;
+		select = document.getElementById("left_select");
+
+		if (!select.disabled) {
+			line[window.id1] = {
+				index: select.value,
+				name: select.options[select.selectedIndex].text
+			}
 		}
 
-		if (!rSelect.disabled) {
-			right.index = rSelect.value;
-			right.name = rSelect.options[rSelect.selectedIndex].text;
+		select = document.getElementById("right_select");
+
+		if (!select.disabled) {
+			line[window.id2] = {
+				index: select.value,
+				name: select.options[select.selectedIndex].text
+			}
 		}
 
-		top.position[window.id].ifEntry[window.peerID] = left;
-		top.position[window.peerID].ifEntry[window.id] = right;
+		top.postRequest({
+			command: "put",
+			database: "line",
+			key: window.id,
+			value: line
+		}, function () {
+			switch(this.status) {
+			case 200:
+				opener && opener.reload();
 		
-		opener && opener.reload();
-		
-		top.closeDialog();
+				top.closeDialog();	
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+		});
 	};
 
 	form.onreset = function (e) {
@@ -333,50 +349,67 @@ document.getElementById("close").onclick = function () {
 			return;
 		}
 		
-		delete top.position[window.id].ifEntry[window.peerID];
-		delete top.position[window.peerID].ifEntry[window.id];
-		
-		opener.reload();
-		
-		top.closeDialog(true);
+		top.postRequest({
+			command: "put",
+			database: "line",
+			key: window.id,
+			value: null
+		}, function () {
+			switch(this.status) {
+			case 200:
+				opener && opener.reload();
+			
+				top.closeDialog();
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+		});
 	};
 
 	// public
-	window.initialize = function(id, peerID) {
+	window.initialize = function(id, line) {console.log(id, line);
 		opener = this && this.location;
 
 		window.id = id;
-		window.peerID = peerID;
 		
-		setPort(id, peerID,
-			document.getElementById("ip"),
-			document.getElementById("name"),
-			document.querySelector(".layout_box.left"),
-			document.getElementById("left_check"),
-			document.getElementById("left_select"));
+		const ar = id.split(".");
 		
-		setPort(peerID, id,
-			document.getElementById("peer_ip"),
-			document.getElementById("peer_name"),
-			document.querySelector(".layout_box.right"),
-			document.getElementById("right_check"),
-			document.getElementById("right_select"));
-
-		if (id in top.position) {
-			const ifEntry = top.position[id].ifEntry;
-
-			if (ifEntry && peerID in ifEntry) {
-				const data = ifEntry[peerID];
-
-				if (data.option) {
-					document.getElementById("option").checked = true;
-
-					form.elements["color"].value = data.option.color;
-					form.elements["width"].value = data.option.width;
-				}
-			}		
+		if (new Number(ar[1]) < new Number(ar[2])) {
+			window.id1 = "node."+ ar[1],
+			window.id2 = "node."+ ar[2];
+		}
+		else {
+			window.id2 = "node."+ ar[1],
+			window.id1 = "node."+ ar[2];
 		}
 
+		if (line) {	
+			document.body.classList.add("edit");
+
+			setPort(id1, "left", line[id1]);
+			setPort(id2, "right", line[id2]);
+
+			if ("option" in line) {
+				document.getElementById("option").checked = true;
+
+				if ("color" in line.option) {
+					form.elements["color"].value = line.option.color;
+				}
+
+				if ("width" in line.option) {
+					form.elements["width"].value = line.option.width;
+				}
+			}
+		}
+		else {
+			setPort(id1, "left");
+			setPort(id2, "right");
+		}
+		
 		document.body.classList.remove("loading");
 	};
 }) (document.querySelector("form"));

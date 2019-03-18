@@ -105,10 +105,6 @@ body:not(.edit) input[type=reset] {
 	display: none;
 }
 
-body.edit .search {
-	display: none;
-}
-
 body.loading {
 	pointer-events: none; 
 }
@@ -219,11 +215,6 @@ function trimLabel(labels) {
 				</ul>
 				
 				<div id="custom"></div>
-				
-				<label class="search">
-					<input type="checkbox" name="search">
-					자동탐색
-				</label>
 			</div>
 			
 			<footer>
@@ -298,7 +289,7 @@ document.getElementById("close").onclick = close;
 		}, function () {
 			switch (this.status) {
 			case 200:
-				close();
+				reload();
 
 				break;
 			case 409:
@@ -334,7 +325,11 @@ document.getElementById("close").onclick = close;
 		}, function () {
 			switch (this.status) {
 				case 200:
-					close();
+					if ("editor" in top.store) {
+						delete top.store.editor.position[window.id];
+					}
+
+					reload();
 
 					break;
 				default:
@@ -368,7 +363,7 @@ document.getElementById("close").onclick = close;
 		}, function () {
 			switch (this.status) {
 				case 200:
-					close();
+					reload();
 
 					break;
 				default:
@@ -383,18 +378,18 @@ document.getElementById("close").onclick = close;
 		window.monitor = this.value;
 	};
 
-	form.elements["search"].onclick = function () {
-		top.showDialog.call(window, "/search_dialog.html");
-	};
-
 	//public
 	window.initialize = function (id) {
-		const opener = this.location;
+		const opener = this;
 
-		window.close = function () {
-			opener && opener.reload();
+		window.remove = function () {
+			opener && opener.position && delete opener.position[id];
+		};
+
+		window.reload = function () {
+			opener && opener.reload && opener.reload();
 			
-			top.closeDialog();
+			close();
 		};
 
 		window.id = id;

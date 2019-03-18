@@ -194,8 +194,6 @@ ul {
 					}
 				}
 				
-				f(Object.keys(ar));
-
 				window.list.appendChild(df);
 				
 				list.scrollTop = list.scrollHeight;	
@@ -214,31 +212,7 @@ ul {
 	}
 }) (document.querySelector("form"));
 
-function f(ipList) {console.log(ipList);
-	top.postRequest({
-			command: "pull",
-			database: "node"
-		}, function () {
-			switch (this.status) {
-			case 200:
-				const map = JSON.parse(this.responseText);
-				const list = [];
-				for (let id in map) {
-					if (map[id].ip && ipList.indexOf(map[id].ip) === -1) {
-						list.push(map[id].ip);
-					}
-					else {
-						console.log(map[id].ip);
-					}
-				}
-
-				console.log(list);
-				break;
-			}
-		});
-}
-const ar = {};
-function createItem(event) {ar[event.name] = true; ////
+function createItem(event) {
 	var ul = document.createElement("ul"),
 		icon = ul.appendChild(document.createElement("li")).appendChild(document.createElement("img")),
 		status = 0;

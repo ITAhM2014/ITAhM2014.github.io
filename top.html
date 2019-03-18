@@ -20,10 +20,15 @@ body {
 	}
 }
 
-.title {
-	padding: .5em 2em;
-	border-radius: 3px 3px 0 0;
-	border-bottom: none;
+section:empty {
+	display: none;
+}
+
+section:not(:empty)::before {
+	content: attr(title);
+	display: block;
+	padding: .5em 2em; margin: 0.5em 0;
+	border-radius: 0.5em 0.5em 0 0;
 	font-weight: bold;
 	color: #fff;
 	background-color: #000;
@@ -57,6 +62,7 @@ ul {
 	flex: 1;
 	box-sizing: border-box;
 	overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+	display: flex; align-items: center;
 }
 
 body:not(.name) .list_item> li:nth-child(1),
@@ -156,7 +162,7 @@ function initialize() {
 		for (let i=0, _i=order.length, resource; i<_i; i++) {
 			resource = order[i];
 
-			setTop(top.topList[resource], df.appendChild(document.getElementById(resource)));
+			setTop(window.topMap[resource], df.appendChild(document.getElementById(resource)));
 		}
 	}
 	else {
@@ -164,13 +170,47 @@ function initialize() {
 		let section;
 
 		while (section = list.firstElementChild) {
-			setTop(top.topList[section.id], df.appendChild(section));
+			setTop(window.topMap[section.id], df.appendChild(section));
 		}
 	}
 
 	window.list.appendChild(df);
-}
 
+	[].forEach.call(window.list.querySelectorAll("section"), function (section) {
+		section.draggable = true;
+		
+		section.addEventListener("dragstart", function (e) {
+			e.stopPropagation();
+			
+			window.draggable = this;
+		});
+		
+		section.addEventListener("dragover", function (e) {
+			e.preventDefault();
+			
+			if (window.draggable === this) {
+				return;
+			}
+			
+			switch (window.draggable) {
+			case this.previousElementSibling:
+				this.parentNode.insertBefore(this, window.draggable);
+				
+				break;
+			default:
+				this.parentNode.insertBefore(window.draggable, this);
+			}
+
+			const order = [];
+
+			for (let list=window.list, section=list.firstElementChild; section; section=section.nextElementSibling) {
+				order.push(section.id);
+			}
+			
+			top.setting.dashboard = order;
+		});
+	});
+}
 function toErrorString(value) {
 	return value;
 }
@@ -235,15 +275,35 @@ function setTop(topData, section) {
 		id = list[i];
 		value = topData[id];
 		
-		if (value.value || !skipZero) {
+		if (value && value.value || !skipZero) {
 			section.appendChild(createTopItem(id, toString(value.value), value.rate, section.id, value.index));
+		}
+	}
+}
+
+function setTop(topList, section) {
+	const
+		skipZero = section.dataset.zero,
+		sortByRate = section.dataset.rate,
+		toString = window[section.dataset.func];
+
+	for (let i=0, _i=topList.length, map, value; i< _i; i++) {
+		map = topList[i];
+		for (let id in map) {
+			value = map[id];
+
+			if (value.value || !skipZero) {
+				section.appendChild(createTopItem(id, toString(value.value), value.rate, section.id, value.index));
+			}
+
+			break;
 		}
 	}
 }
 
 function createTopItem(id, value, rate, resource, index) {
 	var 
-		base = window.node[id],
+		base = parent.node[id],
 		item = document.createElement("ul"),
 		bar;
 
@@ -284,47 +344,24 @@ function createTopItem(id, value, rate, resource, index) {
 		<div id="top_list"></div>
 		
 		<div id="tmp_list">
-			<section id="responseTime" data-func="toMillsString">
-				<div class="title">응답시간</div>
-				<div class="list"></div>
-			</section>
-			<section id="processor" data-func="toPercentageString">
-				<div class="title">프로세서 로드</div>
-				<div class="list"></div>
-			</section>
-			<section id="memory" data-func="toBytesString">
-				<div class="title">메모리 사용량</div>
-				<div class="list"></div>
-			</section>
-			<section id="memoryRate" data-func="toBytesString" data-rate="true">
-				<div class="title">메모리 사용율(%)</div>
-				<div class="list"></div>
-			</section>
-			<section id="storage" data-func="toBytesString">
-				<div class="title">저장공간 사용량</div>
-				<div class="list"></div>
-			</section>
-			<section id="storageRate" data-func="toBytesString" data-rate="true">
-				<div class="title">저장공간 사용율(%)</div>
-				<div class="list"></div>
-			</section>
-			<section id="throughput" data-func="toBPSString">
-				<div class="title">통신 사용량</div>
-				<div class="list"></div>
-			</section>
-			<section id="throughputRate" data-func="toBPSString" data-rate="true">
-				<div class="title">통신 사용율(%)</div>
-				<div class="list"></div>
-			</section>
-			<section id="throughputErr" data-func="toErrorString" data-zero="true">
-				<div class="title">통신 오류</div>
-				<div class="list"></div>
-			</section>
+			<section id="responseTime" data-func="toMillsString" title="응답시간"></section>
+			<section id="processor" data-func="toPercentageString" title="프로세서 로드"></section>
+			<section id="memory" data-func="toBytesString" title="메모리 사용량"></section>
+			<section id="memoryRate" data-func="toBytesString" data-rate="true" title="메모리 사용율(%)"></section>
+			<section id="storage" data-func="toBytesString" title="저장공간 사용량"></section>
+			<section id="storageRate" data-func="toBytesString" data-rate="true" title="저장공간 사용율(%)"></section>
+			<section id="throughput" data-func="toBPSString" title="통신 사용량"></section>
+			<section id="throughputRate" data-func="toBPSString" data-rate="true" title="통신 사용율(%)"></section>
+			<section id="throughputErr" data-func="toErrorString" data-zero="true" title="통신 오류"></section>
 		</div>
 		
 		<script>
 
-var list = document.getElementById("top_list"),
+var request = {
+		command: "order",
+		order: "top"
+	},
+	list = document.getElementById("top_list"),
 	rafID;
 
 if ("display" in top.setting && top.setting.display !== "name") {
@@ -335,29 +372,26 @@ if ("color" in top.setting) {
 	window.list.classList.add(top.setting.color);
 }
 
-top.postRequest({
-	command: "pull",
-	database: "node"
-}, function () {
+if (top.store.dashboard.parent) {
+	window.request.top = parent.topList;
+}
+
+top.postRequest(window.request, function () {
 	switch (this.status) {
 	case 200:
-		window.node = JSON.parse(this.responseText);
+		window.topMap = JSON.parse(this.responseText);
 
 		initialize();
 
 		break;
 	default:
-		const message = this.responseText? JSON.parse(this.responseText).error: "";
-
-		if (message) {
-			console.log(message);
-		}
-
 		alert(top.getMessage(this.status));
+
+		console.log(this.responseText && JSON.parse(this.responseText).error);
 	}
 });
 
-function reload() {
+function reload() {return;
 	const rafID = 
 	window.rafID = requestAnimationFrame(function reload(elapsed) {
 		if (elapsed > 8000) {
@@ -371,11 +405,11 @@ function reload() {
 	});
 }
 
-window.list.onmouseenter = function () {
+document.onmouseenter = function () {
 	window.rafID = undefined;
 };
 
-window.list.onmouseleave = function () {
+document.onmouseleave = function () {
 	reload();
 };
 

@@ -20,7 +20,7 @@ body >article {
 
 article.itahm {
 	display: flex;
-	flex-direction: column;
+	
 }
 
 article.signin {
@@ -32,14 +32,25 @@ article.signin {
 
 header {
 	color: #fff;
-	display: flex;
-	position: absolute; top: 0; right: 0; left: 0; height: 50px;
-	transition: height .5s;
-	background-color: #4d525a; 
+	display: flex; flex-direction: column;
+	flex: none;
+	background-color: #4d525a;
+	padding: 1em;
+	position: relative;
+}
+
+header li {
+	display: flex; flex-direction: column;
+	text-align: center;
+}
+
+header img {
+	display: block;
+	width: 50px; height: 50px;
 }
 
 div.frame {
-	position: absolute; top: 50px; right: 0; bottom: 0; left: 0;
+	flex: 1;
 }
 
 header a {
@@ -49,9 +60,7 @@ header a {
 }
 
 header a:visited,
-header a:link,
-header a:active,
-header a:hover {
+header a:link {
 	color: inherit;
 	text-decoration: none;
 }
@@ -65,29 +74,30 @@ header ul {
 
 header a {
 	text-shadow: 1px 1px 1px #000;
-	padding: 0.2em 1em;
-	border-radius: 1em;
-	position: relative;
+	border-radius: 3px;
+	padding: 0.5em;
+	font-size: 0.8em;
 }
 
 header a:hover {
 	color: #4d525a;
 	text-shadow: none;
-	background-color: #fff;
+	background-color: rgba(255, 255, 255, 0.7);
 }
 
-header a:hover::after {
-	content: "";
-	position: absolute;
-	top: 100%; left: 50%;
-	transform: translateX(-50%);
-	border: 10px solid transparent;
-	border-top-color: #fff;
+header a:active {
+	background-color: rgba(255, 255, 255, 0.4);
 }
 
-header h1 {
-	color: #fff;
-	font-size: 16px;
+header a.selected {
+	background-color: rgba(255, 255, 255, 1);
+	color: #000;
+	text-shadow: 1px 1px 1px #fff;
+}
+
+.menu {
+	flex: none;
+	display: flex; flex-direction: column;
 }
 
 #frame {
@@ -106,7 +116,8 @@ header h1 {
 }
 
 #status {
-	position: absolute; top: 0; right: 0; bottom: 0; width: 100px;
+	/*position: absolute; top: 0; right: 0; bottom: 0; width: 100px;*/
+	flex: 1;
 	list-style: none; padding: 0; margin: 0;
 	display: flex; flex-direction: column;
 }
@@ -487,17 +498,32 @@ function sendEvent(event) {
 	
 	<body class="menu">
 		<article class="itahm">
-			<div class="frame">
-				<iframe id="frame" name="main"></iframe>
-			</div>
 			<header>
-				<ul>
-					<li><h1><a href="/dashboard.html" target="main">대시보드</a></h1>
-					<li><h1><a href="list.html" target="main">장비목록</a></h1>
-					<li><h1><a href="event.html" target="main">이벤트</a></h1>
-					<li><h1><a href="information.html" target="main">정보</a></h1>
-					<li><h1><a href="test.html" target="main">테스트</a></h1>
-					<li><h1><a href="setting.html" target="main">설정</a></h1>
+				<ul class="menu">
+					<li>
+						<a href="/dashboard.html" target="main" title="대시보드" class="selected">
+							<img src="/img/header/dashboard.png">
+							대시보드
+						</a>
+					</li>
+					<li>
+						<a href="list.html" target="main" title="목록">
+							<img src="/img/header/list.png">
+							목록
+						</a>
+					</li>
+					<li>
+						<a href="event.html" target="main" title="이벤트">
+							<img src="/img/header/event.png">
+							이벤트
+						</a>
+					</li>
+					<li>
+						<a href="information.html" target="main" title="정보">
+							<img src="/img/header/information.png">
+							정보
+						</a>
+					</li>
 				</ul>
 				<ul id="status">
 					<li class="normal"></li>
@@ -505,6 +531,9 @@ function sendEvent(event) {
 					<li></li>
 				</ul>
 			</header>
+			<div class="frame">
+				<iframe id="frame" name="main"></iframe>
+			</div>
 		</article>
 		<article class="signin">
 			<div class="signin">
@@ -549,7 +578,13 @@ var agent,
 		level: 0
 	},
 	store = {
-		scale: 1,
+		editor: {
+			scale: 1,
+			origin: {
+				x: 0,
+				y: 0
+			}
+		},
 		icon: ITAhM.iconData
 	},
 	position = {},
@@ -583,13 +618,9 @@ function initialize() {
 
 			break;
 		default:
-			const message = this.responseText? JSON.parse(this.responseText).error: "";
-
-			if (message) {
-				console.log(message);
-			}
-
 			alert(getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
 		}
 	});
 }
@@ -663,6 +694,24 @@ function initialize() {
 	}
 
 })(window.location.search && window.location.search.substring(1));
+
+(function (list) {
+	function remove(a) {
+		a.classList.remove("selected");
+	}
+
+	function addEvent(a) {
+		a.onclick = onClick;
+	}
+
+	function onClick(e) {
+		[].forEach.call(list, remove);
+
+		this.classList.add("selected");
+	}
+
+	[].forEach.call(list, addEvent);
+}) (document.querySelector("header").querySelectorAll("a"));
 
 window.addEventListener("unload", onClose);
 

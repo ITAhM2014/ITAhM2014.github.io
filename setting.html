@@ -282,7 +282,6 @@ function createItem(src, key, data, func) {
 								<option value="0" selected>0
 								<option value="1">1
 								<option value="2">2
-								<option value="3">3
 							</select>
 						</li>
 					</ul>
@@ -354,8 +353,16 @@ function createItem(src, key, data, func) {
 				</form>
 			</p>
 			<p>
-				<form id="custom">
-					장비정보 항목 추가 : 
+				<form id="node">
+					노드정보 항목 추가 : 
+					<input type="text" name="custom" placeholder="항목1 [,항목2 ...]">
+					<input type="submit" value="적용" class="root">
+					<i>콤마(,)로 구분</i>
+				</form>
+			</p>
+			<p>
+				<form id="line">
+					회선정보 항목 추가 : 
 					<input type="text" name="custom" placeholder="항목1 [,항목2 ...]">
 					<input type="submit" value="적용" class="root">
 					<i>콤마(,)로 구분</i>
@@ -779,7 +786,7 @@ if (top.account.level > 0) {
 		});
 	};
 
-	document.getElementById("custom").onsubmit = function (e) {
+	document.getElementById("node").onsubmit = function (e) {
 		e.preventDefault();
 		
 		const customs = this.elements["custom"].value.split(",");
@@ -789,6 +796,18 @@ if (top.account.level > 0) {
 		}
 		
 		postRequest("custom", customs.join(","));
+	};
+
+	document.getElementById("line").onsubmit = function (e) {
+		e.preventDefault();
+		
+		const customs = this.elements["custom"].value.split(",");
+		
+		for (var i=0, _i=customs.length; i<_i; i++) {
+			customs[i] = customs[i].trim();
+		}
+		
+		postRequest("customLine", customs.join(","));
 	};
 
 	document.getElementById("dashboard").onsubmit = function (e) {
