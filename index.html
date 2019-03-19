@@ -280,7 +280,7 @@ body:not(.authorized) article.itahm,
 body:not(.loading) .bg_loading,
 body.set form.set,
 body:not(.set) form.account,
-body:not(.log) .log,
+body:not(.log) div.log,
 body:not(.dialog) #dialog {
 	display: none;
 }
@@ -620,32 +620,32 @@ function sendEvent(event) {
 			<header class="test">
 				<ul class="icon">
 					<li>
-						<a href="/dashboard.html" target="main" data-title="대시보드" class="selected">
+						<a href="/dashboard.html" id="dashboard" target="main" data-title="대시보드" class="selected">
 							<img src="/img/header/dashboard.png">
 						</a>
 					</li>
 					<li>
-						<a href="list.html" target="main" data-title="목록">
+						<a href="/list.html" id="node" target="main" data-title="노드">
 							<img src="/img/header/list.png">
 						</a>
 					</li>
 					<li>
-						<a href="line.html" target="main" data-title="회선">
+						<a href="/line.html" id="line" target="main" data-title="회선">
 							<img src="/img/header/line.png">
 						</a>
 					</li>
 					<li>
-						<a href="event.html" target="main" data-title="이벤트">
+						<a href="/event.html" id="event" target="main" data-title="이벤트">
 							<img src="/img/header/event.png">
 						</a>
 					</li>
 					<li>
-						<a href="setting.html" target="main" data-title="설정">
+						<a href="/setting.html" id="setting" target="main" data-title="설정">
 							<img src="/img/header/setting.png">
 						</a>
 					</li>
 					<li>
-						<a href="icon.html" target="main" data-title="아이콘">
+						<a href="/icon.html" id="icon" target="main" data-title="아이콘">
 							<img src="/img/header/icon.png">
 						</a>
 					</li>
@@ -653,9 +653,6 @@ function sendEvent(event) {
 						<a id="signout" data-title="로그아웃">
 							<img src="/img/header/signout.png">
 						</a>
-					</li>
-					<li>
-						<a href="tmp.html" target="main"">테스트</a>
 					</li>
 				</ul>
 				<ul id="status" class="status">
@@ -728,6 +725,14 @@ var agent,
 	statusWindow = {},
 	sound = new Audio("siren.mp3"),
 	logCount = 0;
+
+document.getElementById("signout").addEventListener("click", onSignOut);
+
+window.addEventListener("unload", onClose);
+
+document.querySelector("div.log").onclick = function () {
+	select("event");
+};
 
 (function (container) {
 	window.setStatus = function (elapse, status) {
@@ -845,11 +850,10 @@ var agent,
 	
 	[].forEach.call(list, addEvent);
 
-	window.search = onClick.call(document.querySelector("header a.selected"));
+	window.select = id => {
+		document.getElementById(id).click();
+	};
 }) (document.querySelector("header").querySelectorAll("a"));
-
-document.getElementById("signout").addEventListener("click", onSignOut);
-window.addEventListener("unload", onClose);
 
 		</script>
 	

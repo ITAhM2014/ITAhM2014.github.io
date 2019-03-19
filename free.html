@@ -284,11 +284,6 @@ function showStatus(id, resource, index) {
 	statusWindow.focus();
 }
 
-//public
-function getDeviceID(ip) {
-	return window.IDMap[ip];
-}
-
 // public
 function showDialog() {
 	var opener = this,
@@ -357,18 +352,6 @@ function toDateString(m) {
 }
 
 function onUpdate() {
-	if (this.status === 200) {
-		
-
-		window.topList = JSON.parse(this.responseText);
-		
-		if (!window.initialized) {
-			window.initialized = true;
-			
-			window.frame.src = "/dashboard.html";
-		}
-	}
-	
 	setStatus(new Date().getTime() - window.updateStart, this.status);
 	
 	setTimeout(update, 10000);
@@ -383,10 +366,10 @@ function update() {
 	xhr.onloadend = onUpdate;
 	
 	window.updateStart = new Date().getTime();
-	
+
 	xhr.send(JSON.stringify({
 		command: "order",
-		order: "top",
+		order: "echo"
 	}));
 }
 
@@ -501,25 +484,31 @@ function sendEvent(event) {
 			<header>
 				<ul class="menu">
 					<li>
-						<a href="/dashboard.html" target="main" title="대시보드" class="selected">
+						<a id="dashboard" href="/dashboard.html" target="main" title="대시보드" class="selected">
 							<img src="/img/header/dashboard.png">
 							대시보드
 						</a>
 					</li>
 					<li>
-						<a href="list.html" target="main" title="목록">
+						<a id="node" href="/list.html" target="main" title="노드">
 							<img src="/img/header/list.png">
 							목록
 						</a>
 					</li>
 					<li>
-						<a href="event.html" target="main" title="이벤트">
+						<a id="line" href="/line.html" target="main" title="회선">
+							<img src="/img/header/line.png">
+							회선
+						</a>
+					</li>
+					<li>
+						<a id="event" href="event.html" target="main" title="이벤트">
 							<img src="/img/header/event.png">
 							이벤트
 						</a>
 					</li>
 					<li>
-						<a href="information.html" target="main" title="정보">
+						<a id="information" href="information.html" target="main" title="정보">
 							<img src="/img/header/information.png">
 							정보
 						</a>
@@ -571,23 +560,14 @@ function sendEvent(event) {
 		<script>
 
 var agent,
-	initialized = false,
 	frame = document.getElementById("frame"),
-	IDMap = {},
 	account = {
 		level: 0
 	},
 	store = {
-		editor: {
-			scale: 1,
-			origin: {
-				x: 0,
-				y: 0
-			}
-		},
+		dashboard: {},
 		icon: ITAhM.iconData
 	},
-	position = {},
 	setting = {
 		menu: true
 	},
@@ -601,29 +581,11 @@ var agent,
 	sound = new Audio("siren.mp3"),
 	logCount = 0;
 
-function initialize() {
-	document.body.classList.add("authorized");
+document.querySelector("div.log").onclick = function () {
+	select("event");
+};
 
-	postRequest({
-		command: "pull",
-		database: "position"
-	}, function () {
-		switch (this.status) {
-		case 200:
-			window.position = JSON.parse(this.responseText).position;
-
-			update();
-
-			listen();
-
-			break;
-		default:
-			alert(getMessage(this.status));
-
-			console.log(this.responseText && JSON.parse(this.responseText).error);
-		}
-	});
-}
+window.addEventListener("unload", onClose);
 
 (function (container) {
 	window.setStatus = function (elapse, status) {
@@ -671,11 +633,18 @@ function initialize() {
 		window.agent = "http://"+ agent;
 				
 		postRequest({
-			command: "echo"
-		}, function () {
+			command: "order",
+			order: "echo"
+		}, function () {console.log(this.status);
 			switch(this.status) {
-			case 400:
-				initialize();
+			case 200:
+				window.frame.src="/dashboard.html";
+
+				update();
+
+				listen();
+				
+				document.body.classList.add("authorized");
 
 				break;
 			default:
@@ -711,9 +680,11 @@ function initialize() {
 	}
 
 	[].forEach.call(list, addEvent);
-}) (document.querySelector("header").querySelectorAll("a"));
 
-window.addEventListener("unload", onClose);
+	window.select = id => {
+		document.getElementById(id).click();
+	};
+}) (document.querySelector("header").querySelectorAll("a"));
 
 		</script>
 	

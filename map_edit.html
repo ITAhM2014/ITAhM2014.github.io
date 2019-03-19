@@ -664,7 +664,8 @@ function initialize() {
 }
 
 function onLink(e) {
-	const id1 = this.id.split(".")[1],
+	const
+		id1 = this.id.split(".")[1],
 		id2 = e.detail.peer.split(".")[1],
 		id = "line."+ (new Number(id1) > new Number(id2)? (id1 +"."+ id2): (id2 +"."+ id1));
 

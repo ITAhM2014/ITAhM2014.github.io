@@ -351,11 +351,7 @@ function initialize() {
 		id = ipList[i];
 	
 		base = window.node[id];
-	/*
-		if (base.type === "group" || base.type === "application") {
-			continue;
-		}
-	*/	
+		
 		df.appendChild(createRow(id, base));
 	}
 	
@@ -434,9 +430,7 @@ function createRow(id, base) {
 	row.onclick = function () {
 		top.store.dashboard.search = this.id;
 		
-		top.search();
-		
-		window.location.href = "/dashboard.html";
+		top.select("dashboard");
 	};
 	
 	return row;
@@ -487,11 +481,7 @@ function onSave() {
 
 	for (let id in window.node) {
 		base = window.node[id];
-/*
-		if(base.type === "group" || base.type === "application") {
-			continue;
-		}
-*/
+
 		if (base.label) {
 			label = base.label.split(",")[0];
 			
@@ -530,7 +520,7 @@ function onSave() {
 
 	ITAhM.util.download(new Blob(["\ufeff", row.join("\n")] ,{
 		type: "text/csv;charset=utf-8;"
-	}), "list.csv");
+	}), "node.csv");
 }
 
 function count() {

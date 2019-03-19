@@ -61,14 +61,19 @@ button >img {
 	height: 1em; width: 1em;
 }
 
-#sort::after {
-	content: "▲";
+.sort {
 	cursor: pointer;
-	position: absolute; right: 3px;
+	background: url("/img/updown.png") no-repeat right center;
+	background-size: 1em;
+	background-origin: content-box;
 }
 
-#sort.reverse::after {
-	content: "▼";
+.sort.sorted {
+	background-image: url("/img/down.png");
+}
+
+.sort.ascending {
+	background-image: url("/img/up.png");
 }
 
 #header >li:not(:last-child) {
@@ -109,6 +114,7 @@ li {
 	padding: 0.5em;
 	width: 120px;
 	box-sizing: border-box;
+	flex: 1 1 auto;
 }
 
 #list li {
@@ -121,22 +127,6 @@ li {
 li:nth-child(1) {
 	flex: none;
 	width: 4em;
-}
-
-li:nth-child(2) {
-	width: 200px;
-}
-
-li:nth-child(3) {
-	width: 180px;
-}
-
-li:nth-child(4) {
-	width: 100px;
-}
-
-li:last-child {
-	flex: 1;
 }
 
 label {
@@ -217,16 +207,6 @@ footer {
 	margin: 0 30px;
 }
 
-#action >img {
-	width: 1.5em; height: 1.5em;
-	margin: 0 1em;
-}
-
-#action:not(.selected),
-#action:not(.snmp) >.snmp {
-	display: none;
-}
-
 .selector {
 	overflow: visible;
 }
@@ -299,12 +279,20 @@ function IP2Int(s) {
 		</script>
 		
 		<script>
-function onEdit() {
-	top.showDialog.call(window, "/device_dialog.html", window.selectedID);
+
+//public
+function reload() {
+	window.location.reload();
 }
 
-function onMap() {
-	window.location.href = "/map_edit.html?"+ encodeURI(window.selectedID);
+function onEdit() {
+	switch(window.node[window.selectedID].type) {
+	case "application": top.showDialog.call(window, "/app_dialog.html", window.selectedID);
+		break;
+	case "group": top.showDialog.call(window, "/group_dialog.html", window.selectedID);
+		break;
+	default: top.showDialog.call(window, "/device_dialog.html", window.selectedID);
+	}
 }
 
 function onShowStatus() {
@@ -312,11 +300,11 @@ function onShowStatus() {
 }
 
 function initialize() {
-	if ("custom" in top.setting) {
-		var customs = top.setting.custom;
+	if ("customLine" in top.setting) {
+		var customs = top.setting.customLine;
 		
 		if (customs) {
-			let df = document.createDocumentFragment();
+			const df = document.createDocumentFragment();
 			
 			window.customs = customs.split(",");
 			
@@ -324,168 +312,76 @@ function initialize() {
 				df.appendChild(document.createElement("li")).textContent = custom;
 			});
 			
-			window.header.insertBefore(df, window.header.lastElementChild);
+			window.header.appendChild(df);
 		}
 	}
 	
-	const
-		df = document.createDocumentFragment(),
-		ipList = Object.keys(window.node).sort(function (a, b) {
-			const
-				ipA = window.node[a].ip,
-				ipB = window.node[b].ip;
-			
-			if (ipA && ipB) {
-				return IP2Int(ipA) - IP2Int(ipB);
-			}
-			else if (ipA) {
-				return 1;
-			}
-			else if (ipB) {
-				return -1;
-			}
-			else {
-				return 0;
-			}
-		});
+	const df = document.createDocumentFragment();
 
-	for (let i=0, _i=ipList.length, id, base; i<_i; i++) {
-		id = ipList[i];
-	
-		base = window.node[id];
-	/*
-		if (base.type === "group" || base.type === "application") {
-			continue;
-		}
-	*/	
-		df.appendChild(createRow(id, base));
+	for (let id in window.line) {
+		df.appendChild(createRow(id, window.line[id]));
 	}
-	
-	list.appendChild(df);
+
+	window.list.appendChild(df);
 	
 	document.body.classList.remove("loading");
 
 	document.getElementById("count").textContent = count();
-
-	initLabel();
 }
 
-function createRow(id, base) {
-	var
-		row = document.createElement("ul"),
-		type, labels, label;
+function createRow(id, line) {
+	const ar = id.split("."),
+		id1 = "node."+ ar[1],
+		id2 = "node."+ ar[2],
+		base1 = window.node[id1],
+		base2 = window.node[id2],
+		line1 = line[id1],
+		line2 = line[id2],
+		row = document.createElement("ul");
+	var	type, labels, label;
 	
+	if (!base1 || !base2) {
+		return;
+	}
+
 	row.appendChild(document.createElement("li")); // N.1
 	
-	row.appendChild(document.createElement("li")).textContent = base.ip || ""; // N.2
+	row.appendChild(document.createElement("li")).textContent = base1.ip || ""; // N.2
+	row.appendChild(document.createElement("li")).textContent = base1.name || ""; // N.3
+	row.appendChild(document.createElement("li")).textContent = line1? line1.name: ""; // N.4
+	row.appendChild(document.createElement("li")).textContent = base2.ip || ""; // N.5
+	row.appendChild(document.createElement("li")).textContent = base2.name || ""; // N.6
+	row.appendChild(document.createElement("li")).textContent = line2? line2.name: ""; // N.7
 	
-	if (!("type" in base)) {
-		base.type = "unknown";
-	}
-	
-	type = document.createElement("li");
-	type.dataset.type = base.type;
-	type.style.backgroundImage = "url('"+ getIcon(base.type).src +"')";
-	
-	row.appendChild(type); // N.3
-	
-	row.appendChild(document.createElement("li")).textContent = base.protocol || ""; // N.4
-	
-	if (window.customs && base.custom) {
-		window.customs.forEach(function (custom) {
-			row.appendChild(document.createElement("li")).textContent = base.custom[custom] || "";
-		});
-	};
-	
-	row.appendChild(document.createElement("li")).textContent = base.name; // N.0
-
-	row.id = id;
-	
-	if (base.label) {
-		labels = base.label.split(",");
-		
-		for (var i=0, length=labels.length; i<length; i++) {
-			label = labels[i];
-			
-			if (!(label in window.labelMap)) {
-				window.labelMap[label] = [];
-			}
-
-			window.labelMap[label].push(row);
-		}
-	}
-	else {
-		window.labelMap[""].push(row);
-	}
-	
-	if (base.protocol) {
-		if ("status" in base && !base.status) {
-			row.dataset.shutdown = true;
-		}
-		else if ("critical" in base && !base.critical) {
-			row.dataset.critical = true;
+	if (window.customs) {
+		if (line.custom) {
+			window.customs.forEach(function (custom) {
+				row.appendChild(document.createElement("li")).textContent = line.custom[custom] || "";
+			});
 		}
 		else {
-			row.dataset.normal = true;
+			window.customs.forEach(function (custom) {
+				row.appendChild(document.createElement("li"));
+			});
 		}
-	}
-	else {
-		row.dataset.disabled = true;
-	}
+	};
+	
+	row.id = id;
 	
 	row.onclick = function () {
-		selectDevice(this, id, base);
+		top.store.dashboard.search = this.id;
+		
+		top.search();
+		
+		window.location.href = "/dashboard.html";
 	};
 	
 	return row;
 }
 
-function selectDevice(row, id, base) {
-	if (window.selected) {
-		window.selected.classList.remove("selected");
-	}
-	
-	if (row) {
-		window.selected = row;
-		window.selectedID = id;
-		
-		window.action.className = "selected";
-		
-		if ("protocol" in base && base.protocol === "snmp") {
-			window.action.classList.add("snmp");
-		}
-		
-		row.classList.add("selected");
-	}
-	else {
-		window.selected = undefined;
-		window.action.className = "";
-	}
-}
-
-function onSelectDevice(id, base) {
-	selectDevice(this, id, base);	
-}
-
-function initLabel() {
-	var df = document.createDocumentFragment(),
-		option = document.createElement("option");
-
-	for (var label in window.labelMap) {
-		option = document.createElement("option");
-		
-		option.text = label;
-		
-		df.appendChild(option);
-	}
-	
-	window.label.insertBefore(df, window.label.firstChild);
-}
 
 // 선택 초기화 (상태별로 필터링)
-function onSelectStatus (src, className) {
-	selectDevice();
-	
+function onSelectStatus (src, className) {	
 	document.body.classList.remove("normal", "critical", "shutdown", "disabled");
 	
 	if (className) {
@@ -498,66 +394,78 @@ function onSelectStatus (src, className) {
 }
 
 function onSave() {
-	var baseMap = {},
-		etc = [],
-		row = [];
-	
-	row[0] = "Label,Name,Type,Address";
+	const row = [];
+	var
+		columns = ["IP","Name","Interface","IP","Name","Interface"],
+		base, line, ar, id1, id2;
 	
 	if (window.customs) {
 		window.customs.forEach(function (custom) {
-			row[0] += (","+ custom);
+			columns.push(custom);
 		});
 	}
-	
-	let base, label;
 
-	for (let id in window.node) {
-		base = window.node[id];
-/*
-		if(base.type === "group" || base.type === "application") {
-			continue;
-		}
-*/
-		if (base.label) {
-			label = base.label.split(",")[0];
-			
-			if (!(label in baseMap)) {
-				baseMap[label] = [];
-			}
+	row[0] = columns.join(",");
 
-			baseMap[label].push(base);
+	for (let id in window.line) {
+		line = window.line[id];
+		ar = id.split(".");
+		id1 = "node."+ ar[1];
+		id2 = "node."+ ar[2];
+
+		columns = [];
+
+		if (id1 in window.node) {
+			base = window.node[id1];
+
+			columns.push(base.ip || "", base.name || "");
 		}
 		else {
-			etc.push(base);
+			columns.push("", "");
 		}
-	}
-	
-	const keys = Object.keys(baseMap).sort(function (a, b) {
-		return a.localeCompare(b);
-	});
 
-	keys.push("");
+		if (id1 in line) {	
+			columns.push(line[id1].name || "");
+		}
+		else {
+			columns.push("");
+		}
+		
+		if (id2 in window.node) {
+			base = window.node[id2];
 
-	baseMap[""] = etc;
+			columns.push(base.ip || "", base.name || "");
+		}
+		else {
+			columns.push("", "");
+		}
+		
+		if (id2 in line) {	
+			columns.push(line[id2].name || "");
+		}
+		else {
+			columns.push("");
+		}
 
-	keys.forEach(function (label) {
-		baseMap[label].forEach(function (base) {
-			const columns = [label, base.name, base.type, base.ip];
-
-			if (window.customs) {
+		if (window.customs) {
+			if ("custom" in line) {
 				window.customs.forEach(function (custom) {
-					columns.push("custom" in base? base.custom[custom] || "": "");
+					columns.push(line.custom[custom] || "");
 				});
 			}
+			else {
+				window.customs.forEach(function (custom) {
+					columns.push("");
+				});
+			}
+		}
 
-			row.push(columns.join(","));
-		});
-	});
-
+		row.push(columns);
+	}
+	
 	ITAhM.util.download(new Blob(["\ufeff", row.join("\n")] ,{
 		type: "text/csv;charset=utf-8;"
-	}), "list.csv");
+	}), "line.csv");
 }
 
 function count() {
@@ -572,11 +480,39 @@ function count() {
 	return count;
 }
 
+function sortIP(e) {
+	const
+		ascending = this.classList.toggle("ascending"),
+		df = document.createDocumentFragment();
+	var order = 0;
 
-function forEach(a, f) {
-	for (var i=0, _i=a.length; i<_i; i++) {
-		f(a[i]);
-	}
+	this.classList.add("sorted");
+
+	for (let e=this; e=e.previousElementSibling; order++);
+
+	[].slice.call(window.list.children).sort(
+		function (a, b) {
+			const
+				ipA = a.children[order].textContent,
+				ipB = b.children[order].textContent;
+			
+			if (ipA && ipB) {
+				return (ascending? 1: -1) *(IP2Int(ipA) - IP2Int(ipB));
+			}
+			else if (ipB) {
+				return ascending? 1: -1;
+			}
+			else if (ipA) {
+				return ascending? -1: 1;
+			}
+			else {
+				return 0;
+			}
+		}).forEach(function (e) {
+			df.appendChild(e);
+		});
+
+	window.list.appendChild(df);
 }
 
 		</script>
@@ -588,24 +524,9 @@ function forEach(a, f) {
 			<aside>
 				<nav>
 					<i id="count"></i>
-					<div>
-						<select id="label">
-							<optgroup>
-								<option value="">미분류
-							</optgroup>
-							<optgroup>
-								<option selected>모두 보기
-							</optgroup>
-						</select>
-					</div>
-					<div id="action">
-						<img id="map" src="img/location.png" title="구성도에서 장비보기">
-						<img id="edit" src="img/edit.png" title="장비의 정보 편집">
-						<img id="status" class="snmp" src="img/chart.png" title="장비의 상태 보기">
-					</div>
 				</nav>
 				<form>
-					<input type="text" name="keyword" placeholder="IP, Type, Name">
+					<input type="text" name="keyword" placeholder="Keyword">
 					<button class="submit"><img src="/img/btn/search.png">찾기</button>
 					<button class="reset"><img src="/img/btn/cancel.png">초기화</button>
 				</form>
@@ -613,29 +534,13 @@ function forEach(a, f) {
 			
 			<header>
 				<ul id="header">
-					<li class="selector" tabindex="0">
-						<img id="icon" src="img/all.png">
-						<div>
-							<p title="장애 장비 보기" id="shutdown">
-								<img src="img/warning.png">
-							</p>
-							<p title="임계 장비 보기" id="critical">
-								<img src="img/siren.png">
-							</p>
-							<p title="정상 장비 보기" id="normal">
-								<img src="img/normal.png">
-							</p>
-							<p title="비활성 장비 보기" id="disabled">
-								<img src="img/disabled.png">
-							</p>
-							<p title="모든 장비 보기" id="all">
-								<img src="img/all.png">
-							</p>
-						</div>
-					<li id="sort">IP
-					<li>Type
-					<li>Monitor
-					<li>Name
+					<li class="selector" tabindex="0"></li>
+					<li id="ip1" class="sort">IP</li>
+					<li>Name</li>
+					<li>Interface</li>
+					<li id="ip2" class="sort">IP</li>
+					<li>Name</li>
+					<li>Interface</li>
 				</ul>
 			</header>
 			
@@ -656,101 +561,14 @@ function forEach(a, f) {
 
 var 
 	header = document.getElementById("header"),
-	label = document.getElementById("label"),
 	list = document.getElementById("list"),
-	selector = document.querySelector(".selector"),
-	icon = document.getElementById("icon"),
-	action = document.getElementById("action"),
-	labelMap = {
-		"": []
-	},
+	selector = document.querySelector(".selector"),	
 	customs, selected;
 
-label.onchange = function () {
-	const
-		df = document.createDocumentFragment(),
-		label = this.value;
-	
-	document.body.classList.add("loading");
-	
-	if (window.label.selectedIndex === window.label.options.length -1) {
-		for (let row; row = window.list.firstElementChild;) {
-			df.appendChild(row).classList.remove("hidden");
-		}
-	}
-	else {
-		// 선택 초기화
-		selectDevice();
-
-		for (let row; row = window.list.firstElementChild;) {
-			df.appendChild(row).classList[window.labelMap[label].indexOf(row) == -1? "add": "remove"]("hidden");
-		}
-	}
-	
-	window.list.appendChild(df);
-
-	document.body.classList.remove("loading");
-
-	document.getElementById("count").textContent = count();
-};
-
-document.getElementById("shutdown").onclick = onSelectStatus.bind(window, "img/warning.png", "shutdown");
-document.getElementById("critical").onclick = onSelectStatus.bind(window, "img/siren.png", "critical");
-document.getElementById("normal").onclick = onSelectStatus.bind(window, "img/normal.png", "normal");
-document.getElementById("disabled").onclick = onSelectStatus.bind(window, "img/disabled.png", "disabled");
-document.getElementById("all").onclick = onSelectStatus.bind(window, "img/all.png", "");
 document.getElementById("save").onclick = onSave;
-document.getElementById("map").onclick = onMap;
-document.getElementById("edit").onclick = onEdit;
-document.getElementById("status").onclick = onShowStatus;
 
-document.getElementById("sort").onclick = function (e) {
-	const
-		reverse = this.classList.toggle("reverse"),
-		df = document.createDocumentFragment();
-
-	[].slice.call(window.list.children).sort(reverse?
-		function (a, b) {
-			const
-				ipA = a.children[1].textContent,
-				ipB = b.children[1].textContent;
-			
-			if (ipA && ipB) {
-				return IP2Int(ipB) - IP2Int(ipA);
-			}
-			else if (ipB) {
-				return 1;
-			}
-			else if (ipA) {
-				return -1;
-			}
-			else {
-				return 0;
-			}
-		}:
-		function (a, b) {
-			const
-				ipA = a.children[1].textContent,
-				ipB = b.children[1].textContent;
-			
-			if (ipA && ipB) {
-				return IP2Int(ipA) - IP2Int(ipB);
-			}
-			else if (ipA) {
-				return 1;
-			}
-			else if (ipB) {
-				return -1;
-			}
-			else {
-				return 0;
-			}
-		}).forEach(function (e) {
-			df.appendChild(e);
-		});
-
-	window.list.appendChild(df);
-};
+document.getElementById("ip1").onclick = sortIP;
+document.getElementById("ip2").onclick = sortIP;
 
 (function (form) {
 	// 키워드로 필터링
@@ -759,9 +577,6 @@ document.getElementById("sort").onclick = function (e) {
 		
 		document.body.classList.add("loading", "keyword");
 
-		// 선택 취소
-		selectDevice();
-		
 		const keyword = form.elements["keyword"].value;
 
 		if (!keyword) {
@@ -820,20 +635,18 @@ document.getElementById("sort").onclick = function (e) {
 
 		document.getElementById("count").textContent = count();
 	}
-
-	window.getIcon = function (type = "unknown") {
-		return "icon" in top.setting && top.setting.icon[type] || top.store.icon[type];
-	};
-
 }) (document.querySelector("form"));
 
 top.postRequest({
 	command: "pull",
-	database: "node"
+	database: ["line", "node"]
 }, function () {
 	switch (this.status) {
 	case 200:
-		window.node = JSON.parse(this.responseText);
+		const database = JSON.parse(this.responseText);
+
+		window.line = database.line;
+		window.node = database.node;
 
 		initialize();
 

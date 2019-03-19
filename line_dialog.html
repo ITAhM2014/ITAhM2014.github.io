@@ -371,21 +371,15 @@ document.getElementById("close").onclick = function () {
 	};
 
 	// public
-	window.initialize = function(id, line) {console.log(id, line);
+	window.initialize = function(id, line) {
 		opener = this && this.location;
 
 		window.id = id;
 		
 		const ar = id.split(".");
 		
-		if (new Number(ar[1]) < new Number(ar[2])) {
-			window.id1 = "node."+ ar[1],
-			window.id2 = "node."+ ar[2];
-		}
-		else {
-			window.id2 = "node."+ ar[1],
-			window.id1 = "node."+ ar[2];
-		}
+		window.id1 = "node."+ ar[1],
+		window.id2 = "node."+ ar[2];
 
 		if (line) {	
 			document.body.classList.add("edit");

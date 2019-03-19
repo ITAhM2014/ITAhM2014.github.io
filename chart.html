@@ -351,7 +351,7 @@ function resetArea() {
 
 function reload(position, limit) {
 	window.position = window.start = position.setHours(0, 0, 0, 0);
-	window.limit = window.end = limit.setHours(0, 0, 0, 0);
+	window.limit = window.end = limit.setDate(limit.getDate() +1, 0, 0, 0, 0);
 	
 	window.chartWindow.location.reload();
 	
@@ -563,11 +563,7 @@ new Draggable(window.selector);
 		var start = getValueAsDate(inputStart),
 			end = getValueAsDate(inputEnd);
 		
-		if (start === end) {
-			return alert("서로 다른 날짜를 선택하세요.");
-		}
-	
-		if (start > end) {
+		if (start.getTime() > end.getTime()) {
 			setValueAsDate(inputStart, end);
 			setValueAsDate(inputEnd, start);
 			

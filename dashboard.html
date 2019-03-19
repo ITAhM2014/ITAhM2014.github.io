@@ -657,7 +657,7 @@ function getIcon (type) {
 			</nav>
 		</article>
 		
-		<iframe class="top" src="/top.html"></iframe>
+		<iframe class="top"></iframe>
 
 		<script src="js/ITAhM.js"></script>
 		<script src="js/Draggable.js"></script>
@@ -970,7 +970,9 @@ function initialize() {
 	}
 
 	refresh();
-	
+
+	document.querySelector("iframe.top").src ="/top.html";
+
 	document.body.classList.remove("loading");
 
 	mapCanvas.style.animationName = "initialize";

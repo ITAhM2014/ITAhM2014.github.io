@@ -295,8 +295,6 @@ function setTop(topList, section) {
 			if (value.value || !skipZero) {
 				section.appendChild(createTopItem(id, toString(value.value), value.rate, section.id, value.index));
 			}
-
-			break;
 		}
 	}
 }
@@ -391,7 +389,7 @@ top.postRequest(window.request, function () {
 	}
 });
 
-function reload() {return;
+function reload() {
 	const rafID = 
 	window.rafID = requestAnimationFrame(function reload(elapsed) {
 		if (elapsed > 8000) {
