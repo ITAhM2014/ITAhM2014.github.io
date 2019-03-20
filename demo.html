@@ -36,13 +36,13 @@ function postRequest(request, onResponse, timeout) {
 function onSignin(status) {
 	switch(status) {
 	case 200:
-		window.location.href = "http://itahm.com/console.html?demo.itahm.com:80";
+		window.location.href = "http://console.itahm.com/?demo.itahm.com:80";
 		
 		break;
 	default:
 		alert("Demo 가능한 기간이 아닙니다. 상태: "+ status);
 		
-		window.location.href = "http://itahm.com"; 
+		window.location.href = "http://www.itahm.com"; 
 	}
 }
 
