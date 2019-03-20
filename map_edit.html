@@ -227,8 +227,12 @@ body:not(.submap) .parent {
 function zoom() {
 	transform.getItem(1).setScale(window.scale, window.scale);
 }
-	
-function reload() {
+
+// public
+// 에디터를 벗어나지 않았다고 판단되어야 할때 현재 상태를 임시 저장
+function saveTmpReload() {
+	restoreTranslation();
+
 	top.store.editor = {
 		scale: window.scale,
 		position: window.position,
@@ -236,6 +240,12 @@ function reload() {
 	}
 
 	window.location.reload();
+}
+
+// public
+// 에디터를 벗어나지 않았다고 판단되어야 할때 현재 상태를 임시 저장
+function removePos(id) {
+	delete window.position[id];
 }
 
 function isChecked(svgDevice) {
@@ -257,7 +267,7 @@ function onMoveGroup() {
 
 	window.upper = id;
 
-	reload();
+	saveTmpReload();
 }
 
 function drawLine(link, pos1, pos2) {
@@ -492,18 +502,6 @@ Node.prototype = {
 	move: function (x, y) {
 		this.pos.x = Math.round((x + this.x) /10) *10;
 		this.pos.y = Math.round((y + this.y) /10) *10;
-		if (isNaN(this.pos.x)) {
-			console.log(Math.round((x + this.x) /10));
-			console.log((x + this.x) /10);
-			console.log(x + this.x);
-			console.log(x, this.x);
-		}
-		if (isNaN(this.pos.y)) {
-			console.log(Math.round((y + this.y) /10));
-			console.log((y + this.y) /10);
-			console.log(y + this.y);
-			console.log(y , this.y);
-		}
 
 		this.node.setAttribute("transform", "translate("+ this.pos.x +","+ this.pos.y +")");
 
@@ -667,7 +665,7 @@ function onLink(e) {
 	const
 		id1 = this.id.split(".")[1],
 		id2 = e.detail.peer.split(".")[1],
-		id = "line."+ (new Number(id1) > new Number(id2)? (id1 +"."+ id2): (id2 +"."+ id1));
+		id = "line."+ (new Number(id1) < new Number(id2)? (id1 +"."+ id2): (id2 +"."+ id1));
 
 	top.showDialog.call(window, "/line_dialog.html", id , window.line[id]);
 }
@@ -686,12 +684,10 @@ function restoreTranslation() {
 		pos.y += y;
 	}
 }
-function onEnterGroup() {
-	restoreTranslation();
-	
+function onEnterGroup() {	
 	window.upper = this.id || undefined;
 
-	reload();
+	saveTmpReload();
 }
 
 		</script>
@@ -719,7 +715,7 @@ function onEnterGroup() {
 						width="16" height="16" cursor="pointer"><!-- 34 -16/2, -16/2 -->
 						<title>이 장비의 정보를 수정합니다.</title>
 					</image>
-					<image xlink:href="/img/svg/anchor.svg" id="link_anchor" class="root" x="-8" y="-42"
+					<image xlink:href="/img/svg/anchor.svg" id="link_anchor" x="-8" y="-42"
 						width="16" height="16" cursor="pointer"><!-- -16/2, -34 -16/2 -->
 						<title>이 앵커를 드래그하여 다른 장비와 연결합니다.</title>
 					</image>
@@ -1044,7 +1040,7 @@ document.getElementById("save").onclick = function () {
 	});
 };
 
-document.getElementById("edit_anchor").onclick = function (e) {
+document.getElementById("edit_anchor").onclick = e => {
 	const base = window.node[window.selected.id],
 		icon = getIcon(base.type);
 

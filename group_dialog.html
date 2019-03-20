@@ -116,7 +116,7 @@ body:not(.edit) input[type=reset] {
 }
 
 		</style>
-		
+		<script></script>
 	</head>
 	
 	<body class="loading">
@@ -126,9 +126,16 @@ body:not(.edit) input[type=reset] {
 			<h2>그룹</h2>
 			<div class="table">
 				<ul>
-					<li>이름
+					<li>이름</li>
 					<li>
 						<input type="text" name="name" placeholder="그룹 이름" autofocus required>
+					</li>
+				</ul>
+				<ul>
+					<li>타입</li>
+					<li>
+						<select name="type" required></select>
+					</li>
 				</ul>
 			</div>
 			
@@ -165,7 +172,39 @@ document.addEventListener("keydown", function (e) {
 
 document.getElementById("close").onclick = close;
 
-(function (form) {	
+(function (form) {
+	(e => {
+		const
+			df = document.createDocumentFragment(),
+			iconData = top.store.icon;
+		var
+			groupName,
+			typeData = {},
+			group = {},
+			icon;
+		
+		if ("icon" in top.setting) {
+			const setting = top.setting.icon;
+
+			for (let type in iconData) {
+				if ((type in setting? setting: iconData)[type].group === "group") {
+					df.appendChild(document.createElement("option")).text = type;
+				};
+			}
+		}
+		else {
+			for (let type in iconData) {
+				if (iconData[type].group === "group") {
+					df.appendChild(document.createElement("option")).text = type;
+				}
+			}
+		}
+
+		e.appendChild(df);
+
+		e.selectedIndex = -1;
+	}) (form.elements["type"]);
+
 	form.onreset = function (e) {
 		if (!confirm("선택한 그룹을 삭제하겠습니까?")) {
 			return;
@@ -181,11 +220,9 @@ document.getElementById("close").onclick = close;
 		}, function () {
 			switch (this.status) {
 				case 200:
-					if ("editor" in top.store) {
-						delete top.store.editor.position[window.id];
-					}
+					removeOpenerPos();
 
-					reload();
+					reloadOpener();
 
 					break;
 				default:
@@ -202,7 +239,7 @@ document.getElementById("close").onclick = close;
 		const base = {};
 		
 		base.name = form.elements["name"].value;
-		base.type = "group";
+		base.type = form.elements["type"].value;
 		
 		top.postRequest({
 			command: "put",
@@ -212,7 +249,7 @@ document.getElementById("close").onclick = close;
 		}, function () {
 			switch (this.status) {
 				case 200:
-					reload();
+					reloadOpener();
 
 					break;
 				default:
@@ -227,12 +264,12 @@ document.getElementById("close").onclick = close;
 	window.initialize = function (id) {
 		const opener = this;
 
-		window.remove = function () {
-			opener && opener.position && delete opener.position[id];
+		window.removeOpenerPos = function () {
+			opener.removePos(id);
 		};
 
-		window.reload = function () {
-			opener && opener.reload && opener.reload();
+		window.reloadOpener = function () {
+			opener.saveTmpReload();
 			
 			close();
 		};
@@ -248,11 +285,8 @@ document.getElementById("close").onclick = close;
 				case 200:
 					window.base = JSON.parse(this.responseText);
 
-					if (base.type !== "group") {
-						throw "group이 아닌 노드를 dialog에 표시할 수 없습니다.";
-					}
-					
-					form.elements.name.value = base.name;
+					form.elements["name"].value = base.name || "";
+					form.elements["type"].value = base.type;
 					
 					document.body.classList.add("edit");
 

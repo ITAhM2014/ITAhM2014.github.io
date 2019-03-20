@@ -285,9 +285,20 @@ if (top.account.level === 0) {
 	document.querySelector("input[type=submit]").disabled = false;
 }
 
-document.getElementById("close").onclick = function () {
+function close() {
 	top.closeDialog(true);
-};
+}
+
+document.addEventListener("keydown", function (e) {
+	switch (e.keyCode) {
+	case 27:
+		close();
+		
+		break;
+	}
+});
+
+document.getElementById("close").onclick = close;
 
 (function (form) {
 	var opener;
@@ -331,9 +342,7 @@ document.getElementById("close").onclick = function () {
 		}, function () {
 			switch(this.status) {
 			case 200:
-				opener && opener.reload();
-		
-				top.closeDialog();	
+				reloadOpener();
 
 				break;
 			default:
@@ -357,9 +366,7 @@ document.getElementById("close").onclick = function () {
 		}, function () {
 			switch(this.status) {
 			case 200:
-				opener && opener.reload();
-			
-				top.closeDialog();
+				reloadOpener();
 
 				break;
 			default:
@@ -372,7 +379,13 @@ document.getElementById("close").onclick = function () {
 
 	// public
 	window.initialize = function(id, line) {
-		opener = this && this.location;
+		const opener = this;
+
+		window.reloadOpener = function () {
+			opener.saveTmpReload();
+			
+			close();
+		};
 
 		window.id = id;
 		

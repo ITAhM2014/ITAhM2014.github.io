@@ -149,9 +149,20 @@ body:not(.edit) input[type=reset] {
 		
 		<script>
 
-document.getElementById("close").onclick = function () {
+function close() {
 	top.closeDialog(true);
-};
+}
+
+document.addEventListener("keydown", function (e) {
+	switch (e.keyCode) {
+	case 27:
+		close();
+		
+		break;
+	}
+});
+
+document.getElementById("close").onclick = close;
 
 if (top.account.level === 0) {
 	document.querySelector("input[type=reset]").disabled = false;
@@ -174,9 +185,7 @@ if (top.account.level === 0) {
 			case 200:
 				top.setting.icon = icon;
 
-				opener && opener.reload();
-				
-				top.closeDialog();
+				reload();
 
 				break;
 			default:
@@ -247,8 +256,18 @@ if (top.account.level === 0) {
 	})(500);
 
 	window.initialize = function (type, icon) {
-		opener = this && this.location;
-		
+		const opener = this;
+
+		window.remove = function () {
+			opener && opener.position && delete opener.position[id];
+		};
+
+		window.reload = function () {
+			opener && opener.reload && opener.reload();
+			
+			close();
+		};
+
 		if (type) {
 			if ("icon" in top.setting && type in top.setting.icon) {
 				document.body.classList.add("edit");

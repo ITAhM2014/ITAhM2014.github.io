@@ -193,9 +193,9 @@ document.getElementById("close").onclick = close;
 		}, function () {
 			switch (this.status) {
 			case 200:
-				remove();
+				removeOpenerPos();
 
-				reload();
+				reloadOpener();
 
 				break;
 			default:
@@ -232,7 +232,7 @@ document.getElementById("close").onclick = close;
 		}, function () {
 			switch (this.status) {
 			case 200:
-				reload();
+				reloadOpener();
 
 				break;
 			case 409:
@@ -255,12 +255,12 @@ document.getElementById("close").onclick = close;
 	window.initialize = function (id) {
 		const opener = this;
 
-		window.remove = function () {
-			opener && opener.position && delete opener.position[id];
+		window.removeOpenerPos = function () {
+			opener.removePos(id);
 		};
 
-		window.reload = function () {
-			opener && opener.reload && opener.reload();
+		window.reloadOpener = function () {
+			opener.saveTmpReload();
 			
 			close();
 		};

@@ -635,7 +635,7 @@ window.addEventListener("unload", onClose);
 		postRequest({
 			command: "order",
 			order: "echo"
-		}, function () {console.log(this.status);
+		}, function () {
 			switch(this.status) {
 			case 200:
 				window.frame.src="/dashboard.html";
