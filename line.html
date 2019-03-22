@@ -352,7 +352,7 @@ function createRow(id, line) {
 	row.appendChild(document.createElement("li")).textContent = base2.ip || ""; // N.5
 	row.appendChild(document.createElement("li")).textContent = base2.name || ""; // N.6
 	row.appendChild(document.createElement("li")).textContent = line2? line2.name: ""; // N.7
-	
+	row.title = id;
 	if (window.customs) {
 		if (line.custom) {
 			window.customs.forEach(function (custom) {
@@ -369,11 +369,9 @@ function createRow(id, line) {
 	row.id = id;
 	
 	row.onclick = function () {
-		top.store.dashboard.search = this.id;
+		top.store.focus = this.id;
 		
-		top.search();
-		
-		window.location.href = "/dashboard.html";
+		top.selectMenu("dashboard");
 	};
 	
 	return row;

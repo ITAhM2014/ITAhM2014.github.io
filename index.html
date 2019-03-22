@@ -419,7 +419,11 @@ function onEvent(e) {
 		case "snmp":
 		case "updown":
 			if (!event.status) {
-				window.sound.play();
+				try {
+					window.sound.play();
+				} catch (e) {
+					console.log(e);
+				};
 			}
 
 			break;
@@ -716,7 +720,6 @@ var agent,
 		command: "listen"
 	},
 	store = {
-		dashboard: {},
 		icon: ITAhM.iconData
 	},
 	count = document.getElementById("count"),
@@ -731,7 +734,7 @@ document.getElementById("signout").addEventListener("click", onSignOut);
 window.addEventListener("unload", onClose);
 
 document.querySelector("div.log").onclick = function () {
-	select("event");
+	selectMenu("event");
 };
 
 (function (container) {
@@ -850,7 +853,7 @@ document.querySelector("div.log").onclick = function () {
 	
 	[].forEach.call(list, addEvent);
 
-	window.select = id => {
+	window.selectMenu = id => {
 		document.getElementById(id).click();
 	};
 }) (document.querySelector("header").querySelectorAll("a"));

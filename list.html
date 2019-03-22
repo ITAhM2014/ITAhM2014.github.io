@@ -428,9 +428,9 @@ function createRow(id, base) {
 	}
 	
 	row.onclick = function () {
-		top.store.dashboard.search = this.id;
+		top.store.focus = this.id;
 		
-		top.select("dashboard");
+		top.selectMenu("dashboard");
 	};
 	
 	return row;

@@ -215,7 +215,7 @@ if (top.account.level === 0) {
 	form.onsubmit = function (e) {
 		e.preventDefault();
 		
-		const icon = JSON.parse(JSON.stringify(top.setting.icon));
+		const icon = "icon" in top.setting? JSON.parse(JSON.stringify(top.setting.icon)): {};
 	
 		icon[form.elements["type"].value] = {
 			group: form.elements["group"].value,
@@ -258,12 +258,8 @@ if (top.account.level === 0) {
 	window.initialize = function (type, icon) {
 		const opener = this;
 
-		window.remove = function () {
-			opener && opener.position && delete opener.position[id];
-		};
-
 		window.reload = function () {
-			opener && opener.reload && opener.reload();
+			opener.location.reload();
 			
 			close();
 		};
