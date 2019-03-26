@@ -38,7 +38,15 @@ header {
 	position: relative;
 }
 
-header ul {
+header >.logo {
+	flex: none;
+	margin: 1em;
+	padding: 0.5em;
+	background-color: #fcba30;
+}
+
+header >ul {
+	flex: none;
 	list-style: none;
 	padding: 0;
 	margin: 1em;
@@ -49,6 +57,7 @@ header li {
 	text-align: center;
 }
 
+header >.logo img,
 header img {
 	display: block;
 	width: 50px; height: 50px;
@@ -622,6 +631,9 @@ function sendEvent(event) {
 	<body>
 		<article class="itahm">
 			<header class="test">
+				<div class="logo">
+					<img src="/img/favicon2.png">
+				</div>
 				<ul class="icon">
 					<li>
 						<a href="/dashboard.html" id="dashboard" target="main" data-title="대시보드" class="selected">

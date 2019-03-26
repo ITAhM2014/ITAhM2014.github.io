@@ -2,23 +2,584 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<title>ITAhM Demo</title>
+		<title>ITAhM Console</title>
+		
 		<style>
 
-div {
+body  {
+	font-family: arial, tahoma, "맑은 고딕";
+	font-size: 10pt;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	padding: 0; margin: 0;
+	background-color: #4d525a;
+}
+
+body >article {
+	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+}
+
+article.itahm {
+	display: flex;
+}
+
+article.signin {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: #f9f9f9;
+}
+
+header {
+	color: #fff;
+	display: flex; flex-direction: column;
+	flex: none;
+	transition: width .5s;
+	background-color: #4d525a; 
+	position: relative;
+}
+
+header >.logo {
+	flex: none;
+	margin: 1em;
+	padding: 0.5em;
+	background-color: #fcba30;
+}
+
+header >ul {
+	flex: none;
+	list-style: none;
+	padding: 0;
+	margin: 1em;
+}
+
+header li {
+	display: flex; flex-direction: column;
+	text-align: center;
+}
+
+header >.logo img,
+header img {
+	display: block;
+	width: 50px; height: 50px;
+}
+
+body:not(.menu) header ul {
+	display: none;
+}
+
+div.frame {
+	flex: 1;
+}
+
+body:not(.menu) header::after {
+	content: "";
+	position: absolute; top: 50%; right: -1em;
+	width: 1em; height: 2em;
+	box-sizing: border-box;
+	background-color: red;
+	border-top-right-radius: 1em;
+	border-bottom-right-radius: 1em;
+	transform: translateY(-50%);
+}
+
+body:not(.menu) header:hover ul {
+	display: flex;
+}
+
+body:not(.menu) header:hover::after {
+	display: none;
+}
+
+.icon {
+	flex: none;
+	display: flex; flex-direction: column;
+}
+
+.icon a {
+	display: inline-block;
+	height: 100%;
+	cursor: pointer;
+	margin: 3px 0;
+}
+
+.icon a::after {
+	content: attr(data-title);
+	text-align: center;
+}
+
+.icon a:visited,
+.icon a:link {
+	color: inherit;
+	text-decoration: none;
+}
+
+.icon a {
+	text-shadow: 1px 1px 1px #000;
+	border-radius: 3px;
+	padding: 0.5em;
+	font-size: 0.8em;
+}
+
+.icon a:hover {
+	color: #4d525a;
+	text-shadow: none;
+	background-color: rgba(255, 255, 255, 0.7);
+}
+
+.icon a:active {
+	background-color: rgba(255, 255, 255, 0.4);
+}
+
+.icon a.selected {
+	background-color: rgba(255, 255, 255, 1);
+	color: #000;
+	text-shadow: 1px 1px 1px #fff;
+}
+
+#frame {
+	flex: 1;
+	width: 100%; height: 100%;
+	border: none;
+	background-color: #4d525a;
+}
+
+#dialog {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	padding: 0;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.status {
+	flex: 1;
+	display: flex; flex-direction: column;
+}
+
+header .status >li {
+	flex: 1;
+	margin: 1px;
+	border: 1px solid #ddd; border-radius: 3px;
+	display: flex; align-items: center; justify-content: center;
+}
+
+header .status >li.normal {
+	background-color: #0f0;
+	color: #097829;
+}
+
+header .status >li.status {
+	background-color: #ffa500;
+	color: #ba4800;
+}
+
+header .status >li.shutdown {
+	background-color: #666;
+	color: #272727;
+}
+
+header .status >li:empty {
+	display: none;
+}
+
+div.log {
+	position: fixed; right: 10px; top: 10px;
+	z-index: 2;
+	cursor: pointer;
+}
+
+div.log span {
+	display: inline-block;
+	font-weight: bold;
+	background-color: #ffa500;
+	color: #fff;
+}
+
+#count {
+	width: 2em; height: 2em;
+	box-sizing: border-box;
+	padding: .5em;
+	border-radius: 1em;
+	text-align: center;
+}
+
+#log {
+	padding: .5em .5em .5em 1em;
+	margin-left: 1em;
+	border-radius: 1em 0 0 1em;
+}
+
+/** signin **/
+div.signin {
+	width: 320px;
+}
+
+p, input {
+	font-size: 13px;
+}
+
+h1 {
+	text-align: center;
+}
+
+h1 img {
+	vertical-align: middle;
+}
+
+form {
+	padding: 20px;
+	border: 1px solid #ddd;
+	background-color: #fff;
+}
+
+input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 3px 3px 3px 3px;
+}
+
+input.button {
+	margin-top: 20px;
+	background-image: linear-gradient(#7af, #0084ff);
+	border: 1px solid #07f;
+	font-weight: bold;
+	color: #fff;
+}
+
+.flex {
+	display: flex;
+}
+
+.flex >input {
+	flex: 1;
+}
+
+input[name="ip"] {
+	background: url("img/home.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="tcp"] {
+	background: transparent url("img/port.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="username"] {
+	background: transparent url("img/user.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="password"] {
+	background: transparent url("img/lock.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+.bg_loading {
 	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
 	background: #4d525a url("/img/loading.gif") no-repeat center;
 	background-size: 32px 32px;
+	opacity: .5;
 }
+
+body:not(.ready) article.signin,
+body.authorized article.signin,
+body:not(.authorized) article.itahm,
+body:not(.loading) .bg_loading,
+body.set form.set,
+body:not(.set) form.account,
+body:not(.log) div.log,
+body:not(.dialog) #dialog {
+	display: none;
+}
+
 		</style>
+		<script src="js/google.js"></script>
+
 		<script>
+//public
+function showStatus(id, resource, index) {
+	var	statusWindow = window.statusWindow[id];
+
+	if (statusWindow && !statusWindow.closed) {
+		statusWindow.close();
+	}
+	
+	statusWindow = window.open("/status.html", id);
+	
+	window.statusWindow[id] = statusWindow;
+	
+	if (resource) {
+		statusWindow.onload = function () {
+			statusWindow.onSelectResource(resource, index);
+		};
+	}
+	
+	statusWindow.focus();
+}
+
+// public
+function setMenu(showMenu) {
+	document.body.classList[showMenu? "add": "remove"]("menu");
+} 
+
+// public
+function showDialog() {
+	var opener = this,
+		url = [].shift.call(arguments),
+		args = arguments;
+	
+	window.dialog.onload = function () {
+		this.contentWindow.initialize.apply(opener, args);
+		
+		document.body.classList.add("dialog");
+	};
+	
+	window.dialog.src = url;
+}
+
+// public
+function closeDialog() {
+	document.body.classList.remove("dialog");
+}
+
+function clearLog() {
+	window.logCount = 0;
+	
+	document.body.classList.remove("log");
+}
+
+function getMessage(status) {
+	switch(status) {
+	case 401:	
+		return "세션이 만료되었습니다.";
+	
+		break;
+	case 409:		
+		return "다른 관리자 계정이 데이터베이스를 수정하였습니다.\n"
+			+"콘솔을 다시 시작합니다.";
+		
+	case 400:
+		return "잘못된 요청입니다.";
+		
+	case 503:
+		return "서버가 올바르게 동작하지 않습니다.";
+		
+	default:
+		return "에이전트가 응답하지 않습니다.";
+	}
+}
+
+function toDateString(m) {
+	const d = new Date(m),
+		a = [d.getFullYear()];
+	let n = d.getMonth() +1;
+	
+	a[a.length] = "년 ";
+	a[a.length] = n > 9? n: ("0"+ n);
+	a[a.length] = "월 ";
+	
+	n = d.getDate();
+	
+	a[a.length] = n > 9? n: ("0"+ n);
+	a[a.length] = "일";
+	
+	return a.join("");
+}
+
+function onUpdate() {
+	setStatus(new Date().getTime() - window.updateStart, this.status);
+	
+	setTimeout(update, 10000);
+}
+
+function update() {
+	const xhr = new XMLHttpRequest();
+	
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	
+	xhr.onloadend = onUpdate;
+	
+	window.updateStart = new Date().getTime();
+
+	xhr.send(JSON.stringify({
+		command: "order",
+		order: "echo"
+	}));
+}
+
+function onEvent(e) {
+	e.stopPropagation();
+	
+	if (this.status === 200) {
+		const event = JSON.parse(this.responseText);
+		
+		window.listener.event = parseInt(event.event) +1;
+		
+		window.logCount++;
+		
+		window.count.textContent = window.logCount > 9? "9+": window.logCount;
+
+		switch(event.origin) {
+		case "critical":
+		case "status":
+		case "snmp":
+		case "updown":
+			if (!event.status) {
+				try {
+					window.sound.play();
+				} catch (e) {
+					console.log(e);
+				};
+			}
+
+			break;
+
+		case "test":
+		case "system":
+		case "warning":
+			break;
+		}
+
+		window.log.textContent = event.message;
+
+		sendEvent(event);
+		
+		document.body.classList.add("log");
+		
+		listen();
+	}
+	else {
+		setStatus(0, this.status);
+		
+		setTimeout(listen, 3000);
+	}
+}
+
+function listen() {
+	const xhr = new XMLHttpRequest();
+
+	xhr.open("POST", window.agent, true);
+	xhr.withCredentials = true;
+	
+	xhr.onloadend = onEvent;
+	
+	xhr.send(JSON.stringify(window.listener));
+}
+
+function initialize (account) {
+	document.body.classList.add("authorized");
+	
+	document.getElementById("signout").title = account.username +" 로그아웃";
+
+	window.account = account;
+
+	postRequest({
+		command: "pull",
+		database: "setting"
+	}, function () {
+		switch (this.status) {
+		case 200:
+			window.setting = JSON.parse(this.responseText);
+			
+			setMenu(window.setting.menu);
+
+			update();
+
+			listen();
+
+			window.frame.src="/dashboard.html";
+
+			break;
+		default:
+			alert(getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+}
+
+function onClose(e) {
+	for (let ip in window.statusWindow) {
+		window.statusWindow[ip].close();
+	}
+}
+		</script>
+		<script>
+/** signin **/
+ 
+// private
+
+function onCancel(e) {
+	e.preventDefault();
+	
+	cancel(); 
+}
 
 function postRequest(request, onResponse, timeout) {
 	const xhr = new XMLHttpRequest();
 	
-	xhr.open("POST", "http://demo.itahm.com:80", true);
+	xhr.open("POST", window.agent, true);
 	xhr.withCredentials = true;
-	xhr.onloadend = onResponse.bind(xhr);
+	xhr.onloadend = function () {
+		let response = JSON.parse(xhr.responseText);
+		
+		switch(request.command) {
+		case "order":
+			if (request.order === "traffic") {
+				let
+					lineMap = JSON.parse(JSON.stringify(request.line)),
+					line, ar, id1, id2;
+
+				for (let id in lineMap) {
+					line = lineMap[id];
+
+					ar = id.split(".");
+					id1 = "node."+ ar[1];
+					id2 = "node."+ ar[2];
+
+					line[id1] = line[id2] = {
+						ifOperStatus: 1,
+						ifInBPS: Math.random() * 10000000,
+						ifOutBPS: Math.random() * 10000000,
+						ifSpeed: 100000000
+					}
+				}
+
+				response = lineMap;
+			
+			}
+
+			break;
+		case "pull":
+			if (typeof request.database === typeof [] && request.database.indexOf("node") != -1) {
+				for (let id in response.node) {
+					if (!("status" in response.node[id])) {
+						response.node[id].protocol = "icmp";
+						response.node[id].status = true;
+						response.node[id].critical = true;
+					}
+				}
+			}
+			else if (request.database === "node") {
+				for (let id in response) {
+					if (!("status" in response[id])) {
+						response[id].protocol = "icmp";
+						response[id].status = true;
+						response[id].critical = true;
+					}
+				}
+			}
+			break;
+		}
+
+		onResponse.call({
+			status: xhr.status,
+			responseText: JSON.stringify(response)
+		});
+	}
 	
 	if (timeout) {
 		xhr.timeout = timeout;
@@ -27,32 +588,345 @@ function postRequest(request, onResponse, timeout) {
 	xhr.send(JSON.stringify(request));
 }
 
-		</script>
-	</head>
-	<body>
-		<div></div>
-		<script>
+function onSignIn(e) {
+	e.preventDefault();
+	
+	const form = this;
+	
+	document.body.classList.add("loading");
+	
+	window.username = this.elements["username"].value;
 
-function onSignin(status) {
-	switch(status) {
-	case 200:
-		window.location.href = "http://console.itahm.com/?demo.itahm.com:80";
+	postRequest({
+		command: "signin",
+		username: window.username,
+		password: hex_md5(this.elements["password"].value)
+	}, function () {
+		document.body.classList.remove("loading");
 		
-		break;
-	default:
-		alert("Demo 가능한 기간이 아닙니다. 상태: "+ status);
+		switch(this.status) {
+		case 200:
+			initialize(JSON.parse(this.responseText));
+			
+			break;
+		case 401:
+			alert("계정이 존재하지 않거나 비밀번호가 일치하지 않습니다.");
+			
+			form.elements["username"].select();
+			
+			break;
+		case 503:
+			alert("아이탐 에이전트 서비스가 준비중입니다.");
+
+			break;
+		default:
+			alert("에이전트가 응답하지 않습니다. 상태: "+ this.status);
+			
+			cancel();
+		}
+	}, 10000);
+}
+
+function trySignIn(username) {
+	document.body.classList.add("loading");
+	
+	postRequest({
+		command: "signin",
+		username: "guest1",
+		password: "15dac3875ad0f994a832043be841dc7e"
+	}, function () {
+		switch(this.status) {
+		case 200:
+			initialize(JSON.parse(this.responseText));
+			
+			break;
 		
-		window.location.href = "http://www.itahm.com"; 
+		case 400:
+			document.body.classList.add("set");
+			
+			break;
+		case 503:
+			alert("아이탐 에이전트 서비스가 준비중입니다.");
+
+			break;
+		default:
+			alert("에이전트가 응답하지 않습니다. 상태: "+ this.status);
+			
+			cancel();
+		}
+		
+		document.body.classList.add("ready");
+		document.body.classList.remove("loading");
+		
+		username.select();
+	}, 10000);
+}
+
+function onSignOut() {
+	if (confirm("로그아웃 하겠습니까?")) {
+		postRequest({
+			command: "signout"
+		}, function () {
+			window.location.reload();
+		}, 10000);
 	}
 }
 
-postRequest({
-	command: "signin",
-	username: "guest1",
-	password: "15dac3875ad0f994a832043be841dc7e"
-}, function () {
-	setTimeout(onSignin.bind(undefined, this.status), 1000);
-}, 10000);
+function cancel() {
+	window.location.href = "/";
+}
+
+// public
+function sendEvent(event) {
+	try {
+		window.frame.contentWindow.onEvent(event);
+	} catch(e) {}
+}
+
+		</script>
+	</head>
+	
+	<body>
+		<article class="itahm">
+			<header>
+				<div class="logo">
+					<img src="/img/favicon2.png">
+				</div>
+				<ul class="icon">
+					<li>
+						<a href="/dashboard.html" id="dashboard" target="main" data-title="대시보드" class="selected">
+							<img src="/img/header/dashboard.png">
+						</a>
+					</li>
+					<li>
+						<a href="/list.html" id="node" target="main" data-title="노드">
+							<img src="/img/header/list.png">
+						</a>
+					</li>
+					<li>
+						<a href="/line.html" id="line" target="main" data-title="회선">
+							<img src="/img/header/line.png">
+						</a>
+					</li>
+					<li>
+						<a href="/event.html" id="event" target="main" data-title="이벤트">
+							<img src="/img/header/event.png">
+						</a>
+					</li>
+					<li>
+						<a href="/setting.html" id="setting" target="main" data-title="설정">
+							<img src="/img/header/setting.png">
+						</a>
+					</li>
+					<li>
+						<a href="/icon.html" id="icon" target="main" data-title="아이콘">
+							<img src="/img/header/icon.png">
+						</a>
+					</li>
+					<li>
+						<a id="signout" data-title="로그아웃">
+							<img src="/img/header/signout.png">
+						</a>
+					</li>
+				</ul>
+				<ul id="status" class="status">
+					<li class="normal"></li>
+					<li></li>
+					<li></li>
+				</ul>
+			</header>
+			<div class="frame">
+				<iframe id="frame" name="main"></iframe>
+			</div>
+		</article>
+		<article class="signin">
+			<div class="signin">
+				<h1>Connect to agent</h1>
+				<form id="connect" class="set">
+					<p>IP Address</p>
+					<input type="text" name="ip" placeholder="IP address" autofocus required>
+					<p>TCP Port</p>
+					<input type="text" name="tcp" placeholder="TCP port" required>
+					<input type="submit" value="Connect" class="button">
+				</form>	
+				<form id="signin" class="account">
+					<p>Username</p>
+					<input type="text" name="username" value="root" required>
+					<p>Password</p>
+					<input type="password" name="password" value="root" required>
+					<div class="flex">
+						<input type="reset" value="Cancel" class="button">
+						<input type="submit" value="Sign in" class="button">
+					</div>
+				</form>
+				<h1>
+					<a href="/">
+						<img width="64" height="64" src="/img/favicon.png">
+					</a>
+				</h1>
+			</div>
+		</article>
+		
+		<div class="log">
+			<a href="event.html" target="main">
+				<span id="count">99</span>
+				<span id="log">message</span>
+			</a>
+		</div>
+		
+		<iframe id="dialog"></iframe>
+		
+		<div class="bg_loading"></div>
+		
+		<script src="js/ITAhM.js"></script>
+		<script src="js/object.js"></script>
+		<script src="js/icon.js"></script>
+		<script src="js/md5.js"></script>
+		<script>
+
+var agent,
+	frame = document.getElementById("frame"),
+	listener = {
+		command: "listen"
+	},
+	store = {
+		icon: ITAhM.iconData
+	},
+	count = document.getElementById("count"),
+	dialog = document.getElementById("dialog"),
+	log = document.getElementById("log"),
+	statusWindow = {},
+	sound = new Audio("siren.mp3"),
+	logCount = 0;
+
+document.getElementById("signout").addEventListener("click", onSignOut);
+
+window.addEventListener("unload", onClose);
+
+document.querySelector("div.log").onclick = function () {
+	selectMenu("event");
+};
+
+(function (container) {
+	window.setStatus = function (elapse, status) {
+		var item = container.firstElementChild;
+
+		if (!item.classList.contains("normal")) {
+			item = container.insertBefore(container.lastElementChild, item);
+		}
+
+		switch(status) {
+		case 200:
+			item.textContent = elapse + " ms";
+			item.className = "normal";
+			
+			break;
+
+		case 0:
+		item.textContent = "지연";
+			item.className = "shutdown";
+
+			break;
+		
+		default:
+			item.textContent = "상태 "+ status;
+			item.className = "status";
+		}
+
+		item.title = new Date().toLocaleString();
+	};
+
+}) (document.getElementById("status"));
+
+(function (agent) {
+	const connect = document.getElementById("connect"),
+		signin = document.getElementById("signin");
+	
+	signin.addEventListener("reset", onCancel);
+	signin.addEventListener("submit", onSignIn);
+	
+	connect.onsubmit = function (e) {
+		e.preventDefault();
+		
+		const ip = this.elements["ip"],
+			tcp = this.elements["tcp"];
+		
+		if (isNaN(tcp.value) || tcp.value < 0 || tcp.value > 65535) {
+			return tcp.select();
+		}
+		
+		const agent = ip.value +":" +tcp.value;
+		
+		window.agent = "http://"+ agent;
+		
+		document.body.classList.add("loading");
+		
+		postRequest({
+			command: "signin"
+		}, function () {
+			switch(this.status) {
+			case 200:
+			case 400:
+				window.location.href = "?"+ agent;
+				
+				break;
+			case 503:
+				alert("아이탐 에이전트 서비스가 준비중입니다.");
+
+				break;
+			default:
+				alert("에이전트가 응답하지 않습니다. 상태: "+ this.status);
+			
+				ip.select();
+			}
+			
+			document.body.classList.remove("loading");
+		}, 10000);
+	};
+	
+	if (agent) {
+		const args = agent.split(":");
+		
+		if (args.length === 2) {
+			connect.elements["ip"].value = args[0];
+			
+			if (!isNaN(args[1]) && args[1] > -1 && args[1] < 65536) {
+				connect.elements["tcp"].value = args[1];
+				
+				window.agent = "http://" + agent;
+				
+				return trySignIn(signin.elements["username"]);
+			}
+		}
+		
+		cancel();
+	}
+	else {
+		window.location.href = "http://console.itahm.com/demo.html?demo.itahm.com:80";
+	}
+})(window.location.search && window.location.search.substring(1));
+
+(function (list) {
+	function remove(a) {
+		a.classList.remove("selected");
+	}
+
+	function addEvent(a) {
+		a.onclick = onClick;
+	}
+
+	function onClick(e) {
+		[].forEach.call(list, remove);
+
+		this.classList.add("selected");
+	}
+	
+	[].forEach.call(list, addEvent);
+
+	window.selectMenu = id => {
+		document.getElementById(id).click();
+	};
+}) (document.querySelector("header").querySelectorAll("a"));
 
 		</script>
 	
