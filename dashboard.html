@@ -609,35 +609,35 @@ function addLine(id, line) {
 	}
 
 	if (id1 in line) {
-		svg = document.createElementNS(SVG_NS, "text");
+		const
+			svg = document.createElementNS(SVG_NS, "text"),
+			x1 = Math.round(x /3),
+			y1 = Math.round(y /3);
 
 		svg.textContent = line[id1].name;
 
 		svg.onclick = top.showStatus.bind(undefined, id1, "throughput", line[id1].index);
 		
-		x = Math.round(x /3);
-		y = Math.round(y /3);
-
-		svg.setAttribute("x", x);
-		svg.setAttribute("y", y);
-		svg.setAttribute("transform", "rotate("+ rotate +","+ x +","+ y +")");
+		svg.setAttribute("x", x1);
+		svg.setAttribute("y", y1);
+		svg.setAttribute("transform", "rotate("+ rotate +","+ x1 +","+ y1 +")");
 		
 		svgLine.appendChild(svg);
 	}
 
 	if (id2 in line) {
-		const svg = document.createElementNS(SVG_NS, "text");
+		const
+			svg = document.createElementNS(SVG_NS, "text"),
+			x2 = Math.round(x *2 /3),
+			y2 = Math.round(y *2 /3);
 
 		svg.textContent = line[id2].name;
 
 		svg.onclick = top.showStatus.bind(undefined, id2, "throughput", line[id2].index);
 
-		x = Math.round(x *2 /3);
-		y = Math.round(y *2 /3);
-		
-		svg.setAttribute("x", x);
-		svg.setAttribute("y", y);
-		svg.setAttribute("transform", "rotate("+ rotate +","+ x +","+ y +")");
+		svg.setAttribute("x", x2);
+		svg.setAttribute("y", y2);
+		svg.setAttribute("transform", "rotate("+ rotate +","+ x2 +","+ y2 +")");
 
 		svgLine.appendChild(svg);
 	}
