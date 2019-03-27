@@ -142,7 +142,11 @@ function setSelectBox(e, ifEntry) {
 	for (let index in ifEntry) {
 		indexData = ifEntry[index];
 		
-		name = indexData && (indexData.ifName || indexData.ifDescr || indexData.ifAlias);
+		if (!("ifAdminStatus" in indexData) || indexData.ifAdminStatus != 1) {
+			continue;
+		}
+
+		name = indexData.ifName || indexData.ifDescr || indexData.ifAlias;
 
 		if (!name) {
 			continue;
@@ -335,6 +339,8 @@ document.getElementById("close").onclick = close;
 			}
 		}
 
+		document.body.classList.add("loading");
+		
 		top.postRequest({
 			command: "put",
 			database: "line",
@@ -358,7 +364,9 @@ document.getElementById("close").onclick = close;
 		if (!confirm("연결을 삭제하겠습니까?")) {
 			return;
 		}
-		
+
+		document.body.classList.add("loading");
+
 		top.postRequest({
 			command: "put",
 			database: "line",

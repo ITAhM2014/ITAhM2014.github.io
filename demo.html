@@ -290,7 +290,8 @@ body:not(.loading) .bg_loading,
 body.set form.set,
 body:not(.set) form.account,
 body:not(.log) div.log,
-body:not(.dialog) #dialog {
+body:not(.dialog) #dialog,
+.demo {
 	display: none;
 }
 
@@ -524,7 +525,7 @@ function postRequest(request, onResponse, timeout) {
 	xhr.open("POST", window.agent, true);
 	xhr.withCredentials = true;
 	xhr.onloadend = function () {
-		let response = JSON.parse(xhr.responseText);
+		let responseText = xhr.responseText;
 		
 		switch(request.command) {
 		case "order":
@@ -542,19 +543,20 @@ function postRequest(request, onResponse, timeout) {
 
 					line[id1] = line[id2] = {
 						ifOperStatus: 1,
-						ifInBPS: Math.random() * 10000000,
-						ifOutBPS: Math.random() * 10000000,
+						ifInBPS: Math.random() * 100000000,
+						ifOutBPS: Math.random() * 100000000,
 						ifSpeed: 100000000
 					}
 				}
 
-				response = lineMap;
-			
+				responseText = JSON.stringify(lineMap);
 			}
 
 			break;
 		case "pull":
 			if (typeof request.database === typeof [] && request.database.indexOf("node") != -1) {
+				let response = JSON.parse(responseText);
+
 				for (let id in response.node) {
 					if (!("status" in response.node[id])) {
 						response.node[id].protocol = "icmp";
@@ -562,8 +564,12 @@ function postRequest(request, onResponse, timeout) {
 						response.node[id].critical = true;
 					}
 				}
+
+				responseText = JSON.stringify(response);
 			}
 			else if (request.database === "node") {
+				let response = JSON.parse(responseText);
+
 				for (let id in response) {
 					if (!("status" in response[id])) {
 						response[id].protocol = "icmp";
@@ -571,13 +577,16 @@ function postRequest(request, onResponse, timeout) {
 						response[id].critical = true;
 					}
 				}
+
+				responseText = JSON.stringify(response);
 			}
+
 			break;
 		}
 
 		onResponse.call({
 			status: xhr.status,
-			responseText: JSON.stringify(response)
+			responseText: responseText
 		});
 	}
 	
@@ -723,7 +732,7 @@ function sendEvent(event) {
 							<img src="/img/header/icon.png">
 						</a>
 					</li>
-					<li>
+					<li class="demo">
 						<a id="signout" data-title="로그아웃">
 							<img src="/img/header/signout.png">
 						</a>

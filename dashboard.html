@@ -58,7 +58,6 @@ aside> .top {
 }
 
 #summary_list {
-	flex: 1;
 	position: relative;
 	overflow-y: auto;
 	pointer-events: auto;
@@ -613,8 +612,13 @@ function addLine(id, line) {
 			svg = document.createElementNS(SVG_NS, "text"),
 			x1 = Math.round(x /3),
 			y1 = Math.round(y /3);
+		let name = line[id1].name;
 
-		svg.textContent = line[id1].name;
+		if (name.length > MAX_LABEL_LEN) {
+			name = name.substring(0, MAX_LABEL_LEN) +"...";
+		}
+
+		svg.textContent = name;
 
 		svg.onclick = top.showStatus.bind(undefined, id1, "throughput", line[id1].index);
 		
@@ -630,8 +634,13 @@ function addLine(id, line) {
 			svg = document.createElementNS(SVG_NS, "text"),
 			x2 = Math.round(x *2 /3),
 			y2 = Math.round(y *2 /3);
+		let name = line[id2].name;
 
-		svg.textContent = line[id2].name;
+		if (name.length > MAX_LABEL_LEN) {
+			name = name.substring(0, MAX_LABEL_LEN) +"...";
+		}
+
+		svg.textContent = name;
 
 		svg.onclick = top.showStatus.bind(undefined, id2, "throughput", line[id2].index);
 
@@ -722,6 +731,7 @@ const
 	COLOR_NORMAL = "#d4af37",
 	COLOR_SHUTDOWN = "#f00",
 	COLOR_DISABLED = "#ddd",
+	MAX_LABEL_LEN = 16,
 	LINE_WIDTH = 2,
 	BAR_WIDTH = 10,
 	BAR_HEIGHT = 30;
@@ -1138,33 +1148,27 @@ function getTraffic(e) {
 		
 		const svg = window.lineSVGMap[e.data.id];
 
-		if("color" in e.data) {
-			svg.querySelector("line").setAttribute("stroke", e.data.color);
-		}
-		else {
-			switch (e.data.status) {
-			case 1:
-				svg.querySelector("line").setAttribute("stroke", COLOR_NORMAL);
+		switch (e.data.status) {
+		case 1:
+			svg.querySelector("line").setAttribute("stroke", "color" in e.data? e.data.color: COLOR_NORMAL);
 
-				if ("in" in e.data) {
-					svg.querySelector("rect:nth-of-type(2)")
-						//.setAttribute("height", Math.min(BAR_HEIGHT, e.data.in *BAR_HEIGHT /100));
-						.setAttribute("height", Math.round((Math.random() * BAR_HEIGHT) /10) *10);
-				}
-
-				if ("out" in e.data) {
-					svg.querySelector("rect:nth-of-type(3)")
-					.setAttribute("height", Math.round((Math.random() * BAR_HEIGHT) /10) *10);
-				}
-
-				break;
-			case 0:
-				svg.querySelector("line").setAttribute("stroke", COLOR_DISABLED);
-				
-				break;
-			case -1:
-				svg.querySelector("line").setAttribute("stroke", COLOR_SHUTDOWN);
+			if ("in" in e.data) {
+				svg.querySelector("rect:nth-of-type(2)")
+					.setAttribute("height", Math.min(BAR_HEIGHT, e.data.in *BAR_HEIGHT /100));
 			}
+
+			if ("out" in e.data) {
+				svg.querySelector("rect:nth-of-type(3)")
+					.setAttribute("height", Math.min(BAR_HEIGHT, e.data.out *BAR_HEIGHT /100));
+			}
+
+			break;
+		case 0:
+			svg.querySelector("line").setAttribute("stroke", COLOR_DISABLED);
+			
+			break;
+		case -1:
+			svg.querySelector("line").setAttribute("stroke", COLOR_SHUTDOWN);
 		}
 	}
 	else {

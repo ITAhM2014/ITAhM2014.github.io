@@ -580,6 +580,88 @@ if (top.account.level > 0) {
 	});
 }) (document.getElementById("information"));
 
+(function (container) {
+	
+	container.elements["add"].onclick = function () {
+		top.showDialog.call(window, "/user_dialog.html");
+	};
+
+	container.onsubmit = function (e) {
+		e.preventDefault();
+
+		const smtp = {
+				server: container.elements["server"].value,
+				protocol: container.elements["protocol"].value || undefined,
+				username: container.elements["username"].value,
+				password: container.elements["password"].value
+			};
+
+			container.classList.add("loading");
+
+		top.postRequest({
+			command: "config",
+			key: "smtp",
+			value: smtp
+		}, function () {
+			switch(this.status) {
+			case 200:
+				alert("SMTP 서버와 연결하였습니다.");
+
+				break;
+			case 501:
+				alert("NMTP 서버에 연결할 수 없습니다.");
+				
+				break;
+
+			default:
+				alert(top.getMessage(this.status));
+			}
+
+			container.classList.remove("loading");
+		});
+	};
+
+	function onSelectUser(name, user) {
+		top.showDialog.call(window, "/user_dialog.html", name, user);
+	}
+	
+	window.initSMTP = function (smtp) {
+		if (smtp) {
+			server = container.elements["server"].value = smtp.server,
+			protocol = container.elements["protocol"].value = smtp.protocol || "",
+			username = container.elements["username"].value = smtp.username,
+			password = container.elements["password"].value = smtp.password,
+			smtpData = smtp && smtp.email;
+		}
+
+		top.postRequest({
+			command: "pull",
+			database: "user",
+		}, function () {
+			switch (this.status) {
+			case 200:
+				const
+					user = JSON.parse(this.responseText);
+					df = document.createDocumentFragment();
+
+				for (let name in user) {
+					df.appendChild(createItem("/img/email.png", name, user[name], onSelectUser));
+				}
+
+				document.getElementById("user_list").appendChild(df);
+
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+
+			container.classList.remove("loading");
+		});
+	};
+}) (document.getElementById("event"));
+
 (function(container) {
 
 	document.getElementById("health").onsubmit = function (e) {
@@ -876,9 +958,15 @@ if (top.account.level > 0) {
 	}
 
 	if ("custom" in top.setting) {
-		window.custom.elements["custom"].value = top.setting.custom.split(",").join(", ");
+		document.getElementById("node").querySelector("[name=custom]")
+			.value = top.setting.custom.split(",").join(", ");
 	}
 	
+	if ("customLine" in top.setting) {
+		document.getElementById("line").querySelector("[name=custom]")
+			.value = top.setting.customLine.split(",").join(", ");
+	}
+
 	if ("dashboard" in top.setting) {
 		const list = document.getElementById("resources"),
 			order = top.setting.dashboard;
@@ -981,88 +1069,6 @@ if (top.account.level > 0) {
 		}
 	});
 }) (document.getElementById("profile"));
-
-(function (container) {
-	
-	container.elements["add"].onclick = function () {
-		top.showDialog.call(window, "/user_dialog.html");
-	};
-
-	container.onsubmit = function (e) {
-		e.preventDefault();
-
-		const smtp = {
-				server: container.elements["server"].value,
-				protocol: container.elements["protocol"].value || undefined,
-				username: container.elements["username"].value,
-				password: container.elements["password"].value
-			};
-
-			container.classList.add("loading");
-
-		top.postRequest({
-			command: "config",
-			key: "smtp",
-			value: smtp
-		}, function () {
-			switch(this.status) {
-			case 200:
-				alert("SMTP 서버와 연결하였습니다.");
-
-				break;
-			case 501:
-				alert("NMTP 서버에 연결할 수 없습니다.");
-				
-				break;
-
-			default:
-				alert(top.getMessage(this.status));
-			}
-
-			container.classList.remove("loading");
-		});
-	};
-
-	function onSelectUser(name, user) {
-		top.showDialog.call(window, "/user_dialog.html", name, user);
-	}
-	
-	window.initSMTP = function (smtp) {
-		if (smtp) {
-			server = container.elements["server"].value = smtp.server,
-			protocol = container.elements["protocol"].value = smtp.protocol || "",
-			username = container.elements["username"].value = smtp.username,
-			password = container.elements["password"].value = smtp.password,
-			smtpData = smtp && smtp.email;
-		}
-
-		top.postRequest({
-			command: "pull",
-			database: "user",
-		}, function () {
-			switch (this.status) {
-			case 200:
-				const
-					user = JSON.parse(this.responseText);
-					df = document.createDocumentFragment();
-
-				for (let name in user) {
-					df.appendChild(createItem("/img/email.png", name, user[name], onSelectUser));
-				}
-
-				document.getElementById("user_list").appendChild(df);
-
-				break;
-			default:
-				alert(top.getMessage(this.status));
-
-				console.log(this.responseText && JSON.parse(this.responseText).error);
-			}
-
-			container.classList.remove("loading");
-		});
-	};
-}) (document.getElementById("event"));
 
 backup.onsubmit = function (e) {
 	e.preventDefault();
