@@ -156,11 +156,11 @@ text {
 	fill: #555;
 	stroke: none;
 }
-/*
-.line.empty rect {
+
+.line:not(.bar) rect {
 	display: none;
 }
-*/
+
 .line rect {
 	transition: height 2s cubic-bezier(0.8, -0.6, 0.8, 1.5);
 	fill: rgba(210, 210, 210, 0.2);
@@ -1147,6 +1147,7 @@ function getTraffic(e) {
 		}
 		
 		const svg = window.lineSVGMap[e.data.id];
+		let showBar = false;
 
 		switch (e.data.status) {
 		case 1:
@@ -1155,11 +1156,15 @@ function getTraffic(e) {
 			if ("in" in e.data) {
 				svg.querySelector("rect:nth-of-type(2)")
 					.setAttribute("height", Math.min(BAR_HEIGHT, e.data.in *BAR_HEIGHT /100));
+
+				showBar = true;
 			}
 
 			if ("out" in e.data) {
 				svg.querySelector("rect:nth-of-type(3)")
 					.setAttribute("height", Math.min(BAR_HEIGHT, e.data.out *BAR_HEIGHT /100));
+
+				showBar = true;
 			}
 
 			break;
@@ -1170,6 +1175,8 @@ function getTraffic(e) {
 		case -1:
 			svg.querySelector("line").setAttribute("stroke", COLOR_SHUTDOWN);
 		}
+
+		window[showBar? "addClass": "removeClass"](svg, "bar");
 	}
 	else {
 		top.postRequest({
