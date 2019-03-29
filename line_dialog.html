@@ -323,7 +323,10 @@ document.getElementById("close").onclick = close;
 
 		select = document.getElementById("left_select");
 
-		if (!select.disabled) {
+		if (select.disabled) {
+			delete line[window.id1];
+		}
+		else {
 			line[window.id1] = {
 				index: select.value,
 				name: select.options[select.selectedIndex].text
@@ -332,7 +335,10 @@ document.getElementById("close").onclick = close;
 
 		select = document.getElementById("right_select");
 
-		if (!select.disabled) {
+		if (select.disabled) {
+			delete line[window.id2];
+		}
+		else {
 			line[window.id2] = {
 				index: select.value,
 				name: select.options[select.selectedIndex].text

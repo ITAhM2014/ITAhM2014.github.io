@@ -168,8 +168,14 @@ function initialize() {
 
 		entry = snmp.ifEntry;
 
+		let item;
+
 		for (let index in entry) {
-			df.appendChild(createThroughputItem(index, entry[index]));
+			item = createThroughputItem(index, entry[index]);
+
+			if (item) {
+				df.appendChild(item);
+			}
 		}
 
 		window.throughput.appendChild(df);
@@ -197,6 +203,10 @@ function initialize() {
 }
 
 function createThroughputItem(index, indexData) {
+	if (!("ifOperStatus" in indexData) || indexData.ifOperStatus != 1) {
+		return;
+	}
+
 	const ul = document.createElement("ul");
 	let
 		li = document.createElement("li"),

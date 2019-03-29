@@ -152,9 +152,10 @@ text {
 }
 
 .parent text {
-	font-size: 10px; font-weight: bold;
-	fill: #555;
+	font-size: 12px; font-weight: bold;
+	fill: #fcba30;
 	stroke: none;
+	pointer-events: none;
 }
 
 .line:not(.bar) rect {
@@ -537,13 +538,13 @@ function hasClass(e, className) {
 	
 	return true;
 }
-
+ 
 function addLine(id, line) {
 	const
 		ar = id.split("."),
 		id1 = "node."+ ar[1],
 		id2 = "node."+ ar[2];
-
+	
 	if (!(id1 in window.nodeSVGMap) || !(id2 in window.nodeSVGMap)) {
 		return;
 	}
@@ -695,8 +696,8 @@ function getIcon (type) {
 					<circle cx="0" cy="0" r="40"></circle>
 					<image class="no_pointer_event" xlink:href="img/group.png" x="-30" y="-30" width="60" height="60"></image>
 					<text>
-						<tspan></tspan>
-						<tspan></tspan>
+						<tspan alignment-baseline="middle"></tspan>
+						<tspan alignment-baseline="middle"></tspan>
 					</text>
 				</g>
 				<g id="transform" transform="translate(0, 0) scale(1, 1) translate(0, 0)">
@@ -1067,6 +1068,10 @@ function initialize() {
 		else if (parent = isChildNode(pos.parent)) {
 			// 하위
 			if ("protocol" in base) {
+				if (base.protocol === "snmp") {
+					window.topList.push(id);
+				}
+
 				if ("status" in base && !base.status) {
 					sMap[parent] = null;
 

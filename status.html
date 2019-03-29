@@ -940,6 +940,19 @@ function initIFace(indexData, index) {
 	document.body.classList.add("throughput");
 }
 
+//public
+function selectResource(resource, index) {
+	requestAnimationFrame(function f () {
+		if (window.base) {
+			onSelectResource(resource, index);	
+		}
+		else {
+			requestAnimationFrame(f);
+		}
+	});
+}
+
+//private
 function onSelectResource(resource, index) {
 	window.frame.onload = function () {
 		this.contentWindow.initialize(window.name, window.base.snmp, resource, index || "0");
@@ -1130,6 +1143,14 @@ var ip, snmp, ifSpeed,
 	iFaceItem = document.querySelector(".throughput.item"),
 	frame = document.getElementById("frame"),
 	rtFrame = document.getElementById("realtime_response");
+document.addEventListener("keydown", e => {
+	switch (e.keyCode) {
+	case 27:
+		window.close();
+		
+		break;
+	}
+});
 
 if (location.search.substring(1) === "debug") {
 	document.body.classList.add("debug");

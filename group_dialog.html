@@ -241,6 +241,8 @@ document.getElementById("close").onclick = close;
 		base.name = form.elements["name"].value;
 		base.type = form.elements["type"].value;
 		
+		document.body.classList.add("loading");
+
 		top.postRequest({
 			command: "put",
 			database: "node",

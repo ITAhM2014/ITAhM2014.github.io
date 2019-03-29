@@ -421,10 +421,6 @@ function resetChecked() {
 	window.deviceCanvas.appendChild(df);
 }
 
-function showStatus(index) {
-	top.showStatus();
-}
-
 function Node(id, base) {
 	const
 		svgIcon = document.createElementNS(SVG_NS, "image"),
@@ -748,11 +744,14 @@ function onEnterGroup() {
 			</form>
 		</div>
 
+		<div class="bg_loading"></div>
+
 		<script src="/js/ITAhM.js"></script>
 		<script src="/js/Draggable.js"></script>
 		<script>
 		
-const SVG_NS = "http://www.w3.org/2000/svg",
+const
+	SVG_NS = "http://www.w3.org/2000/svg",
 	XLINK_NS = "http://www.w3.org/1999/xlink",
 	LINE_COLOR = "#d4af37"/*836953*/,
 	LINE_WIDTH = 2,
@@ -1022,6 +1021,8 @@ document.getElementById("add").onclick = function () {
 document.getElementById("save").onclick = function () {
 	restoreTranslation();
 	
+	document.body.classList.add("loading");
+
 	top.postRequest({
 		command: "push",
 		database: "position",
@@ -1030,6 +1031,8 @@ document.getElementById("save").onclick = function () {
 		switch (this.status) {
 		case 200:
 			alert("구성의 변경사항을 저장하였습니다.");
+
+			document.body.classList.remove("loading");
 
 			break;
 		default:
