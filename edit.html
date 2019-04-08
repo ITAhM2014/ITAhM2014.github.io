@@ -391,6 +391,8 @@ window.form.elements["critical"].onclick = function () {
 	if(!confirm("자원의 성능 임계값 변경 사항을 적용 하겠습니까? ")) {
 		return;
 	}
+	
+	document.body.classList.add("loading");
 
 	const critical = {};
 	let id;
@@ -415,8 +417,8 @@ window.form.elements["critical"].onclick = function () {
 	}, function () {
 		switch (this.status) {
 			case 200:
-				top.sendEvent();
-				
+				document.body.classList.remove("loading");
+
 				break;
 			default:
 				alert(top.getMessage(this.status));
@@ -439,6 +441,8 @@ window.form.elements["speed"].onclick = function () {
 		return;
 	}
 
+	document.body.classList.add("loading");
+
 	const speed = {};
 
 	[].forEach.call(window.throughput.querySelectorAll("input:not([type]"), function (input) {
@@ -455,7 +459,8 @@ window.form.elements["speed"].onclick = function () {
 	}, function () {
 		switch (this.status) {
 			case 200:
-				
+				document.body.classList.remove("loading");
+
 				break;
 			default:
 				alert(top.getMessage(this.status));
@@ -469,6 +474,8 @@ window.form.elements["updown"].onclick = function () {
 	if(!confirm("Interface up/down 모니터의 변경 사항을 적용 하겠습니까? ")) {
 		return;
 	}
+
+	document.body.classList.add("loading");
 
 	const updown = {};
 
@@ -486,7 +493,8 @@ window.form.elements["updown"].onclick = function () {
 	}, function () {
 		switch (this.status) {
 			case 200:
-				
+				document.body.classList.remove("loading");
+
 				break;
 			default:
 				alert(top.getMessage(this.status));

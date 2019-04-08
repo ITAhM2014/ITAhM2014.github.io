@@ -72,7 +72,7 @@ input[type="checkbox"] {
 	flex: 1;
 }
 
-.layout_box >select {
+.layout_bottom >div >select {
 	padding: .5em;
 	box-sizing: border-box;
 	width: 100%;
@@ -126,11 +126,6 @@ footer input:hover {
 	background-color: #c68e17;
 }
 
-nav {
-	text-align: right;
-}
-
-#list ul,
 .table ul {
 	list-style: none;
 	padding: 0; margin: 3px 0;
@@ -138,34 +133,20 @@ nav {
 	align-items: center;
 }
 
-#list li,
 .table li {
 	flex: 1;
 }
 
-#list li,
 .table li:first-child {
 	padding: .5em;
+	text-align: right;
 	text-overflow: ellipsis;
 	overflow: hidden;
 	white-space: nowrap;
 }
 
-#list ul:nth-child(odd) {
-	background-color: #efefef;
-}
-
-.table li:first-child {
-	text-align: right;
-}
-
 .table li:last-child {
 	flex: 3;
-}
-
-#list li:first-child {
-	flex: none;
-	width: 2em;
 }
 
 .table input[type="text"],
@@ -177,7 +158,7 @@ nav {
 
 #custom:not(:empty),
 .option {
-	padding-top: 1em; margin-top: 0.5em;
+	padding-top: 1em;
 	border-top: 1px solid #aaa;
 }
 
@@ -231,50 +212,29 @@ function setSelectBox(e, ifEntry) {
 	e.appendChild(df);
 
 	e.selectedIndex = -1;
-
-	return e;
-}
-
-function initPort(container, id) {
-	container.classList.add("loading");
-
-	container.id = id;
-
-	top.postRequest({
-		command: "node",
-		id: id,
-		snmp: true
-	}, function () {
-		switch (this.status) {
-		case 200:
-			const
-				base = JSON.parse(this.responseText),
-				snmp = base.snmp;
-		
-			container.querySelector("h3").textContent = base.ip || "";
-			container.querySelector("i").textContent = base.name || "";
-
-			if (snmp && "ifEntry" in snmp) {
-				setSelectBox(container.querySelector("select"), snmp.ifEntry).disabled = false;
-			}
-
-			container.classList.remove("loading");
-
-			break;
-		default:
-			alert(top.getMessage(this.status));
-
-			console.log(this.responseText && JSON.parse(this.responseText).error);
-		}
-	});
 }
 
 function setPort(id, dir, port) {
 	const
 		container = document.querySelector(".layout_box."+ dir),
-		select = document.getElementById(dir +"_select");
+		select = document.getElementById(dir +"_select"),
+		check = document.getElementById(dir +"_check");
 
 	container.classList.add("loading");
+
+	check.onclick = function () {
+		if (this.checked) {
+			if (select.options.length > 0) {
+				select.disabled = false;
+			}
+			else {
+				this.checked = false;
+			}
+		}
+		else {
+			select.disabled = true;
+		}
+	};
 
 	top.postRequest({
 		command: "node",
@@ -312,27 +272,6 @@ function setPort(id, dir, port) {
 	});
 }
 
-function createItem (args) {
-	const
-		ul = document.createElement("ul"),
-		checkbox = document.createElement("input");
-
-	checkbox.type= "checkbox";
-
-	ul.appendChild(document.createElement("li")).appendChild(checkbox);
-	ul.appendChild(document.createElement("li")).textContent = args[0] && args[0].name;
-	ul.appendChild(document.createElement("li")).textContent = args[1] && args[1].name;
-
-	if (args[0]) {
-		ul.dataset.peer1 = args[0].index;
-	}
-	
-	if (args[1]) {
-		ul.dataset.peer2 = args[1].index;
-	}
-
-	return ul;
-}
 		</script>
 	</head>
 	
@@ -343,37 +282,40 @@ function createItem (args) {
 			<h2>Line</h2>
 			<div class="form">
 				<div class="layout">
-					<div id="peer1" class="layout_box left">
+					<div class="layout_box left">
 						<div class="layout_top">
 							<h3 id="left_name" class="name"></h3>
 							<i id="left_ip"></i>
 						</div>
-						<select id="left_select" disabled></select>
-						<div id="left_list"></div>
+						<div class="layout_bottom">
+							<input type="checkbox" id="left_check">
+							<div>
+								<select id="left_select" required disabled></select>
+							</div>
+							
+						</div>
 						<div class="loading_mask"></div>
 					</div>
-					<div id="peer2" class="layout_box right">
+					<div class="layout_box right">
 						<div class="layout_top">
 							<h3 id="right_name" class="name"></h3>
 							<i id="right_ip"></i>
 						</div>
-						
-						<select id="right_select" disabled></select>
-						<div id="right_list"></div>
+						<div class="layout_bottom">
+							<input type="checkbox"  id="right_check">
+							<div>
+								<select id="right_select" required disabled></select>
+							</div>
+						</div>
 						<div class="loading_mask"></div>
 					</div>
 				</div>
-				<div id="list"></div>
-				<nav>
-					<input type="button" name="add" value="추가">
-					<input type="button" name="remove" value="제거">
-				</nav>
 				
 				<div id="custom" class="table"></div>
 
 				<div class="option">
 					<input type="checkbox" name="option" id="option">
-					<label for="option">옵션</label>
+					<label for="option">고급</label>
 					<div class="table">
 						<ul>
 							<li>색상</li>
@@ -400,9 +342,12 @@ function createItem (args) {
 
 		<script>
 
-var
-	custom = {},
-	list = document.getElementById("list");
+var custom = {};
+
+if (top.account.level === 0) {
+	document.querySelector("input[type=reset]").disabled = false;
+	document.querySelector("input[type=submit]").disabled = false;
+}
 
 function close() {
 	top.closeDialog(true);
@@ -422,92 +367,41 @@ document.getElementById("close").onclick = close;
 (function (form) {
 	var opener;
 
-	if (top.account.level === 0) {
-		document.querySelector("input[type=reset]").disabled = false;
-		document.querySelector("input[type=submit]").disabled = false;
-
-		form.onreset = removeLine;
-	}
-
-	form.elements["add"].onclick = e => {
-		const args = [];
-		var container, select;
-
-		for (let i=0, id=[window.id1, window.id2]; i<2; i++) {
-			container = document.getElementById(id[i]);
-			select = container.querySelector("select");
-
-			if (select.disabled || select.selectedIndex === -1) {
-				continue;
-			}
-
-			args[i] = {
-				index: select.value,
-				name: select.options[select.selectedIndex].text
-			};
-			
-			select.selectedIndex = -1;
-		}
-
-		window.list.appendChild(createItem(args));
-	};
-
-	form.elements["remove"].onclick = e => {
-		[].forEach.call(window.list.querySelectorAll("input:checked"), checkbox => {
-			window.list.removeChild(checkbox.parentNode.parentNode);
-		});
-
-		if (!window.list.firstElementChild && form.onreset) {
-			if (confirm("연결 정보가 존재하지 않습니다.\n"+
-				"회선을 삭제하겠습니까?")) {
-				form.onreset();
-			}
-		}
-	};
-
 	form.onsubmit = function (e) {
 		e.preventDefault();
 
-		const
-			line = {},
-			items = window.list.querySelectorAll("ul");
-
-		if (items.length > 1) {
-			line[window.id1] = [];
-			line[window.id2] = [];
-
-			[].forEach.call(items, ul => {
-				line[window.id1].push("peer1" in ul.dataset? {
-					index: ul.dataset.peer1,
-					name: ul.querySelector("li:nth-child(2)").textContent
-				}: null);
-				
-				line[window.id2].push("peer2" in ul.dataset? {
-					index: ul.dataset.peer2,
-					name: ul.querySelector("li:nth-child(3)").textContent
-				}: null);
-			});
-		}
-		else {
-			const ul = items[0];
-
-			line[window.id1] = "peer1" in ul.dataset? {
-				index: ul.dataset.peer1,
-				name: ul.querySelector("li:nth-child(2)").textContent
-			}: null;
-
-			line[window.id2] = "peer2" in ul.dataset? {
-				index: ul.dataset.peer2,
-				name: ul.querySelector("li:nth-child(2)").textContent
-			}: null;
-		}
-		
+		const line = {};
+		var select;
 
 		if (this.elements["option"].checked) {
 			line.option = {
 				color: this.elements["color"].value,
 				width: Math.max(this.elements["width"].value, 1)
 			};
+		}
+
+		select = document.getElementById("left_select");
+
+		if (select.disabled) {
+			delete line[window.id1];
+		}
+		else {
+			line[window.id1] = {
+				index: select.value,
+				name: select.options[select.selectedIndex].text
+			}
+		}
+
+		select = document.getElementById("right_select");
+
+		if (select.disabled) {
+			delete line[window.id2];
+		}
+		else {
+			line[window.id2] = {
+				index: select.value,
+				name: select.options[select.selectedIndex].text
+			}
 		}
 
 		if (Object.keys(window.custom).length > 0) {
@@ -539,8 +433,8 @@ document.getElementById("close").onclick = close;
 		});
 	};
 
-	function removeLine(e) {
-		if (!confirm("회선을 삭제하겠습니까?")) {
+	form.onreset = function (e) {
+		if (!confirm("연결을 삭제하겠습니까?")) {
 			return;
 		}
 
@@ -563,7 +457,7 @@ document.getElementById("close").onclick = close;
 				console.log(this.responseText && JSON.parse(this.responseText).error);
 			}
 		});
-	}
+	};
 
 	// public
 	window.initialize = function(id, line) {
@@ -608,6 +502,9 @@ document.getElementById("close").onclick = close;
 		if (line) {	
 			document.body.classList.add("edit");
 
+			setPort(id1, "left", line[id1]);
+			setPort(id2, "right", line[id2]);
+
 			if ("custom" in line) {
 				for (let custom in window.custom) {
 					window.custom[custom].value = line.custom[custom] || "";
@@ -625,19 +522,11 @@ document.getElementById("close").onclick = close;
 					form.elements["width"].value = line.option.width;
 				}
 			}
-
-			if (Array.isArray(line[window.id1])) {
-				for (let i=0, _i=line[window.id1].length; i<_i; i++) {
-					window.list.appendChild(createItem([line[window.id1][i], line[window.id2][i]]));
-				}
-			}
-			else {
-				window.list.appendChild(createItem([line[window.id1], line[window.id2]]));
-			}
 		}
-		
-		initPort(document.getElementById("peer1"), id1);
-		initPort(document.getElementById("peer2"), id2);
+		else {
+			setPort(id1, "left");
+			setPort(id2, "right");
+		}
 
 		document.body.classList.remove("loading");
 	};

@@ -33,7 +33,8 @@ h2 {
 input[type="text"],
 input[type="number"],
 input[type="submit"],
-input[type="reset"] {
+input[type="reset"],
+select {
 	width: 100%;
 	box-sizing: border-box;
 	padding: .5em;
@@ -126,15 +127,20 @@ function isIPv4(s) {
 					<li>
 						<input type="text" name="ip" class="table text"
 							pattern="(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
-							title = "IPv4 x.x.x.x"
-							placeholder="127.0.0.1" required autofocus>
+							placeholder="IP Address" required autofocus>
 					
 				</ul>
 				<ul>
 					<li>TCP 포트
 					<li>
 						<input type="number" max="65535" min="1" name="tcp" class="table text"
-							placeholder="1 ~ 65535" required>
+							placeholder="TCP Address" title="Number(1 ~ 65535)" required>
+					
+				</ul>
+				<ul>
+					<li>타입
+					<li>
+						<select name="type" required></select>
 					
 				</ul>
 				<ul>
@@ -175,6 +181,28 @@ document.addEventListener("keydown", function (e) {
 document.getElementById("close").onclick = close;
 
 (function (form) {
+	(e => {
+		const
+			df = document.createDocumentFragment(),
+			map = {};
+			
+		for (type in top.store.icon) {
+			map[type] = ("icon" in top.setting && type in top.setting.icon? top.setting.icon: top.store.icon)[type];
+		}
+		
+		for (type in map) {
+			if (map[type].group !== "application") {
+				continue;
+			}
+			
+			df.appendChild(document.createElement("option")).text = type;
+		}
+		
+		e.appendChild(df);
+
+		e.selectedIndex = -1;
+	}) (form.elements["type"]);
+	
 	form.onreset = function(e) {
 		e.preventDefault();
 
@@ -219,8 +247,9 @@ document.getElementById("close").onclick = close;
 			ip = form.elements["ip"].value,
 			tcp = form.elements["tcp"].value.toString(),
 			base = {
-				type: "application",
+				role: "application",
 				ip: ip +":"+ tcp,
+				type: form.elements["type"].value,
 				name: form.elements["name"].value
 			};
 			
@@ -290,6 +319,8 @@ document.getElementById("close").onclick = close;
 
 					name.value = base.name || "";
 					name.select();
+
+					form.elements["type"].value = base.type;
 
 					document.body.classList.add("edit");
 

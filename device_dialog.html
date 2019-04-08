@@ -260,7 +260,9 @@ document.getElementById("close").onclick = close;
 		
 		const
 			ip = this.elements["ip"].value,
-			base = {};
+			base = {
+				role: "node"
+			};
 
 		if (ip && !isIPv4(ip)) {
 			return this.elements["ip"].select();
@@ -394,7 +396,7 @@ document.getElementById("close").onclick = close;
 		
 		if ("custom" in top.setting) {
 			const
-				customs = top.setting.custom.split(",")
+				customs = top.setting.custom.split(","),
 				df = document.createDocumentFragment();
 			let
 				ul,

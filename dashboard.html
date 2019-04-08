@@ -73,8 +73,7 @@ aside> .top {
 	font-weight: bold;
 	margin: 3px 0;
 	padding: 0.5em;
-	background-color: rgba(255, 255, 255, 0.2);
-	border-radius: 5px;
+	background-color: rgba(255, 255, 255, 0.1);
 }
 
 .summary> li:first-child {
@@ -153,13 +152,9 @@ text {
 
 .parent text {
 	font-size: 12px; font-weight: bold;
-	fill: #fcba30;
+	fill: #336;
 	stroke: none;
 	pointer-events: none;
-}
-
-.line:not(.bar) rect {
-	display: none;
 }
 
 .line rect {
@@ -232,7 +227,7 @@ body.loading g {
 }
 
 .parent {
-	fill: #fff;
+	fill: #0084ff;
 	stroke: #ddd; stroke-width: 5px;
 }
 
@@ -440,8 +435,8 @@ function addNode(id, base, pos) {
 	svgDevice.id = id;
 
 	svgDevice.onmousedown = setClick;
-
-	if (icon.group === "group") {
+	
+	if (base.role === "group") {
 		svgDevice.onclick = subMap;
 	}
 	else if (base.protocol === "snmp") {
@@ -451,7 +446,7 @@ function addNode(id, base, pos) {
 			}
 		};
 	}
-	
+
 	svgName.textContent = base.name || base.ip || "";
 	svgAddr.textContent = base.ip || base.name || "";
 	
@@ -485,6 +480,9 @@ function addNode(id, base, pos) {
 		if (base.protocol === "snmp") {
 			window.topList.push(id);
 		}
+	}
+	else if (icon.group === "group") {
+		svgIcon.setAttributeNS(xlinkNS, "xlink:href", icon.src);
 	}
 	else {
 		svgIcon.setAttributeNS(xlinkNS, "xlink:href", icon.disabled);
@@ -538,7 +536,116 @@ function hasClass(e, className) {
 	
 	return true;
 }
- 
+
+function Line(id1, id2) {
+	this.pos1 = window.position[this.id1 = id1];
+	this.pos2 = window.position[this.id2 = id2];
+	this.theta = Math.atan2(this.pos2.y - this.pos1.y, this.pos2.x - this.pos1.x);
+	this.rotate = (this.theta * 180 /Math.PI + (this.theta <= 0? + 90: -90));
+}
+
+Line.BAR_WIDTH = 10;
+Line.BAR_HEIGHT = 30;
+Line.WIDTH = 2;
+Line.MAX_LABEL_LEN = 16;
+Line.COLOR = "#d4af37";
+Line.DIFF = 8;
+
+Line.prototype = {
+	create: function (link1, link2) {
+		const
+			g = document.createElementNS(SVG_NS, "g"),
+			x = this.pos2.x - this.pos1.x,
+			y = this.pos2.y - this.pos1.y;
+		
+		this.line = document.createElementNS(SVG_NS, "line");
+
+		addClass(g, "line");
+		
+		this.line.setAttribute("x1", 0);
+		this.line.setAttribute("y1", 0);
+		this.line.setAttribute("x2", x);
+		this.line.setAttribute("y2", y);
+		this.width(Line.WIDTH);
+		this.color(Line.COLOR);
+
+		g.appendChild(this.line);
+
+		if (link1) {
+			g.appendChild(this.label(this.id1, link1.index, link1.name, Math.round(x /3), Math.round(y /3)));
+		}
+
+		if (link2) {
+			g.appendChild(this.label(this.id2, link2.index, link2.name, Math.round(x *2/3), Math.round(y *2/3)));
+		}
+
+		if (link1 || link2) {
+			const bar = document.createElementNS(SVG_NS, "rect");
+			
+			bar.setAttribute("transform", "translate("+ (x /2 - Line.BAR_WIDTH) +","+ (y /2) +") scale(1 -1)");
+
+			this.in = document.createElementNS(SVG_NS, "rect");
+
+			this.in.setAttribute("transform", "translate("+ (x /2 -Line.BAR_WIDTH) +","+ (y /2) +") scale(1 -1)");
+
+			this.out = document.createElementNS(SVG_NS, "rect");
+
+			this.out.setAttribute("transform", "translate("+ (x /2) +","+ (y /2) +") scale(1 -1)");
+
+			g.appendChild(bar);
+			g.appendChild(this.in);
+			g.appendChild(this.out);
+		}
+
+		if (!this.lines) {
+			this.lines = g;
+
+			g.setAttribute("transform", "translate("+ this.pos1.x +","+ this.pos1.y +")");
+		}
+		else {
+			if (!Array.isArray(this.lines)) {
+				this.lines = [this.lines];
+			}
+			
+			this.lines.push(g);
+
+			const len = this.lines.length -1;
+
+			this.lines.forEach((g, i) => {
+				g.setAttribute("transform",
+					"translate("+
+					(this.pos1.x + Math.cos(this.theta -Math.PI /2) * (len -i *2) *Line.DIFF) +","+
+					(this.pos1.y + Math.sin(this.theta -Math.PI /2) * (len -i *2) *Line.DIFF) +")");
+			});
+		}
+
+		return g;
+	},
+	label: function (id, index, name, x, y) {
+		const svg = document.createElementNS(SVG_NS, "text");
+				
+		if (name.length > Line.MAX_LABEL_LEN) {
+			name = name.substring(0, Line.MAX_LABEL_LEN) +"...";
+		}
+
+		svg.textContent = name;
+
+		svg.onclick = top.showStatus.bind(undefined, id, "throughput", index);
+
+		svg.setAttribute("x", x);
+		svg.setAttribute("y", y);
+		//svg.setAttribute("transform", "rotate("+ this.rotate +","+ x +","+ y +")");
+
+		return svg;
+	},
+	color: function (color) {
+		this.line.setAttribute("stroke", color);
+	},
+	width: function (width) {
+		this.line.setAttribute("stroke-width", width);
+	}
+};
+
 function addLine(id, line) {
 	const
 		ar = id.split("."),
@@ -549,107 +656,21 @@ function addLine(id, line) {
 		return;
 	}
 
-	const
-		pos1 = window.position[id1],
-		pos2 = window.position[id2],
-		svgLine = document.createElementNS(SVG_NS, "g"),
-		svgIn = document.createElementNS(SVG_NS, "rect"),
-		svgOut = document.createElementNS(SVG_NS, "rect");
-	var
-		svg = document.createElementNS(SVG_NS, "line"),
-		x = pos2.x - pos1.x,
-		y = pos2.y - pos1.y,
-		width = LINE_WIDTH;
-
-	window.lineSVGMap[id] = svgLine;
-
-	svgLine.setAttribute("transform", "translate("+ pos1.x +","+ pos1.y +")");
-
-	addClass(svgLine, "line");
-
-	svg.setAttribute("x1", 0);
-	svg.setAttribute("y1", 0);
-	svg.setAttribute("x2", x);
-	svg.setAttribute("y2", y);
+	window.lineMap[id] = new Line(id1, id2);
 
 	if ("option" in line) {
 		if ("width" in line.option) {
-			width = line.option.width;
+			window.lineMap[id].width(line.option.width)
 		}
 	}
-	
-	svg.setAttribute("stroke-width", width);
 
-	svgLine.appendChild(svg);
-	lineCanvas.appendChild(svgLine);
-
-	svg = document.createElementNS(SVG_NS, "rect");
-
-	svg.setAttribute("width", BAR_WIDTH *2);
-	svg.setAttribute("height", BAR_HEIGHT);
-	svg.setAttribute("transform", "translate("+ (x /2 -BAR_WIDTH) +","+ (y /2) +") scale(1 -1)");
-
-	svgIn.setAttribute("width", BAR_WIDTH);
-	svgIn.setAttribute("transform", "translate("+ (x /2 -BAR_WIDTH) +","+ (y /2) +") scale(1 -1)");
-
-	svgOut.setAttribute("width", BAR_WIDTH);
-	svgOut.setAttribute("transform", "translate("+ (x /2) +","+ (y /2) +") scale(1 -1)");
-
-	svgLine.appendChild(svg);
-	svgLine.appendChild(svgIn);
-	svgLine.appendChild(svgOut);
-
-	var rotate = Math.atan2(y, x) * 180 / Math.PI;
-
-	if (rotate <= 0) {
-		rotate += 90;
+	if (Array.isArray(line[id1])) {
+		line[id1].forEach((link, i) => {
+			window.lineCanvas.appendChild(window.lineMap[id].create(link, line[id2][i]));
+		});
 	}
-	else if (rotate > 0) {
-		rotate -= 90;
-	}
-
-	if (id1 in line) {
-		const
-			svg = document.createElementNS(SVG_NS, "text"),
-			x1 = Math.round(x /3),
-			y1 = Math.round(y /3);
-		let name = line[id1].name;
-
-		if (name.length > MAX_LABEL_LEN) {
-			name = name.substring(0, MAX_LABEL_LEN) +"...";
-		}
-
-		svg.textContent = name;
-
-		svg.onclick = top.showStatus.bind(undefined, id1, "throughput", line[id1].index);
-		
-		svg.setAttribute("x", x1);
-		svg.setAttribute("y", y1);
-		svg.setAttribute("transform", "rotate("+ rotate +","+ x1 +","+ y1 +")");
-		
-		svgLine.appendChild(svg);
-	}
-
-	if (id2 in line) {
-		const
-			svg = document.createElementNS(SVG_NS, "text"),
-			x2 = Math.round(x *2 /3),
-			y2 = Math.round(y *2 /3);
-		let name = line[id2].name;
-
-		if (name.length > MAX_LABEL_LEN) {
-			name = name.substring(0, MAX_LABEL_LEN) +"...";
-		}
-
-		svg.textContent = name;
-
-		svg.onclick = top.showStatus.bind(undefined, id2, "throughput", line[id2].index);
-
-		svg.setAttribute("x", x2);
-		svg.setAttribute("y", y2);
-		svg.setAttribute("transform", "rotate("+ rotate +","+ x2 +","+ y2 +")");
-
-		svgLine.appendChild(svg);
+	else {
+		window.lineCanvas.appendChild(window.lineMap[id].create(line[id1], line[id2]));
 	}
 }
 
@@ -748,6 +769,7 @@ var
 	fragment = document.createDocumentFragment(),
 	upper = top.store.parent,
 	worker,
+	lineMap = {},
 	lineSVGMap = {},
 	nodeSVGMap = {},
 	topList = [],
@@ -1029,7 +1051,6 @@ function initialize() {
 		
 	for (let id in window.node) {
 		base = window.node[id];
-
 		pos = window.position[id];
 
 		// 동기화 안된 node의 pos 정보가 없음
@@ -1147,10 +1168,6 @@ function initialize() {
 
 function getTraffic(e) {
 	if (e.data) {
-		if (!(e.data.id in window.lineSVGMap)) {
-			return;
-		}
-		
 		const svg = window.lineSVGMap[e.data.id];
 		let showBar = false;
 
@@ -1183,11 +1200,17 @@ function getTraffic(e) {
 
 		window[showBar? "addClass": "removeClass"](svg, "bar");
 	}
-	else {
+	else {return;
+		const line = {};
+
+		for (let id in window.lineSVGMap) {
+			line[id] = window.line[id];
+		}
+
 		top.postRequest({
 			command: "order",
 			order: "traffic",
-			line: window.line
+			line: line
 		}, function () {
 			switch (this.status) {
 			case 200:
@@ -1195,7 +1218,7 @@ function getTraffic(e) {
 
 				break;
 			default:
-				alert(top.getMessage(this.status));
+				console.log(top.getMessage(this.status));
 
 				console.log(this.responseText && JSON.parse(this.responseText).error);
 			}

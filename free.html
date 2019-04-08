@@ -420,7 +420,7 @@ function onEvent(e) {
 	if (this.status === 200) {
 		const event = JSON.parse(this.responseText);
 		
-		window.listener.event = parseInt(event.event) +1;
+		window.listener.event = (parseInt(event.event) +1).toString();
 		
 		window.logCount++;
 		
@@ -438,6 +438,7 @@ function onEvent(e) {
 			break;
 
 		case "test":
+		case "search":
 		case "system":
 		case "warning":
 			break;
@@ -455,7 +456,9 @@ function onEvent(e) {
 
 		window.log.textContent = event.message;
 
-		sendEvent(event);
+		try {
+			window.frame.contentWindow.onEvent(event);
+		} catch(e) {}
 		
 		document.body.classList.add("log");
 		
@@ -501,13 +504,6 @@ function postRequest(request, onResponse, timeout) {
 	}
 	
 	xhr.send(JSON.stringify(request));
-}
-
-// public
-function sendEvent(event) {
-	try {
-		window.frame.contentWindow.onEvent(event);
-	} catch(e) {}
 }
 
 		</script>
@@ -619,7 +615,7 @@ var agent,
 	logCount = 0;
 
 document.querySelector("div.log").onclick = function () {
-	select("event");
+	selectMenu("event");
 };
 
 window.addEventListener("unload", onClose);
@@ -718,7 +714,7 @@ window.addEventListener("unload", onClose);
 
 	[].forEach.call(list, addEvent);
 
-	window.select = id => {
+	window.selectMenu = id => {
 		document.getElementById(id).click();
 	};
 }) (document.querySelector("header").querySelectorAll("a"));

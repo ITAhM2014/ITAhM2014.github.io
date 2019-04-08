@@ -177,11 +177,6 @@ document.getElementById("close").onclick = close;
 		const
 			df = document.createDocumentFragment(),
 			iconData = top.store.icon;
-		var
-			groupName,
-			typeData = {},
-			group = {},
-			icon;
 		
 		if ("icon" in top.setting) {
 			const setting = top.setting.icon;
@@ -236,7 +231,9 @@ document.getElementById("close").onclick = close;
 	form.onsubmit = function (e) {
 		e.preventDefault();
 	
-		const base = {};
+		const base = {
+			role: "group"
+		};
 		
 		base.name = form.elements["name"].value;
 		base.type = form.elements["type"].value;

@@ -417,7 +417,7 @@ function onEvent(e) {
 	if (this.status === 200) {
 		const event = JSON.parse(this.responseText);
 		
-		window.listener.event = parseInt(event.event) +1;
+		window.listener.event = (parseInt(event.event) +1).toString();
 		
 		window.logCount++;
 		
@@ -439,6 +439,7 @@ function onEvent(e) {
 			break;
 
 		case "test":
+		case "search":
 		case "system":
 		case "warning":
 			break;
@@ -446,7 +447,9 @@ function onEvent(e) {
 
 		window.log.textContent = event.message;
 
-		sendEvent(event);
+		try {
+			window.frame.contentWindow.onEvent(event);
+		} catch(e) {}
 		
 		document.body.classList.add("log");
 		
@@ -554,7 +557,7 @@ function postRequest(request, onResponse, timeout) {
 
 			break;
 		case "pull":
-			if (typeof request.database === typeof [] && request.database.indexOf("node") != -1) {
+			if (Array.isArray(request.database) && request.database.indexOf("node") != -1) {
 				let response = JSON.parse(responseText);
 
 				for (let id in response.node) {
@@ -683,13 +686,6 @@ function onSignOut() {
 
 function cancel() {
 	window.location.href = "/";
-}
-
-// public
-function sendEvent(event) {
-	try {
-		window.frame.contentWindow.onEvent(event);
-	} catch(e) {}
 }
 
 		</script>

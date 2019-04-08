@@ -328,7 +328,7 @@ function createTopItem(id, value, rate, resource, index) {
 	bar.onclick = function (e) {
 		e.stopPropagation();
 		
-		top.showStatus(id, resource, index);
+		top.showStatus(id, resource.replace("Rate", ""), index);
 	}
 	
 	return item;

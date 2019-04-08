@@ -102,7 +102,8 @@ body.loading g {
 }
 
 g.node *,
-g.node circle.drag {
+body.drag #check circle,
+body.drag #select circle {
 	pointer-events: none;
 }
 
@@ -111,6 +112,11 @@ g.node circle {
 	stroke-width: 5px;
 	stroke: none;
 	fill: none;
+}
+
+g.node.parent circle {
+	stroke: #ddd;
+	fill: #0084ff;
 }
 
 #select >g.node >circle,
@@ -126,7 +132,7 @@ g.node circle {
 	stroke: #ddd; stroke-width: 5px;
 }
 
-g.group:hover >circle {
+body.drag g.group:hover >circle {
 	stroke: #0f0;
 }
 
@@ -231,8 +237,6 @@ function zoom() {
 // public
 // 에디터를 벗어나지 않았다고 판단되어야 할때 현재 상태를 임시 저장
 function saveTmpReload() {
-	restoreTranslation();
-
 	top.store.editor = {
 		scale: window.scale,
 		position: window.position,
@@ -287,46 +291,6 @@ function drawLine(link, pos1, pos2) {
 	}
 }
 
-function onCancelSelect() {
-	if (window.isDragging) {
-		window.isDragging = false;
-	}
-	else {
-		resetSeleced();
-		resetChecked();
-	}
-}
-
-function setCheck(svgDevice, check) {
-	if (check) {
-		window.checkCanvas.appendChild(svgDevice);
-	}
-	else {
-		window.deviceCanvas.appendChild(svgDevice);
-	}
-}
-
-function selectNode(svgDevice) {
-	const
-		id = svgDevice.id,
-		base = window.node[id],
-		pos = window.position[id];
-
-	if (window.selected) {
-		window.deviceCanvas.appendChild(window.selected);
-	}
-	
-	window.selected = svgDevice;
-	
-	resetChecked();
-	
-	window.selectCanvas.appendChild(svgDevice);
-	
-	window.anchor.setAttribute("class", base.protocol || "none");
-	
-	moveAnchor(pos.x, pos.y);
-}
-
 function addClass(e, className) {
 	var cls = e.getAttribute("class"),
 		classList = cls? cls.split(" "): [];
@@ -377,17 +341,18 @@ function onClickDevice(e) {
 	if (window.isDragging) {
 		window.isDragging = false;
 	}
-	else if (!e.ctrlKey) {
-		selectNode(this);
+	else if (e.shiftKey) {
+		window.map[this.id].check(true);
 	}
-	else if (this === window.selected) {
-		resetSeleced();
-	}
-	else if (this.parentNode === window.checkCanvas) {
-		setCheck(this, false);
+	else if (e.ctrlKey) {
+		window.map[this.id].check();
 	}
 	else {
-		setCheck(this, true);
+		[].forEach.call(window.checkCanvas.querySelectorAll("g.node"), function (svgDevice) {
+			window.map[svgDevice.id].reset();
+		});
+
+		window.map[this.id].select();
 	}
 }
 
@@ -397,28 +362,6 @@ function preventDefault(e) {
 
 function moveAnchor(x, y) {
 	window.selectCanvas.appendChild(window.anchor).setAttribute("transform", "translate("+ (x) +", "+ (y) +")");
-}
-
-function resetSeleced() {
-	if (window.anchor.parentNode === window.selectCanvas) {
-		window.selectCanvas.removeChild(window.anchor);
-	}
-
-	if (window.selected) {
-		window.deviceCanvas.appendChild(window.selected);
-	
-		window.selected = undefined;
-	}
-}
-
-function resetChecked() {
-	const df = document.createDocumentFragment();
-	
-	[].forEach.call(window.checkCanvas.querySelectorAll("g.node"), function (svgDevice) {
-		df.appendChild(svgDevice);
-	});
-
-	window.deviceCanvas.appendChild(df);
 }
 
 function Node(id, base) {
@@ -433,6 +376,7 @@ function Node(id, base) {
 	this.node = document.createElementNS(SVG_NS, "g");
 	this.pos = window.position[id];
 	this.lines = [];
+	this.protocol = base.protocol || "";
 
 	if (!this.pos) {
 		window.position[id] = this.pos = {
@@ -460,14 +404,14 @@ function Node(id, base) {
 	this.node.onclick = onClickDevice;
 	this.node.addEventListener("link", onLink);
 	
-	if (icon.group === "group") {
+	if (base.role === "group") {
 		this.node.ondblclick = onEnterGroup;
 
 		this.node.addEventListener("movegroup", onMoveGroup);
 		
 		addClass(this.node, "group");
 	}
-
+	
 	svgName.textContent = base.name || base.ip || "";
 	svgAddr.textContent = base.ip || base.name || "";
 	
@@ -504,9 +448,55 @@ Node.prototype = {
 		this.lines.forEach(function (line) {
 			line.move();
 		});
+
+		if (window.selected === this) {
+			moveAnchor(this.pos.x, this.pos.y);	
+		}
 	},
 	line: function (line) {
 		this.lines.push(line);
+	},
+	check: function (check) {
+		if (check === undefined) {
+			check = !this.checked;
+		}
+		
+		if (check) {
+			this.checked = true;
+		
+			window.checkCanvas.appendChild(this.node);
+		}
+		else {
+			this.reset();
+		}
+	},
+	select: function () {
+		if (window.selected === this) {
+			return;
+		}
+
+		this.check(true);
+
+		if (window.selected) {
+			window.selected.reset();
+		}
+
+		window.selected = this;
+	
+		window.anchor.setAttribute("class", this.protocol);
+	
+		moveAnchor(this.pos.x, this.pos.y);
+	},
+	reset: function () {
+		this.checked = false;
+
+		window.deviceCanvas.appendChild(this.node);
+
+		if (window.selected === this) {
+			window.selected = undefined;
+
+			window.fragment.appendChild(window.anchor);
+		}
 	}
 };
 
@@ -666,24 +656,20 @@ function onLink(e) {
 	top.showDialog.call(window, "/line_dialog.html", id , window.line[id]);
 }
 
-function restoreTranslation() {
-	const
-		matrix = window.transform.getItem(2).matrix,
-		x = matrix.e,
-		y = matrix.f;
-	var pos;
-	
-	for (let id in window.map) {
-		pos = window.map[id].pos;
-
-		pos.x += x;
-		pos.y += y;
-	}
-}
 function onEnterGroup() {	
 	window.upper = this.id || undefined;
 
 	saveTmpReload();
+}
+
+function onEvent(e) {
+	if (e.origin === "search" && !window.loading) {
+		window.loading = true;
+	
+		alert("새로운 노드가 탐지되었습니다.");
+	
+		saveTmpReload();
+	}
 }
 
 		</script>
@@ -693,19 +679,6 @@ function onEnterGroup() {
 		<svg id="map">
 			<defs>
 				<circle r="35" id="circle"></circle>
-			</defs>
-			<g class="parent node group" transform="translate(100, 100)">
-				<circle cx="0" cy="0" r="40"></circle>
-				<image xlink:href="/img/group.png" x="-30" y="-30" width="60" height="60"></image>
-			</g>
-			<g id="transform" transform="translate(0, 0) scale(1, 1) translate(0, 0)">
-				<g id="line"></g>
-				<g id="link">
-					<line x1="0" y1="0" x2="0" y2="0" />
-				</g>
-				<g id="device"></g>
-				<g id="check"></g>
-				<g id="select"></g>
 				<g id="anchor">
 					<image xlink:href="/img/svg/information.svg" id="edit_anchor" x="26" y="-8"
 						width="16" height="16" cursor="pointer"><!-- 34 -16/2, -16/2 -->
@@ -716,6 +689,23 @@ function onEnterGroup() {
 						<title>이 앵커를 드래그하여 다른 장비와 연결합니다.</title>
 					</image>
 				</g>
+			</defs>
+			<g class="parent node group" transform="translate(100, 100)">
+				<circle cx="0" cy="0" r="40"></circle>
+				<image xlink:href="/img/group.png" x="-30" y="-30" width="60" height="60"></image>
+				<text>
+					<tspan alignment-baseline="middle" fill="#336"></tspan>
+					<tspan alignment-baseline="middle" fill="#336"></tspan>
+				</text>
+			</g>
+			<g id="transform" transform="translate(0, 0) scale(1, 1) translate(0, 0)">
+				<g id="line"></g>
+				<g id="link">
+					<line x1="0" y1="0" x2="0" y2="0" />
+				</g>
+				<g id="device"></g>
+				<g id="check"></g>
+				<g id="select"></g>
 			</g>
 			<g id="selector">
 				<rect x="0" y="0" width="1" height="1"></rect>
@@ -802,29 +792,37 @@ document.onselectstart = function () {
 	const mapCanvas = document.getElementById("map"),
 		selector = document.getElementById("selector"),
 		area = document.querySelector("#selector>rect"),
-		origin = {
-			x: 0,
-			y: 0
-		};
-	var schedule, rect, action;
+		SHIFT = 0,
+		CTRL = 1;
+	var schedule, rect, action, key;
 
 	new Draggable(mapCanvas);
 
-	mapCanvas.addEventListener("click", onCancelSelect);
+	mapCanvas.addEventListener("click", () => {
+		if (window.isDragging) {
+			window.isDragging = false;
+		}
+		else {
+			[].forEach.call(window.checkCanvas.querySelectorAll("g.node"), function (svgDevice) {
+				window.map[svgDevice.id].reset();
+			});
+		}
+	});
 
 	mapCanvas.addEventListener("dragon", function (e) {
 		var data = e.detail,
 			target = data.target;
 
-		if (data.shiftKey) {
+		if (data.shiftKey || data.ctrlKey) {
 			addClass(selector, "active");
 
 			selector.setAttribute("transform", "translate("+ data.x +","+ data.y +")");
 
 			action = "select";
+			key = data.shiftKey? SHIFT: CTRL;
 		}
 		else if (target === window.linkAnchor) {
-			const pos = window.map[window.selected.id].pos;
+			const pos = window.selected.pos;
 			
 			window.linkCanvas.appendChild(window.linkAnchor);
 			window.linkCanvas.appendChild(window.linkSVG);
@@ -845,6 +843,10 @@ document.onselectstart = function () {
 		}
 		else {
 			action = "";
+
+			for (let id in window.map) {
+				window.map[id].set();
+			}
 		}
 		
 		window.isDragging = true;
@@ -862,11 +864,11 @@ document.onselectstart = function () {
 		else if (action === "link") {
 			const
 				svgDevice = data.destination.parentNode,
-				pos = window.map[window.selected.id].pos;
+				pos = window.selected.pos;
 			
 			window.linkAnchor.setAttribute("transform", "translate("+ (pos.x + x) +","+ (pos.y + y) +")");
 			
-			if (hasClass(svgDevice, "node") &&  svgDevice !== window.selected) {
+			if (hasClass(svgDevice, "node") &&  svgDevice !== window.selected.node) {
 				var matrix = svgDevice.transform.baseVal.getItem(0).matrix;
 				
 				x = matrix.e;
@@ -885,26 +887,13 @@ document.onselectstart = function () {
 			window.linkSVG.setAttribute("y2", y);
 		}
 		else if (action === "move") {
-			addClass(target, "drag");
+			document.body.classList.add("drag");
 			
-			[window.selectCanvas, window.checkCanvas].forEach(function (canvas) {
-				for (let nodes = canvas.querySelectorAll("g.node"), i=0, _i=nodes.length, id, node; i<_i; i++) {
-					id = nodes[i].id;
-					
-					node = window.map[id];
-
-					node.move(x, y);
-
-					if (window.selected && window.selected.id === id) {
-						moveAnchor(node.pos.x, node.pos.y);
-					}
-				}
+			[].forEach.call(window.checkCanvas.querySelectorAll("g.node"), svgNode => {
+				window.map[svgNode.id].move(x, y);
 			});
 		}
 		else {
-			x += origin.x;
-			y += origin.y;
-			
 			window.transform.getItem(2).setTranslate(x, y);
 		}
 	});
@@ -940,21 +929,44 @@ document.onselectstart = function () {
 			else {
 				y2 = y1 + matrix.d /window.scale;
 			}
-
-			[].forEach.call(window.deviceCanvas.querySelectorAll("g.node"), function (svgDevice) {
-				const pos = window.position[svgDevice.id];
-
-				if (x1 < pos.x && pos.x < x2 && y1 < pos.y && pos.y < y2) {
-					setCheck(svgDevice, true);
-				}
-			});
 			
+			if (key === SHIFT) {
+				[].forEach.call(window.deviceCanvas.querySelectorAll("g.node"), function (svgDevice) {
+					const node = window.map[svgDevice.id];
+
+					if (x1 < node.pos.x && node.pos.x < x2 && y1 < node.pos.y && node.pos.y < y2) {
+						node.check(true);
+					}
+				});
+			}
+			else {
+				const tmp = [];
+				
+				[].forEach.call(window.checkCanvas.querySelectorAll("g.node"), svgDevice => {
+					const node = window.map[svgDevice.id];
+
+					if (x1 < node.pos.x && node.pos.x < x2 && y1 < node.pos.y && node.pos.y < y2) {
+						tmp.push(node);
+					}
+				});
+
+				[].forEach.call(window.deviceCanvas.querySelectorAll("g.node"), svgDevice => {
+					const node = window.map[svgDevice.id];
+
+					if (x1 < node.pos.x && node.pos.x < x2 && y1 < node.pos.y && node.pos.y < y2) {
+						node.check();
+					}
+				});
+
+				tmp.forEach(node => {
+					node.reset();
+				});
+			}
+
 			removeClass(selector, "active");
 		}
 		else if (action === "link") {
-			const
-				svgDevice = data.destination.parentNode,
-				pos = window.position[window.selected.id];
+			const svgDevice = data.destination.parentNode;
 			
 			window.anchor.appendChild(window.linkAnchor);
 			
@@ -962,16 +974,16 @@ document.onselectstart = function () {
 			
 			window.fragment.appendChild(window.linkSVG);
 			
-			if (hasClass(svgDevice, "node") &&  svgDevice !== window.selected) {				
+			if (hasClass(svgDevice, "node") &&  svgDevice !== window.selected.node) {				
 				svgDevice.dispatchEvent(ITAhM.util.createCustomEvent("link", {
-					peer: window.selected.id
+					peer: window.selected.node.id
 				}));
 			}
 		}
 		else if (action ==="move") {
 			const svg = data.destination.parentNode;
 
-			removeClass(target, "drag");
+			document.body.classList.remove("drag");
 			
 			if (!hasClass(svg, "group")) {
 				return;
@@ -988,8 +1000,11 @@ document.onselectstart = function () {
 		else {
 			const matrix = window.transform.getItem(2).matrix;
 
-			origin.x  = matrix.e;
-			origin.y = matrix.f;
+			for (let id in window.map) {
+				window.map[id].move(matrix.e, matrix.f);
+			}
+
+			window.transform.getItem(2).setTranslate(0, 0);
 		}
 	});
 
@@ -1018,9 +1033,7 @@ document.getElementById("add").onclick = function () {
 	document.body.classList.add("dialog");
 };
 
-document.getElementById("save").onclick = function () {
-	restoreTranslation();
-	
+document.getElementById("save").onclick = function () {	
 	document.body.classList.add("loading");
 
 	top.postRequest({
@@ -1044,13 +1057,12 @@ document.getElementById("save").onclick = function () {
 };
 
 document.getElementById("edit_anchor").onclick = e => {
-	const base = window.node[window.selected.id],
-		icon = getIcon(base.type);
+	const base = window.node[window.selected.node.id];
 
 	top.showDialog.call(window,
-		icon.group === "group"? "/group_dialog.html":
-		icon.group === "application"? "/app_dialog.html":
-		"/device_dialog.html", window.selected.id);
+		base.role === "group"? "/group_dialog.html":
+		base.role === "application"? "/app_dialog.html":
+		"/device_dialog.html", window.selected.node.id);
 	
 	e.stopPropagation();
 };
@@ -1126,16 +1138,21 @@ top.postRequest(request, function () {
 		}
 
 		if (window.upper) {
-			const parent = window.position[window.upper].parent; 
-			
-			if (parent) {
-				parentAnchor.id = parent;
+			document.body.classList.add("submap");
+
+			base = window.node[window.upper];
+
+			window.parentAnchor.querySelector("tspan:first-child").textContent = base.name || base.ip || "";
+			window.parentAnchor.querySelector("tspan:last-child").textContent = base.ip || base.name || "";
+
+			const upper = window.position[window.upper].parent; 
+
+			if (upper) {
+				window.parentAnchor.id = upper;
 			}
 			
 			parentAnchor.onclick = onEnterGroup;
 			parentAnchor.addEventListener("movegroup", onMoveGroup);
-
-			document.body.classList.add("submap");
 		}
 
 		initialize();
