@@ -449,7 +449,18 @@ document.getElementById("close").onclick = close;
 			select.selectedIndex = -1;
 		}
 
-		window.list.appendChild(createItem(args));
+		if ([].some.call(window.list.querySelectorAll("ul"), ul =>{
+			if ("peer1" in ul.dataset && ul.dataset.peer1 == (args[0] && args[0].index) ||
+				"peer2" in ul.dataset && ul.dataset.peer2 == (args[1] && args[1].index)) {
+
+				return true;
+			}
+		})) {
+			alert("연결 정보가 이미 존재합니다.");
+		}
+		else {
+			window.list.appendChild(createItem(args));
+		}		
 	};
 
 	form.elements["remove"].onclick = e => {

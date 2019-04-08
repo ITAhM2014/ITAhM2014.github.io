@@ -203,6 +203,23 @@ text {
     }
 }
 
+div.nav {
+	flex: none;
+	pointer-events: all;
+}
+
+div.nav::after {
+	content: "\2796";
+}
+
+div.nav.hide::after {
+	content: "\2795";
+}
+
+div.nav.hide +#summary_list {
+	display: none;
+}
+
 body.loading g {
 	display: none;
 }
@@ -575,15 +592,16 @@ function Link(link1, link2, option) {
 	}
 
 	this.bar = document.createElementNS(SVG_NS, "rect");
-	this.barIn = document.createElementNS(SVG_NS, "rect");
-	this.barOut = document.createElementNS(SVG_NS, "rect");
-
 	this.bar.setAttribute("width", Line.BAR_WIDTH *2);
-	this.barIn.setAttribute("width", Line.BAR_WIDTH);
-	this.barOut.setAttribute("width", Line.BAR_WIDTH);
-
+	this.bar.setAttribute("height", Line.BAR_HEIGHT);
 	this.container.appendChild(this.bar);
+
+	this.barIn = document.createElementNS(SVG_NS, "rect");
+	this.barIn.setAttribute("width", Line.BAR_WIDTH);
 	this.container.appendChild(this.barIn);
+
+	this.barOut = document.createElementNS(SVG_NS, "rect");
+	this.barOut.setAttribute("width", Line.BAR_WIDTH);
 	this.container.appendChild(this.barOut);
 }
 
@@ -795,7 +813,7 @@ function getIcon (type) {
 						<div></div>
 					</div>
 				</div>
-				
+				<div class="nav"></div>
 				<div id="summary_list"></div>	
 			</aside>
 			<svg id="map">
@@ -893,6 +911,10 @@ mapCanvas.addEventListener("drag", onDragMove);
 mapCanvas.addEventListener("wheel", function (e) {
 	zoom(e.deltaY < 0);
 });
+
+document.body.querySelector("div.nav").onclick = function (e) {
+	this.classList.toggle("hide");
+}
 
 document.getElementById("edit").onclick = function () {
 	const
@@ -1262,7 +1284,7 @@ function getTraffic(e) {
 		for (let id in window.lineMap) {
 			line[id] = window.line[id];
 		}
-
+		
 		top.postRequest({
 			command: "order",
 			order: "traffic",

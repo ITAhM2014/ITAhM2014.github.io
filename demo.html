@@ -539,16 +539,28 @@ function postRequest(request, onResponse, timeout) {
 
 				for (let id in lineMap) {
 					line = lineMap[id];
-
+					
 					ar = id.split(".");
 					id1 = "node."+ ar[1];
 					id2 = "node."+ ar[2];
 
-					line[id1] = line[id2] = {
-						ifOperStatus: 1,
-						ifInBPS: Math.random() * 100000000,
-						ifOutBPS: Math.random() * 100000000,
-						ifSpeed: 100000000
+					if (Array.isArray(line[id1])) {
+						line[id1].forEach((link, i) => {
+							line[id1][i] = line[id2][i] = {
+								ifOperStatus: 1,
+								ifInBPS: Math.random() * 100000000,
+								ifOutBPS: Math.random() * 100000000,
+								ifSpeed: 100000000
+							}
+						});
+					}
+					else {
+						line[id1] = line[id2] = {
+							ifOperStatus: 1,
+							ifInBPS: Math.random() * 100000000,
+							ifOutBPS: Math.random() * 100000000,
+							ifSpeed: 100000000
+						}
 					}
 				}
 
