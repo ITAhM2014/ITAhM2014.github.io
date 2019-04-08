@@ -574,15 +574,17 @@ function Link(link1, link2, option) {
 		this.label2 = this.container.appendChild(this.label(link2.index, link2.name));
 	}
 
-	if (link1 || link2) {
-		this.bar = document.createElementNS(SVG_NS, "rect");
-		this.barIn = document.createElementNS(SVG_NS, "rect");
-		this.barOut = document.createElementNS(SVG_NS, "rect");
+	this.bar = document.createElementNS(SVG_NS, "rect");
+	this.barIn = document.createElementNS(SVG_NS, "rect");
+	this.barOut = document.createElementNS(SVG_NS, "rect");
 
-		this.container.appendChild(this.bar);
-		this.container.appendChild(this.barIn);
-		this.container.appendChild(this.barOut);
-	}
+	this.bar.setAttribute("width", Line.BAR_WIDTH *2);
+	this.barIn.setAttribute("width", Line.BAR_WIDTH);
+	this.barOut.setAttribute("width", Line.BAR_WIDTH);
+
+	this.container.appendChild(this.bar);
+	this.container.appendChild(this.barIn);
+	this.container.appendChild(this.barOut);
 }
 
 Link.prototype = {
@@ -597,22 +599,19 @@ Link.prototype = {
 
 		this.line.setAttribute("x2", x2);
 		this.line.setAttribute("y2", y2);
-
+		
 		if (this.label1) {
 			this.label1.setAttribute("x", Math.round(x2 /3));
 			this.label1.setAttribute("y", Math.round(y2 /3));
 		}
-		
-		if (this.label2) {
+		if (this.label2) {	
 			this.label2.setAttribute("x", Math.round(x2 *2/3));
 			this.label2.setAttribute("y", Math.round(y2 *2/3));
 		}
 
-		if (this.bar) {
-			this.translate(this.bar, x2 /2 - Line.BAR_WIDTH,y2 /2);
-			this.translate(this.barIn, x2 /2 -Line.BAR_WIDTH, y2 /2);
-			this.translate(this.barOut, x2 /2, y2 /2);
-		}
+		this.translate(this.bar, x2 /2 - Line.BAR_WIDTH,y2 /2);
+		this.translate(this.barIn, x2 /2 -Line.BAR_WIDTH, y2 /2);
+		this.translate(this.barOut, x2 /2, y2 /2);
 	},
 	translate: function (svg, x, y) {
 		svg.setAttribute("transform", "translate("+ x +","+ y +") scale(1 -1)");
