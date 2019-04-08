@@ -488,7 +488,7 @@ document.getElementById("close").onclick = close;
 				}: null);
 			});
 		}
-		else {
+		else if (items.length > 0) {
 			const ul = items[0];
 
 			line[window.id1] = "peer1" in ul.dataset? {
@@ -501,7 +501,11 @@ document.getElementById("close").onclick = close;
 				name: ul.querySelector("li:nth-child(2)").textContent
 			}: null;
 		}
-		
+		else {
+			alert("연결이 존재하지 않습니다.\n먼저 연결을 추가 하십시오.");
+
+			return;
+		}
 
 		if (this.elements["option"].checked) {
 			line.option = {

@@ -2,18 +2,16 @@
 
 const TRAFFIC_INTERVAL = 3000;
 
-function parse (link, message) {
-	const result = {};
+function parse (link) {
+	const result = {
+		status: 0
+	};
 
 	if ("ifOperStatus" in link) {
 		result.status = link.ifOperStatus === 1? 1: -1;
 	}
 
 	if (result.status === 1) {
-		if ("option" in line) {
-			result.color = line.option.color;
-		}
-		
 		if ("ifSpeed" in link && link.ifSpeed > 0) {
 			if ("ifInBPS" in link) {
 				result.in = Math.round(link.ifInBPS *10 / ("speed" in link && link.speed > 0? link.speed: link.ifSpeed)) *10;
@@ -52,7 +50,7 @@ self.onmessage = e => {
 
 			line[id1].forEach((link, i) => {
 				if (link) {
-					message.link[i] = parse(link, message);
+					message.link[i] = parse(link);
 				}
 				else if (line[id2][i]) {
 					message.link[i] = parse(line[id2][i]);

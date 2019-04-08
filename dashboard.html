@@ -157,6 +157,10 @@ text {
 	pointer-events: none;
 }
 
+.line:not(.show) rect {
+	display: none;
+}
+
 .line rect {
 	transition: height 2s cubic-bezier(0.8, -0.6, 0.8, 1.5);
 	fill: rgba(210, 210, 210, 0.2);
@@ -537,91 +541,83 @@ function hasClass(e, className) {
 	return true;
 }
 
-function Line(id1, id2) {
-	this.pos1 = window.position[this.id1 = id1];
-	this.pos2 = window.position[this.id2 = id2];
-	this.theta = Math.atan2(this.pos2.y - this.pos1.y, this.pos2.x - this.pos1.x);
-	this.rotate = (this.theta * 180 /Math.PI + (this.theta <= 0? + 90: -90));
+function Link(link1, link2, option) {
+	this.container = document.createElementNS(SVG_NS, "g");
+	
+	this.line = document.createElementNS(SVG_NS, "line");
+
+	addClass(this.container, "line");
+	
+	if (option) {
+		this.baseColor = option.color;
+
+		this.color(option.color);
+		this.width(option.width);
+	}
+	else {
+		this.baseColor = Line.COLOR_DEFAULT;
+
+		this.width(Line.WIDTH);
+		this.color(Line.COLOR_DEFAULT);
+	}
+
+	this.line.setAttribute("x1", 0);
+	this.line.setAttribute("y1", 0);
+
+	this.container.appendChild(this.line);
+
+	if (link1) {
+		this.label1 = this.container.appendChild(this.label(link1.index, link1.name));
+	}
+
+	if (link2) {
+		this.label2 = this.container.appendChild(this.label(link2.index, link2.name));
+	}
+
+	if (link1 || link2) {
+		this.bar = document.createElementNS(SVG_NS, "rect");
+		this.barIn = document.createElementNS(SVG_NS, "rect");
+		this.barOut = document.createElementNS(SVG_NS, "rect");
+
+		this.container.appendChild(this.bar);
+		this.container.appendChild(this.barIn);
+		this.container.appendChild(this.barOut);
+	}
 }
 
-Line.BAR_WIDTH = 10;
-Line.BAR_HEIGHT = 30;
-Line.WIDTH = 2;
-Line.MAX_LABEL_LEN = 16;
-Line.COLOR = "#d4af37";
-Line.DIFF = 8;
-
-Line.prototype = {
-	create: function (link1, link2) {
-		const
-			g = document.createElementNS(SVG_NS, "g"),
-			x = this.pos2.x - this.pos1.x,
-			y = this.pos2.y - this.pos1.y;
-		
-		this.line = document.createElementNS(SVG_NS, "line");
-
-		addClass(g, "line");
-		
-		this.line.setAttribute("x1", 0);
-		this.line.setAttribute("y1", 0);
-		this.line.setAttribute("x2", x);
-		this.line.setAttribute("y2", y);
-		this.width(Line.WIDTH);
-		this.color(Line.COLOR);
-
-		g.appendChild(this.line);
-
-		if (link1) {
-			g.appendChild(this.label(this.id1, link1.index, link1.name, Math.round(x /3), Math.round(y /3)));
-		}
-
-		if (link2) {
-			g.appendChild(this.label(this.id2, link2.index, link2.name, Math.round(x *2/3), Math.round(y *2/3)));
-		}
-
-		if (link1 || link2) {
-			const bar = document.createElementNS(SVG_NS, "rect");
-			
-			bar.setAttribute("transform", "translate("+ (x /2 - Line.BAR_WIDTH) +","+ (y /2) +") scale(1 -1)");
-
-			this.in = document.createElementNS(SVG_NS, "rect");
-
-			this.in.setAttribute("transform", "translate("+ (x /2 -Line.BAR_WIDTH) +","+ (y /2) +") scale(1 -1)");
-
-			this.out = document.createElementNS(SVG_NS, "rect");
-
-			this.out.setAttribute("transform", "translate("+ (x /2) +","+ (y /2) +") scale(1 -1)");
-
-			g.appendChild(bar);
-			g.appendChild(this.in);
-			g.appendChild(this.out);
-		}
-
-		if (!this.lines) {
-			this.lines = g;
-
-			g.setAttribute("transform", "translate("+ this.pos1.x +","+ this.pos1.y +")");
-		}
-		else {
-			if (!Array.isArray(this.lines)) {
-				this.lines = [this.lines];
-			}
-			
-			this.lines.push(g);
-
-			const len = this.lines.length -1;
-
-			this.lines.forEach((g, i) => {
-				g.setAttribute("transform",
-					"translate("+
-					(this.pos1.x + Math.cos(this.theta -Math.PI /2) * (len -i *2) *Line.DIFF) +","+
-					(this.pos1.y + Math.sin(this.theta -Math.PI /2) * (len -i *2) *Line.DIFF) +")");
-			});
-		}
-
-		return g;
+Link.prototype = {
+	color: function (color = this.baseColor) {
+		this.line.setAttribute("stroke", color);
 	},
-	label: function (id, index, name, x, y) {
+	width: function (width) {
+		this.line.setAttribute("stroke-width", width);
+	},
+	move: function (x1, y1, x2, y2) {
+		this.container.setAttribute("transform", "translate("+ x1 +","+ y1 +")");
+
+		this.line.setAttribute("x2", x2);
+		this.line.setAttribute("y2", y2);
+
+		if (this.label1) {
+			this.label1.setAttribute("x", Math.round(x2 /3));
+			this.label1.setAttribute("y", Math.round(y2 /3));
+		}
+		
+		if (this.label2) {
+			this.label2.setAttribute("x", Math.round(x2 *2/3));
+			this.label2.setAttribute("y", Math.round(y2 *2/3));
+		}
+
+		if (this.bar) {
+			this.translate(this.bar, x2 /2 - Line.BAR_WIDTH,y2 /2);
+			this.translate(this.barIn, x2 /2 -Line.BAR_WIDTH, y2 /2);
+			this.translate(this.barOut, x2 /2, y2 /2);
+		}
+	},
+	translate: function (svg, x, y) {console.log(svg);
+		svg.setAttribute("transform", "translate("+ x +","+ y +") scale(1 -1)");
+	},
+	label: function (index, name) {
 		const svg = document.createElementNS(SVG_NS, "text");
 				
 		if (name.length > Line.MAX_LABEL_LEN) {
@@ -630,23 +626,121 @@ Line.prototype = {
 
 		svg.textContent = name;
 
-		svg.onclick = top.showStatus.bind(undefined, id, "throughput", index);
-
-		svg.setAttribute("x", x);
-		svg.setAttribute("y", y);
-		//svg.setAttribute("transform", "rotate("+ this.rotate +","+ x +","+ y +")");
-
 		return svg;
-	},
-	color: function (color) {
-		this.line.setAttribute("stroke", color);
-	},
-	width: function (width) {
-		this.line.setAttribute("stroke-width", width);
 	}
 };
 
-function addLine(id, line) {
+function Line(id1, id2) {
+	this.pos1 = window.position[this.id1 = id1];
+	this.pos2 = window.position[this.id2 = id2];
+}
+
+Line.COLOR_NORMAL = "#d4af37",
+Line.COLOR_SHUTDOWN = "#f00",
+Line.COLOR_DISABLED = "#ddd",
+Line.COLOR_DEFAULT = "#d4af37";
+Line.BAR_WIDTH = 10;
+Line.BAR_HEIGHT = 30;
+Line.WIDTH = 2;
+Line.MAX_LABEL_LEN = 16;
+
+Line.DIFF = 8;
+
+Line.prototype = {
+	addLink: function (link1, link2, option) {
+		const oLink = new Link(link1, link2, option);
+		
+		if (!this.linkList) {
+			this.linkList = oLink;
+		}
+		else {
+			if (!Array.isArray(this.linkList)) {
+				this.linkList = [this.linkList];
+			}
+			
+			this.linkList.push(oLink);
+		}
+
+		this.move();
+
+		return oLink;
+	},
+	move: function () {
+		const theta = Math.atan2(this.pos2.y - this.pos1.y, this.pos2.x - this.pos1.x);
+
+		if (Array.isArray(this.linkList)) {
+			const len = this.linkList.length -1;
+
+			this.linkList.forEach((oLink, i) => {
+				oLink.move(
+					this.pos1.x + Math.cos(theta -Math.PI /2) * (len -i *2) *Line.DIFF,
+					this.pos1.y + Math.sin(theta -Math.PI /2) * (len -i *2) *Line.DIFF,
+					this.pos2.x - this.pos1.x, this.pos2.y - this.pos1.y);
+			});
+		}
+		else if (this.linkList){
+			this.linkList.move(this.pos1.x, this.pos1.y, this.pos2.x - this.pos1.x, this.pos2.y - this.pos1.y);
+		}
+	},
+	traffic: function (linkList) {
+		if (Array.isArray(this.linkList)) {
+			this.linkList.forEach((oLink, i) => {
+				this.set(oLink, linkList[i]);
+			});
+		}
+		else {
+			this.set(this.linkList, linkList);
+		}
+	},
+	set: function (oLink, link) {
+		let showBar = false;
+
+		switch (link.status) {
+		case 1:
+			oLink.color();
+
+			if ("in" in link && oLink.barIn) {
+				oLink.barIn.setAttribute("height", Math.min(BAR_HEIGHT, link.in *BAR_HEIGHT /100));
+
+				showBar = true;
+			}
+
+			if ("out" in link && oLink.barOut) {
+				oLink.barOut.setAttribute("height", Math.min(BAR_HEIGHT, link.out *BAR_HEIGHT /100));
+
+				showBar = true;
+			}
+
+			break;
+		case -1:
+			oLink.color(Line.COLOR_SHUTDOWN);
+
+			break;
+		default:
+			oLink.color(Line.COLOR_DISABLED);
+		}
+
+		window[showBar? "addClass": "removeClass"] (oLink.container, "show");
+	}
+};
+
+function addLink(oLine, id1, id2, link1, link2, option) {
+	const oLink = oLine.addLink(link1, link2, option);
+
+	window.lineCanvas.appendChild(oLink.container);
+
+	if (oLink.label1) {
+		oLink.label1.onclick = top.showStatus.bind(undefined, id1, "throughput", link1.index);
+	}
+
+	if (oLink.label2) {
+		oLink.label2.onclick = top.showStatus.bind(undefined, id2, "throughput", link2.index);
+	}
+
+	return oLink;
+}
+
+function drawLine(id, line) {
 	const
 		ar = id.split("."),
 		id1 = "node."+ ar[1],
@@ -662,17 +756,11 @@ function addLine(id, line) {
 
 	if (Array.isArray(line[id1])) {
 		line[id1].forEach((link, i) => {
-			window.lineCanvas.appendChild(oLine.create(link, line[id2][i]));
-
-			if ("option" in line) {
-				if ("width" in line.option) {
-					oLine.width(line.option.width)
-				}
-			}
+			addLink(oLine, id1, id2, link, line[id2][i], line.option)
 		});
 	}
 	else {
-		window.lineCanvas.appendChild(oLine.create(line[id1], line[id2]));
+		addLink(oLine, id1, id2, line[id1], line[id2], line.option);
 	}
 }
 
@@ -752,9 +840,6 @@ var
 	OFFSET_R = OFFSET_C - ICON_SIZE /2;
 
 const
-	COLOR_NORMAL = "#d4af37",
-	COLOR_SHUTDOWN = "#f00",
-	COLOR_DISABLED = "#ddd",
 	MAX_LABEL_LEN = 16,
 	LINE_WIDTH = 2,
 	BAR_WIDTH = 10,
@@ -1133,7 +1218,7 @@ function initialize() {
 	}
 
 	for (let id in window.line) {
-		addLine(id, window.line[id]);
+		drawLine(id, window.line[id]);
 	}
 
 	if (window.upper) {
@@ -1170,42 +1255,12 @@ function initialize() {
 
 function getTraffic(e) {
 	if (e.data) {
-		const svg = window.lineSVGMap[e.data.id];
-		let showBar = false;
-
-		switch (e.data.status) {
-		case 1:
-			svg.querySelector("line").setAttribute("stroke", "color" in e.data? e.data.color: COLOR_NORMAL);
-
-			if ("in" in e.data) {
-				svg.querySelector("rect:nth-of-type(2)")
-					.setAttribute("height", Math.min(BAR_HEIGHT, e.data.in *BAR_HEIGHT /100));
-
-				showBar = true;
-			}
-
-			if ("out" in e.data) {
-				svg.querySelector("rect:nth-of-type(3)")
-					.setAttribute("height", Math.min(BAR_HEIGHT, e.data.out *BAR_HEIGHT /100));
-
-				showBar = true;
-			}
-
-			break;
-		case 0:
-			svg.querySelector("line").setAttribute("stroke", COLOR_DISABLED);
-			
-			break;
-		case -1:
-			svg.querySelector("line").setAttribute("stroke", COLOR_SHUTDOWN);
-		}
-
-		window[showBar? "addClass": "removeClass"](svg, "bar");
+		window.lineMap[e.data.id].traffic(e.data.link);
 	}
-	else {return;
+	else {
 		const line = {};
 
-		for (let id in window.lineSVGMap) {
+		for (let id in window.lineMap) {
 			line[id] = window.line[id];
 		}
 

@@ -554,7 +554,7 @@ Line.COLOR = "#d4af37";
 Line.DIFF = 6;
 
 Line.prototype = {
-	create: function (link1, link2) {
+	addLink: function (link1, link2) {
 		const
 			oLink = new Link(link1, link2);
 		
@@ -595,22 +595,17 @@ Line.prototype = {
 	}
 };
 
-function addLink(oLine, id1, id2, link1, link2, width) {
-	const oLink = oLine.create(link1, link2);
+function addLink(oLine, link1, link2, option) {
+	const oLink = oLine.addLink(link1, link2);
 
 	window.lineCanvas.appendChild(oLink.container);
 
-	if (width) {
-		oLink.width(line.option.width)
+	if (option) {
+		oLink.color(option.color);
+		oLink.width(option.width);
 	}
 
-	if (oLink.label1) {
-		oLink.label1.onclick = top.showStatus.bind(undefined, id1, "throughput", link1.index);
-	}
-
-	if (oLink.label2) {
-		oLink.label2.onclick = top.showStatus.bind(undefined, id2, "throughput", link2.index);
-	}
+	return oLink;
 }
 
 function drawLine(id, line) {
@@ -626,11 +621,11 @@ function drawLine(id, line) {
 
 	if (Array.isArray(line[id1])) {
 		line[id1].forEach((link, i) => {
-			addLink(oLine, id1, id2, link, line[id2][i]);
+			addLink(oLine, link, line[id2][i], line.option);
 		});
 	}
 	else {
-		addLink(oLine, id1, id2, line[id1], line[id2]);
+		addLink(oLine, line[id1], line[id2], line.option);
 	}
 	
 	window.map[id1].connect(oLine);
