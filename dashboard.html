@@ -656,21 +656,23 @@ function addLine(id, line) {
 		return;
 	}
 
-	window.lineMap[id] = new Line(id1, id2);
+	var oLine = new Line(id1, id2);
 
-	if ("option" in line) {
-		if ("width" in line.option) {
-			window.lineMap[id].width(line.option.width)
-		}
-	}
+	window.lineMap[id] = oLine;
 
 	if (Array.isArray(line[id1])) {
 		line[id1].forEach((link, i) => {
-			window.lineCanvas.appendChild(window.lineMap[id].create(link, line[id2][i]));
+			window.lineCanvas.appendChild(oLine.create(link, line[id2][i]));
+
+			if ("option" in line) {
+				if ("width" in line.option) {
+					oLine.width(line.option.width)
+				}
+			}
 		});
 	}
 	else {
-		window.lineCanvas.appendChild(window.lineMap[id].create(line[id1], line[id2]));
+		window.lineCanvas.appendChild(oLine.create(line[id1], line[id2]));
 	}
 }
 

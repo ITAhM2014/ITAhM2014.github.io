@@ -274,23 +274,6 @@ function onMoveGroup() {
 	saveTmpReload();
 }
 
-function drawLine(link, pos1, pos2) {
-	link.svg.setAttribute("x1", pos1.x);
-	link.svg.setAttribute("y1", pos1.y);
-	link.svg.setAttribute("x2", pos2.x);
-	link.svg.setAttribute("y2", pos2.y);
-
-	if (link.name) {
-		link.name.setAttribute("x", (pos1.x *2 + pos2.x) /3);
-		link.name.setAttribute("y", (pos1.y *2 + pos2.y) /3);
-	}
-
-	if (link.name2) {
-		link.name2.setAttribute("x", (pos2.x *2 + pos1.x) /3);
-		link.name2.setAttribute("y", (pos2.y *2 + pos1.y) /3);
-	}
-}
-
 function addClass(e, className) {
 	var cls = e.getAttribute("class"),
 		classList = cls? cls.split(" "): [];
@@ -456,6 +439,9 @@ Node.prototype = {
 	line: function (line) {
 		this.lines.push(line);
 	},
+	connect: function (line) {
+		this.lines.push(line);
+	},
 	check: function (check) {
 		if (check === undefined) {
 			check = !this.checked;
@@ -500,49 +486,134 @@ Node.prototype = {
 	}
 };
 
-function Line(svg, pos1, pos2, x, y) {
-	this.line = svg;
-	this.pos1 = pos1;
-	this.pos2 = pos2;
-	this.x = x;
-	this.y = y;
+function Link(link1, link2) {
+	this.container = document.createElementNS(SVG_NS, "g");
+	
+	this.line = document.createElementNS(SVG_NS, "line");
 
-	this.line.setAttribute(x, this.pos1.x);
-	this.line.setAttribute(y, this.pos1.y);
+	addClass(this.container, "line");
+	
+	this.line.setAttribute("x1", 0);
+	this.line.setAttribute("y1", 0);
 
-	this.move();
+	this.container.appendChild(this.line);
+
+	if (link1) {
+		this.label1 = this.container.appendChild(this.label(link1.index, link1.name));
+	}
+
+	if (link2) {
+		this.label2 = this.container.appendChild(this.label(link2.index, link2.name));
+	}
 }
 
-Line.prototype = {
-	move: function () {
-		this.line.setAttribute(this.x, this.pos1.x);
-		this.line.setAttribute(this.y, this.pos1.y);
+Link.prototype = {
+	color: function (color) {
+		this.line.setAttribute("stroke", color);
+	},
+	width: function (width) {
+		this.line.setAttribute("stroke-width", width);
+	},
+	move: function (x1, y1, x2, y2) {
+		this.container.setAttribute("transform", "translate("+ x1 +","+ y1 +")");
+
+		this.line.setAttribute("x2", x2);
+		this.line.setAttribute("y2", y2);
 
 		if (this.label1) {
-			this.label(this.label1, this.pos1, this.pos2);
+			this.label1.setAttribute("x", Math.round(x2 /3));
+			this.label1.setAttribute("y", Math.round(y2 /3));
 		}
-
+		
 		if (this.label2) {
-			this.label(this.label2, this.pos2, this.pos1);
+			this.label2.setAttribute("x", Math.round(x2 *2/3));
+			this.label2.setAttribute("y", Math.round(y2 *2/3));
 		}
 	},
-	set1: function (svg) {
-		this.label1 = svg;
+	label: function (index, name) {
+		const svg = document.createElementNS(SVG_NS, "text");
+				
+		if (name.length > Line.MAX_LABEL_LEN) {
+			name = name.substring(0, Line.MAX_LABEL_LEN) +"...";
+		}
 
-		this.label(svg, this.pos1, this.pos2);
-	},
-	set2: function (svg) {
-		this.label2 = svg;
+		svg.textContent = name;
 
-		this.label(svg, this.pos2, this.pos1);
-	},
-	label: function (svg, pos1, pos2) {
-		svg.setAttribute("x", (pos1.x *2 + pos2.x) /3);
-		svg.setAttribute("y", (pos1.y *2 + pos2.y) /3);
+		return svg;
 	}
 };
 
-function addLine(id, line) {
+function Line(id1, id2) {
+	this.pos1 = window.position[this.id1 = id1];
+	this.pos2 = window.position[this.id2 = id2];
+}
+
+Line.WIDTH = 2;
+Line.MAX_LABEL_LEN = 16;
+Line.COLOR = "#d4af37";
+Line.DIFF = 6;
+
+Line.prototype = {
+	create: function (link1, link2) {
+		const
+			oLink = new Link(link1, link2);
+		
+		oLink.width(Line.WIDTH);
+		oLink.color(Line.COLOR);
+
+		if (!this.linkList) {
+			this.linkList = oLink;
+		}
+		else {
+			if (!Array.isArray(this.linkList)) {
+				this.linkList = [this.linkList];
+			}
+			
+			this.linkList.push(oLink);
+		}
+
+		this.move();
+
+		return oLink;
+	},
+	move: function () {
+		const theta = Math.atan2(this.pos2.y - this.pos1.y, this.pos2.x - this.pos1.x);
+
+		if (Array.isArray(this.linkList)) {
+			const len = this.linkList.length -1;
+
+			this.linkList.forEach((oLink, i) => {
+				oLink.move(
+					this.pos1.x + Math.cos(theta -Math.PI /2) * (len -i *2) *Line.DIFF,
+					this.pos1.y + Math.sin(theta -Math.PI /2) * (len -i *2) *Line.DIFF,
+					this.pos2.x - this.pos1.x, this.pos2.y - this.pos1.y);
+			});
+		}
+		else if (this.linkList){
+			this.linkList.move(this.pos1.x, this.pos1.y, this.pos2.x - this.pos1.x, this.pos2.y - this.pos1.y);
+		}
+	}
+};
+
+function addLink(oLine, id1, id2, link1, link2, width) {
+	const oLink = oLine.create(link1, link2);
+
+	window.lineCanvas.appendChild(oLink.container);
+
+	if (width) {
+		oLink.width(line.option.width)
+	}
+
+	if (oLink.label1) {
+		oLink.label1.onclick = top.showStatus.bind(undefined, id1, "throughput", link1.index);
+	}
+
+	if (oLink.label2) {
+		oLink.label2.onclick = top.showStatus.bind(undefined, id2, "throughput", link2.index);
+	}
+}
+
+function drawLine(id, line) {
 	const ar = id.split("."),
 		id1 = "node."+ ar[1],
 		id2 = "node."+ ar[2];
@@ -551,76 +622,20 @@ function addLine(id, line) {
 		return;
 	}
 
-	const
-		svg = document.createElementNS(SVG_NS, "line"),
-		pos1 = window.position[id1],
-		pos2 = window.position[id2],
-		l1 = new Line(svg, pos1, pos2, "x1", "y1"),
-		l2 = new Line(svg, pos2, pos1, "x2", "y2");
+	var oLine = new Line(id1, id2);
 
-	var width = LINE_WIDTH,
-		color = LINE_COLOR;
-
-	window.map[id1].line(l1);
-	window.map[id2].line(l2);
-
-	if ("option" in line) {
-		if ("width" in line.option) {
-			width = line.option.width;
-		}
-
-		if ("color" in line.option) {
-			color = line.option.color;
-		}
+	if (Array.isArray(line[id1])) {
+		line[id1].forEach((link, i) => {
+			addLink(oLine, id1, id2, link, line[id2][i]);
+		});
+	}
+	else {
+		addLink(oLine, id1, id2, line[id1], line[id2]);
 	}
 	
-	svg.setAttribute("stroke-width", width);
-	svg.setAttribute("stroke", color);
-
-	lineCanvas.appendChild(svg);
-	
-	if (id1 in line) {
-		const svg = document.createElementNS(SVG_NS, "text");
-
-		svg.textContent = line[id1].name;
-
-		l1.set1(svg);
-		l2.set2(svg);
-
-		lineCanvas.appendChild(svg);
-	}
-
-	if (id2 in line) {
-		const svg = document.createElementNS(SVG_NS, "text");
-
-		svg.textContent = line[id2].name;
-
-		l1.set2(svg);
-		l2.set1(svg);
-
-		lineCanvas.appendChild(svg);
-	}
+	window.map[id1].connect(oLine);
+	window.map[id2].connect(oLine);
 }
-
-function moveLabel(moved) {
-	moved.forEach(function (link) {
-		const x1 = parseInt(link.svg.getAttribute("x1")),
-			y1 = parseInt(link.svg.getAttribute("y1")),
-			x2 = parseInt(link.svg.getAttribute("x2")),
-			y2 = parseInt(link.svg.getAttribute("y2"));
-		
-		if (link.name) {
-			link.name.setAttribute("x", (x1 *2 + x2) /3);
-			link.name.setAttribute("y", (y1 *2 + y2) /3);
-		}
-
-		if (link.name2) {
-			link.name2.setAttribute("x", (x2 *2 + x1) /3);
-			link.name2.setAttribute("y", (y2 *2 + y1) /3);
-		}
-	});
-}
-
 
 function initialize() {
 	const df = document.createDocumentFragment();
@@ -639,7 +654,7 @@ function initialize() {
 	window.deviceCanvas.appendChild(df);
 
 	for (let id in window.line) {
-		addLine(id, window.line[id]);
+		drawLine(id, window.line[id]);
 	}
 	
 	zoom();
