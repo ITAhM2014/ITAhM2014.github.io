@@ -69,11 +69,16 @@ self.onmessage = e => {
 				link: parse(line[id2])
 			};
 		}
-
+		else {
+			continue;
+		}
+		
 		postMessage(message);
 	}
 
-	setTimeout(postMessage.bind(self, null), TRAFFIC_INTERVAL);
+	setTimeout(() => {
+		postMessage(null);
+	}, TRAFFIC_INTERVAL);
 };
 
 postMessage(null);

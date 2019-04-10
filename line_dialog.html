@@ -426,7 +426,7 @@ document.getElementById("close").onclick = close;
 		document.querySelector("input[type=reset]").disabled = false;
 		document.querySelector("input[type=submit]").disabled = false;
 
-		form.onreset = removeLine;
+		form.onreset = onRemoveLine;
 	}
 
 	form.elements["add"].onclick = e => {
@@ -554,11 +554,15 @@ document.getElementById("close").onclick = close;
 		});
 	};
 
-	function removeLine(e) {
+	function onRemoveLine(e) {
 		if (!confirm("회선을 삭제하겠습니까?")) {
 			return;
 		}
 
+		removeLine();
+	}
+
+	function removeLine() {
 		document.body.classList.add("loading");
 
 		top.postRequest({

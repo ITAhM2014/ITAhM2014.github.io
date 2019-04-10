@@ -206,6 +206,7 @@ text {
 div.nav {
 	flex: none;
 	pointer-events: all;
+	cursor: pointer;
 }
 
 div.nav::after {
@@ -1016,6 +1017,10 @@ top.postRequest({
 				if (id in window.position) {
 					const pos = window.position[id];
 
+					if (pos.parent && !(pos.parent in window.node)) {
+						pos.parent = undefined;
+					}
+
 					window.upper = top.store.parent = pos.parent;
 					
 					moveMap(-pos.x, -pos.y);
@@ -1169,6 +1174,10 @@ function initialize() {
 			};
 		}
 		
+		if (pos.parent && !(pos.parent in window.node)) {
+			pos.parent = undefined;
+		}
+
 		if (pos.parent === window.upper) {
 			addNode(id, base, pos);
 			

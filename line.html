@@ -181,8 +181,9 @@ label {
 	margin-left: 30px;
 }
 
-#list >ul.selected {
-	background-color: #ffc;
+#list p {
+	min-height: 1em;
+	margin: 0;
 }
 
 footer {
@@ -338,7 +339,7 @@ function createRow(id, line) {
 		line1 = line[id1],
 		line2 = line[id2],
 		row = document.createElement("ul");
-	var	type, labels, label;
+	var	type, labels, label, li4, li7;
 	
 	if (!base1 || !base2) {
 		return;
@@ -348,11 +349,22 @@ function createRow(id, line) {
 	
 	row.appendChild(document.createElement("li")).textContent = base1.ip || ""; // N.2
 	row.appendChild(document.createElement("li")).textContent = base1.name || ""; // N.3
-	row.appendChild(document.createElement("li")).textContent = line1? line1.name: ""; // N.4
+	li4 = row.appendChild(document.createElement("li")); // N.4
 	row.appendChild(document.createElement("li")).textContent = base2.ip || ""; // N.5
 	row.appendChild(document.createElement("li")).textContent = base2.name || ""; // N.6
-	row.appendChild(document.createElement("li")).textContent = line2? line2.name: ""; // N.7
-	row.title = id;
+	li7 = row.appendChild(document.createElement("li"));// N.7
+	
+	if (Array.isArray(line1)) {
+		line1.forEach((line, i) => {
+			li4.appendChild(document.createElement("p")).textContent = line? line.name: "";
+			li7.appendChild(document.createElement("p")).textContent = line2[i]? line2[i].name: "";
+		});
+	}
+	else {
+		li4.textContent = line1? line1.name: "";
+		li7.textContent = line2? line2.name: "";
+	}
+	
 	if (window.customs) {
 		if (line.custom) {
 			window.customs.forEach(function (custom) {
@@ -561,7 +573,7 @@ var
 	header = document.getElementById("header"),
 	list = document.getElementById("list"),
 	selector = document.querySelector(".selector"),	
-	customs, selected;
+	customs;
 
 document.getElementById("save").onclick = onSave;
 

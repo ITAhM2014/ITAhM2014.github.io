@@ -395,7 +395,7 @@ function onUpdate() {
 	setTimeout(update, 10000);
 }
 
-function update() {
+function update() {return;
 	const xhr = new XMLHttpRequest();
 	
 	xhr.open("POST", window.agent, true);

@@ -247,7 +247,6 @@ function saveTmpReload() {
 }
 
 // public
-// 에디터를 벗어나지 않았다고 판단되어야 할때 현재 상태를 임시 저장
 function removePos(id) {
 	delete window.position[id];
 }
@@ -625,7 +624,7 @@ function drawLine(id, line) {
 		});
 	}
 	else {
-		addLink(oLine, line[id1], line[id2], line.option);
+		let link = addLink(oLine, line[id1], line[id2], line.option);
 	}
 	
 	window.map[id1].connect(oLine);
@@ -639,6 +638,10 @@ function initialize() {
 	for (let id in window.node) {
 		node = new Node(id, window.node[id]);
 		
+		if (node.pos.parent && !(node.pos.parent in window.node)) {
+			node.pos.parent = window.upper;
+		}
+
 		if (node.pos.parent == window.upper) {
 			node.layer(df);
 
