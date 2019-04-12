@@ -11,13 +11,6 @@
 
 body {
 	color: #fff;
-	animation: fall 1s cubic-bezier(0, 1.5, 1, 1);
-}
-
-@keyframes fall {
-	from {
-		transform: translateY(-100%);
-	}
 }
 
 section:empty {
@@ -85,15 +78,12 @@ body.name .list_item> li:nth-child(2) {
 .list_item> li:last-child >div {
 	position: absolute; top: 0; bottom: 0; left: 0;
 	z-index: -1;
-	animation: gauge 2s;
+	animation: gauge 2s cubic-bezier(0, 1, 1, 1.2);
 }
 
 @keyframes gauge {
-	0% {
-		width: 0;
-	}
-	50% {
-		width: 0;
+	30% {
+		width: 0%;
 	}
 }
 
@@ -101,7 +91,7 @@ body.name .list_item> li:nth-child(2) {
 	border-color: #f00;
 }
 
-#top_list.pastel .list_item> li:last-child.red {
+#list.pastel .list_item> li:last-child.red {
 	border-color: #8e24aa;
 }
 
@@ -109,7 +99,7 @@ body.name .list_item> li:nth-child(2) {
 	background: linear-gradient(to right, rgba(255, 0, 0, 0.5), #f00);
 }
 
-#top_list.pastel .list_item> li:last-child.red >div {
+#list.pastel .list_item> li:last-child.red >div {
 	background: linear-gradient(to right, rgba(142, 36, 170, 0.5), #8e24aa);
 }
 
@@ -117,7 +107,7 @@ body.name .list_item> li:nth-child(2) {
 	border-color: #ffa500;
 }
 
-#top_list.pastel .list_item> li:last-child.orange {
+#list.pastel .list_item> li:last-child.orange {
 	border-color: #f6bf26;
 }
 
@@ -125,7 +115,7 @@ body.name .list_item> li:nth-child(2) {
 	background: linear-gradient(to right, rgba(255, 165, 0, 0.5), #ffa500);
 }
 
-#top_list.pastel .list_item> li:last-child.orange >div {
+#list.pastel .list_item> li:last-child.orange >div {
 	background: linear-gradient(to right, rgba(246, 191, 38, 0.5), #f6bf26);
 }
 
@@ -133,7 +123,7 @@ body.name .list_item> li:nth-child(2) {
 	border-color: #0f0;
 }
 
-#top_list.pastel .list_item> li:last-child.green {
+#list.pastel .list_item> li:last-child.green {
 	border-color: #00897b;
 }
 
@@ -141,12 +131,8 @@ body.name .list_item> li:nth-child(2) {
 	background: linear-gradient(to right, rgba(0, 255, 0, 0.5), #0f0);
 }
 
-#top_list.pastel .list_item> li:last-child.green >div {
+#list.pastel .list_item> li:last-child.green >div {
 	background: linear-gradient(to right, rgba(0, 137, 123, 0.5), #00897b);
-}
-
-#tmp_list {
-	display: none;
 }
 
 		</style>
@@ -154,29 +140,27 @@ body.name .list_item> li:nth-child(2) {
 		<script>
 
 function initialize() {
-	const df = document.createDocumentFragment();
+	const list = document.getElementById("list");
 	
+	if ("color" in top.setting) {
+		list.classList.add(top.setting.color);
+	}
+
 	if ("dashboard" in top.setting) {
-		var order = top.setting.dashboard;
-		
-		for (let i=0, _i=order.length, resource; i<_i; i++) {
-			resource = order[i];
+		const df = document.createDocumentFragment();
 
-			setTop(window.topMap[resource], df.appendChild(document.getElementById(resource)));
-		}
-	}
-	else {
-		const list = document.getElementById("tmp_list");
-		let section;
+		top.setting.dashboard.forEach(id => {
+			df.appendChild(document.getElementById(id));
+		});
 
-		while (section = list.firstElementChild) {
-			setTop(window.topMap[section.id], df.appendChild(section));
-		}
+		[].forEach.call(list.querySelectorAll("section"), section =>{
+			list.removeChild(section);
+		});
+
+		list.appendChild(df);
 	}
 
-	window.list.appendChild(df);
-
-	[].forEach.call(window.list.querySelectorAll("section"), function (section) {
+	[].forEach.call(list.querySelectorAll("section"), section => {
 		section.draggable = true;
 		
 		section.addEventListener("dragstart", function (e) {
@@ -201,16 +185,15 @@ function initialize() {
 				this.parentNode.insertBefore(window.draggable, this);
 			}
 
-			const order = [];
+			top.setting.dashboard = [];
 
-			for (let list=window.list, section=list.firstElementChild; section; section=section.nextElementSibling) {
-				order.push(section.id);
-			}
-			
-			top.setting.dashboard = order;
+			[].forEach.call(list.querySelectorAll("section"), section => {
+				top.setting.dashboard.push(section.id);
+			});
 		});
 	});
 }
+
 function toErrorString(value) {
 	return value;
 }
@@ -257,38 +240,23 @@ function toBPSString(bandwidth) {
 	return bandwidth.toFixed(2) + unit[i];
 }
 
-function setTop(topData, section) {
-	const
-		skipZero = section.dataset.zero,
-		sortByRate = section.dataset.rate,
-		toString = window[section.dataset.func],
-		list = Object.keys(topData).sort(function (a, b) {
-			if (sortByRate) {
-				return topData[b].rate - topData[a].rate;
-			}
-			else {
-				return topData[b].value - topData[a].value;
-			}
-		});
-
-	for (let i=0, _i=list.length, id, value; i< _i; i++) {
-		id = list[i];
-		value = topData[id];
-		
-		if (value && value.value || !skipZero) {
-			section.appendChild(createTopItem(id, toString(value.value), value.rate, section.id, value.index));
-		}
-	}
-}
-
 function setTop(topList, section) {
+	if (!section) {
+		return;
+	}
+
 	const
 		skipZero = section.dataset.zero,
 		sortByRate = section.dataset.rate,
 		toString = window[section.dataset.func];
 
-	for (let i=0, _i=topList.length, map, value; i< _i; i++) {
-		map = topList[i];
+	for (let item; item = section.firstChild;) {
+		section.removeChild(item);
+	}
+
+	topList.forEach(map => {
+		var value;
+
 		for (let id in map) {
 			value = map[id];
 
@@ -296,7 +264,7 @@ function setTop(topList, section) {
 				section.appendChild(createTopItem(id, toString(value.value), value.rate, section.id, value.index));
 			}
 		}
-	}
+	});
 }
 
 function createTopItem(id, value, rate, resource, index) {
@@ -339,9 +307,7 @@ function createTopItem(id, value, rate, resource, index) {
 	</head>
 	
 	<body class="name">
-		<div id="top_list"></div>
-		
-		<div id="tmp_list">
+		<div id="list">
 			<section id="responseTime" data-func="toMillsString" title="응답시간"></section>
 			<section id="processor" data-func="toPercentageString" title="프로세서 로드"></section>
 			<section id="memory" data-func="toBytesString" title="메모리 사용량"></section>
@@ -355,63 +321,48 @@ function createTopItem(id, value, rate, resource, index) {
 		
 		<script>
 
+const INTERVAL = 8000;
 var request = {
 		command: "order",
 		order: "top"
 	},
-	list = document.getElementById("top_list"),
 	rafID;
 
 if ("display" in top.setting && top.setting.display !== "name") {
 	document.body.classList.remove("name");
 }
 
-if ("color" in top.setting) {
-	window.list.classList.add(top.setting.color);
-}
-
 if (top.store.parent) {
 	window.request.top = parent.topList;
 }
 
-top.postRequest(window.request, function () {
-	switch (this.status) {
-	case 200:
-		window.topMap = JSON.parse(this.responseText);
-
-		initialize();
-
-		break;
-	default:
-		alert(top.getMessage(this.status));
-
-		console.log(this.responseText && JSON.parse(this.responseText).error);
-	}
-});
+initialize();
 
 function reload() {
-	const rafID = 
-	window.rafID = requestAnimationFrame(function reload(elapsed) {
-		if (elapsed > 8000) {
-			if (rafID == window.rafID) {
-				window.location.reload();
+	top.postRequest(window.request, function () {
+		switch (this.status) {
+		case 200:
+			const map = JSON.parse(this.responseText);
+
+			for (let id in map) {
+				setTop(map[id], document.getElementById(id));
 			}
-		}
-		else {
-			requestAnimationFrame(reload);
+
+			break;
+		default:
+			alert(top.getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
 		}
 	});
+
+	setTimeout(() => {
+		requestAnimationFrame(reload);
+	}, INTERVAL);
 }
 
-document.onmouseenter = function () {
-	window.rafID = undefined;
-};
-
-document.onmouseleave = function () {
-	reload();
-};
-
 reload();
+
 
 		</script>
 	
