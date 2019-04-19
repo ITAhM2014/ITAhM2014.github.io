@@ -318,9 +318,14 @@ function initialize() {
 	}
 	
 	const df = document.createDocumentFragment();
+	var row;
 
 	for (let id in window.line) {
-		df.appendChild(createRow(id, window.line[id]));
+		row = createRow(id, window.line[id]);
+
+		if (row) {
+			df.appendChild(row);
+		}
 	}
 
 	window.list.appendChild(df);
