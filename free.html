@@ -6,282 +6,7 @@
 		
 		<style>
 
-body  {
-	font-family: arial, tahoma, "맑은 고딕";
-	font-size: 10pt;
-	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
-	padding: 0; margin: 0;
-	background-color: #4d525a;
-}
-
-body >article {
-	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-}
-
-article.itahm {
-	display: flex;
-	
-}
-
-article.signin {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	background-color: #f9f9f9;
-}
-
-header {
-	color: #fff;
-	display: flex; flex-direction: column;
-	flex: none;
-	background-color: #4d525a;
-	position: relative;
-}
-
-header >.logo {
-	flex: none;
-	margin: 1em;
-	padding: 0.5em;
-	background-color: #fcba30;
-}
-
-header li {
-	display: flex; flex-direction: column;
-	text-align: center;
-}
-
-header img {
-	display: block;
-	width: 50px; height: 50px;
-}
-
-div.frame {
-	flex: 1;
-}
-
-header a {
-	display: inline-block;
-	height: 100%;
-	cursor: pointer;
-}
-
-header a:visited,
-header a:link {
-	color: inherit;
-	text-decoration: none;
-}
-
-header ul {
-	list-style: none;
-	padding: 0;
-	margin: 1em;
-	display: flex;
-	position: relative;
-}
-
-.icon {
-	flex: none;
-	display: flex; flex-direction: column;
-}
-
-.icon a {
-	display: inline-block;
-	height: 100%;
-	cursor: pointer;
-	margin: 3px 0;
-}
-
-.icon a::after {
-	content: attr(data-title);
-	text-align: center;
-}
-
-.icon a:visited,
-.icon a:link {
-	color: inherit;
-	text-decoration: none;
-}
-
-.icon a {
-	text-shadow: 1px 1px 1px #000;
-	border-radius: 3px;
-	padding: 0.5em;
-	font-size: 0.8em;
-}
-
-.icon a:hover {
-	color: #4d525a;
-	text-shadow: none;
-	background-color: rgba(255, 255, 255, 0.7);
-}
-
-.icon a:active {
-	background-color: rgba(255, 255, 255, 0.4);
-}
-
-.icon a.selected {
-	background-color: rgba(255, 255, 255, 1);
-	color: #000;
-	text-shadow: 1px 1px 1px #fff;
-}
-
-#frame {
-	flex: 1;
-	width: 100%; height: 100%;
-	border: none;
-	background-color: #4d525a;
-}
-
-#dialog {
-	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
-	padding: 0;
-	margin: 0;
-	width: 100%;
-	height: 100%;
-}
-
-#status {
-	flex: 1;
-	list-style: none; padding: 0;
-	display: flex; flex-direction: column;
-}
-
-#status >li {
-	flex: 1;
-	margin: 1px;
-	border: 1px solid #ddd; border-radius: 3px;
-	display: flex; align-items: center; justify-content: center;
-}
-
-#status >li.normal {
-	background-color: #0f0;
-	color: #097829;
-}
-
-#status >li.status {
-	background-color: #ffa500;
-	color: #ba4800;
-}
-
-#status >li.shutdown {
-	background-color: #666;
-	color: #272727;
-}
-
-#status >li:empty {
-	display: none;
-}
-
-div.log {
-	position: fixed; right: 10px; top: 10px;
-	cursor: pointer;
-}
-
-div.log span {
-	display: inline-block;
-	font-weight: bold;
-	background-color: #ffa500;
-	color: #fff;
-}
-
-#count {
-	width: 2em; height: 2em;
-	box-sizing: border-box;
-	padding: .5em;
-	border-radius: 1em;
-	text-align: center;
-}
-
-#log {
-	padding: .5em .5em .5em 1em;
-	margin-left: 1em;
-	border-radius: 1em 0 0 1em;
-}
-
-/** signin **/
-div.signin {
-	width: 320px;
-}
-
-p, input {
-	font-size: 13px;
-}
-
-h1 {
-	text-align: center;
-}
-
-h1 img {
-	vertical-align: middle;
-}
-
-form {
-	padding: 20px;
-	border: 1px solid #ddd;
-	background-color: #fff;
-}
-
-input {
-	width: 100%;
-	box-sizing: border-box;
-	padding: 10px;
-	border: 1px solid #ddd;
-	border-radius: 3px 3px 3px 3px;
-}
-
-input.button {
-	margin-top: 20px;
-	background-image: linear-gradient(#7af, #0084ff);
-	border: 1px solid #07f;
-	font-weight: bold;
-	color: #fff;
-}
-
-.flex {
-	display: flex;
-}
-
-.flex >input {
-	flex: 1;
-}
-
-input[name="ip"] {
-	background: url("img/home.png") no-repeat 10px center;
-	padding-left: 36px;
-}
-
-input[name="tcp"] {
-	background: transparent url("img/port.png") no-repeat 10px center;
-	padding-left: 36px;
-}
-
-input[name="username"] {
-	background: transparent url("img/user.png") no-repeat 10px center;
-	padding-left: 36px;
-}
-
-input[name="password"] {
-	background: transparent url("img/lock.png") no-repeat 10px center;
-	padding-left: 36px;
-}
-
-.bg_loading {
-	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
-	background: #4d525a url("/img/loading.gif") no-repeat center;
-	background-size: 32px 32px;
-	opacity: .5;
-}
-
-body:not(.ready) article.signin,
-body.authorized article.signin,
-body:not(.authorized) article.itahm,
-body:not(.loading) .bg_loading,
-body.set form.set,
-body:not(.set) form.account,
-body:not(.log) .log,
-body:not(.dialog) #dialog {
-	display: none;
-}
+@import "/css/index.css";
 
 		</style>
 		<script src="js/google.js"></script>
@@ -512,46 +237,50 @@ function postRequest(request, onResponse, timeout) {
 	<body class="menu">
 		<article class="itahm">
 			<header>
-				<div class="logo">
-					<img src="/img/favicon2.png">
-				</div>
-				<ul class="icon">
-					<li>
-						<a id="dashboard" href="/dashboard.html" target="main" title="대시보드" class="selected">
-							<img src="/img/header/dashboard.png">
+				<div>
+					<ul class="logo">
+						<li>
+							<img src="/img/favicon2.png">
+						</li>
+					</ul>
+					<ul class="icon">
+						<li>
+							<a id="dashboard" href="/dashboard.html" target="main" class="selected">
+								<img src="/img/header/dashboard.png">
+							</a>
 							대시보드
-						</a>
-					</li>
-					<li>
-						<a id="node" href="/list.html" target="main" title="노드">
-							<img src="/img/header/list.png">
+						</li>
+						<li>
+							<a id="node" href="/list.html" target="main">
+								<img src="/img/header/list.png">
+							</a>
 							목록
-						</a>
-					</li>
-					<li>
-						<a id="line" href="/line.html" target="main" title="회선">
-							<img src="/img/header/line.png">
+						</li>
+						<li>
+							<a id="line" href="/line.html" target="main">
+								<img src="/img/header/line.png">
+							</a>
 							회선
-						</a>
-					</li>
-					<li>
-						<a id="event" href="event.html" target="main" title="이벤트">
-							<img src="/img/header/event.png">
+						</li>
+						<li>
+							<a id="event" href="event.html" target="main">
+								<img src="/img/header/event.png">
+							</a>
 							이벤트
-						</a>
-					</li>
-					<li>
-						<a id="information" href="information.html" target="main" title="정보">
-							<img src="/img/header/information.png">
+						</li>
+						<li>
+							<a id="information" href="information.html" target="main">
+								<img src="/img/header/information.png">
+							</a>
 							정보
-						</a>
-					</li>
-				</ul>
-				<ul id="status">
-					<li class="normal"></li>
-					<li></li>
-					<li></li>
-				</ul>
+						</li>
+					</ul>
+					<ul id="status" class="status">
+						<li class="normal"></li>
+						<li></li>
+						<li></li>
+					</ul>
+				</div>
 			</header>
 			<div class="frame">
 				<iframe id="frame" name="main"></iframe>

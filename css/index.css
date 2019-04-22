@@ -1,0 +1,265 @@
+@charset "utf-8";
+
+body  {
+	font-family: arial, tahoma, "맑은 고딕";
+	font-size: 10pt;
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	padding: 0; margin: 0;
+	background-color: #4d525a;
+}
+
+body >article {
+	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+	display: flex;
+}
+
+article.itahm {
+	display: flex;
+}
+
+article.signin {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: #f9f9f9;
+}
+
+header {
+	color: #fff;
+	flex: none;
+	position: relative;
+	display: flex; justify-content: center;
+}
+
+header >div {
+	height: 100%; width: 80px;
+	display: flex; flex-direction: column;
+	overflow: hidden;
+}
+
+header ul {
+	align-self: center;
+	flex: none;
+	list-style: none;
+	width: 60px;
+	padding: 0; margin: 0;
+}
+
+header img {
+	display: block;
+	width: 50px; height: 50px;
+}
+
+header ul.logo {
+	background-color: #fcba30;
+	height: 60px;
+	margin: 10px 0;
+	display: flex; align-items: center; justify-content: center;
+}
+
+header ul.logo li {
+	padding: 5px;
+}
+
+header ul.icon {
+	display: flex; flex-direction: column;
+}
+
+header ul.icon li {
+	align-self: center;
+	text-align: center;
+	font-size: 0.8em;
+	text-shadow: 1px 1px 1px #000;
+}
+
+header ul.icon a {
+	display: block;
+	cursor: pointer;
+	border-radius: 3px;
+	padding: 5px;
+}
+
+header ul.icon a:visited,
+header ul.icon a:link {
+	color: inherit;
+	text-decoration: none;
+}
+
+header ul.icon a:hover {
+	color: #4d525a;
+	text-shadow: none;
+	background-color: rgba(255, 255, 255, 0.7);
+}
+
+header ul.icon a:active {
+	background-color: rgba(255, 255, 255, 0.4);
+}
+
+header ul.icon a.selected {
+	background-color: rgba(255, 255, 255, 1);
+	color: #000;
+	text-shadow: 1px 1px 1px #aaa;
+}
+
+header ul.status {
+	flex: 1;
+	margin: 10px 0;
+	display: flex; flex-direction: column;
+}
+
+header ul.status >li {
+	flex: 1;
+	margin: 1px;
+	border: 1px solid #ddd; border-radius: 3px;
+	display: flex; align-items: center; justify-content: center;
+}
+
+header ul.status >li.normal {
+	background-color: #0f0;
+	color: #097829;
+}
+
+header ul.status >li.status {
+	background-color: #ffa500;
+	color: #ba4800;
+}
+
+header ul.status >li.shutdown {
+	background-color: #666;
+	color: #272727;
+}
+
+header ul.status >li:empty {
+	display: none;
+}
+
+div.frame {
+	flex: 1;
+}
+
+#frame {
+	flex: 1;
+	width: 100%; height: 100%;
+	border: none;
+	background-color: #4d525a;
+}
+
+#dialog {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	padding: 0;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+}
+
+div.log {
+	position: fixed; right: 10px; top: 10px;
+	z-index: 2;
+	cursor: pointer;
+}
+
+div.log span {
+	display: inline-block;
+	font-weight: bold;
+	background-color: #ffa500;
+	color: #fff;
+}
+
+#count {
+	width: 2em; height: 2em;
+	box-sizing: border-box;
+	padding: .5em;
+	border-radius: 1em;
+	text-align: center;
+}
+
+#log {
+	padding: .5em .5em .5em 1em;
+	margin-left: 1em;
+	border-radius: 1em 0 0 1em;
+}
+
+/** signin **/
+div.signin {
+	width: 320px;
+}
+
+p, input {
+	font-size: 13px;
+}
+
+h1 {
+	text-align: center;
+}
+
+h1 img {
+	vertical-align: middle;
+}
+
+form {
+	padding: 20px;
+	border: 1px solid #ddd;
+	background-color: #fff;
+}
+
+input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 3px 3px 3px 3px;
+}
+
+input.button {
+	margin-top: 20px;
+	background-image: linear-gradient(#7af, #0084ff);
+	border: 1px solid #07f;
+	font-weight: bold;
+	color: #fff;
+}
+
+.flex {
+	display: flex;
+}
+
+.flex >input {
+	flex: 1;
+}
+
+input[name="ip"] {
+	background: url("img/home.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="tcp"] {
+	background: transparent url("img/port.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="username"] {
+	background: transparent url("img/user.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+input[name="password"] {
+	background: transparent url("img/lock.png") no-repeat 10px center;
+	padding-left: 36px;
+}
+
+.bg_loading {
+	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+	background: #4d525a url("/img/loading.gif") no-repeat center;
+	background-size: 32px 32px;
+	opacity: .5;
+}
+
+body:not(.ready) article.signin,
+body.authorized article.signin,
+body:not(.authorized) article.itahm,
+body:not(.loading) .bg_loading,
+body.set form.set,
+body:not(.set) form.account,
+body:not(.log) div.log,
+body:not(.dialog) #dialog {
+	display: none;
+}
