@@ -8,15 +8,12 @@
 
 @import "/css/index.css";
 
-header >div {
+body.auto header >div {
+	width: 0;
 	transition: 0.5s width;
 }
 
-body:not(.menu) header >div {
-	width: 0;
-}
-
-body:not(.menu) header::after {
+body.auto header::after {
 	content: "";
 	position: absolute; top: 50%; right: -1em;
 	width: 1em; height: 2em;
@@ -27,7 +24,7 @@ body:not(.menu) header::after {
 	transform: translateY(-50%);
 }
 
-body:not(.menu) header:hover >div {
+body.auto header:hover >div {
 	width: 80px;
 }
 
@@ -59,7 +56,7 @@ function showStatus(id, resource, index) {
 
 // public
 function setMenu(showMenu) {
-	document.body.classList[showMenu? "add": "remove"]("menu");
+	document.body.classList[showMenu? "remove": "add"]("auto");
 } 
 
 // public
