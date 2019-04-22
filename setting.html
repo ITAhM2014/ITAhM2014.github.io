@@ -1112,11 +1112,23 @@ backup.elements["restore"].onchange = function (e) {
 	
 	reader.onload = function () {
 		document.body.classList.add("loading");
-		
+		try {
+			const backup = JSON.parse(this.result);
+
+			if (!confirm("복구 과정이 시작되면 되돌릴수 없습니다.\n계속 하겠습니까?")) {
+				return;
+			}
+		}
+		catch (e) {
+			alert("복구할 수 없는 파일 형식입니다.");
+
+			return;
+		}
+
 		top.postRequest({
 			command: "order",
 			order: "restore",
-			database: JSON.parse(this.result)
+			database: backup
 		}, function () {
 			switch (this.status) {
 			case 200:
