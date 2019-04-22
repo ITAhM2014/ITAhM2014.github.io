@@ -433,6 +433,127 @@ function subMap() {
 	window.location.reload();
 }
 
+function parse(base) {
+	if (!("snmp" in base)) {
+		return;
+	}
+	
+	const title = [],
+		head = [];
+
+	if (base.ip) {
+		head.push(base.ip);
+	}
+
+	if (base.name) {
+		head.push(base.name);
+	}
+
+	if ("status" in base) {
+
+		if(base.status) {
+			if ("responseTime" in base.snmp) {
+				head.push("응답속도 "+ base.snmp.responseTime["0"].rtt +"ms");
+			}
+		}
+		else {
+			head.push("응답없음");
+		}
+	}
+
+	if (head.length > 0) {
+		title.push(head.join("\n"));
+	}
+
+	(function(entry) {
+		if (!entry) {
+			return;
+		}
+
+		var
+			indexData,
+			max, min, avg = 0, load, count = 0;
+
+		for (let index in entry) {
+			indexData = entry[index];
+
+			load = indexData.hrProcessorLoad;
+
+			if (isNaN(max)) {
+				max = min = avg = load;
+			}
+			else {
+				max = Math.max(max, load);
+				min = Math.min(min, load);
+				avg += load;
+			}
+			count++;
+		}
+
+		if (count > 0) {
+			title.push(["Processor load", "Max: "+ max +", Avg: "+ Math.round(avg / count) +", min: "+ min].join("\n"));
+		}
+
+	})(base.snmp.hrProcessorEntry);
+
+	(function (entry) {
+		if (!entry) {
+			return;
+		}
+
+		var  indexData;
+
+		for (let index in entry) {
+			indexData = entry[index];
+
+			switch(indexData.hrStorageType) {
+			case 4:
+				break;
+			case 2:
+				title.push(["Physical memory", Math.round(100* indexData.hrStorageUsed / indexData.hrStorageSize) +" %"].join("\n"));
+				
+				break;
+			}
+		}
+	}) (base.snmp.hrStorageEntry);
+
+	return title.join("\n\n");
+}
+
+function onMouseOver(e) {
+	var svg = this.querySelector("title");
+
+	if (svg) {
+		this.removeChild(svg);
+	}
+
+	svg = this;
+
+	top.postRequest({
+		command: "node",
+		id: this.id,
+		snmp: true
+	}, function () {
+		switch (this.status) {
+		case 200:
+			const title = parse(JSON.parse(this.responseText));
+
+			if (title) {
+				const svgTitle = document.createElementNS(SVG_NS, "title");
+				
+				svgTitle.textContent = title;
+
+				svg.appendChild(svgTitle);
+			}
+			break;
+		default:
+			console.log(top.getMessage(this.status));
+
+			console.log(this.responseText && JSON.parse(this.responseText).error);
+		}
+	});
+}
+
 function addNode(id, base, pos) {
 	const 
 		svgDevice = document.createElementNS(SVG_NS, "g"),
@@ -467,6 +588,8 @@ function addNode(id, base, pos) {
 				top.showStatus(id);
 			}
 		};
+
+		svgDevice.onmouseenter = onMouseOver;
 	}
 
 	svgName.textContent = base.name || base.ip || "";
