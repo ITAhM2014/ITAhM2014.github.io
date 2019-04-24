@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <meta charset="UTF-8">
+        <meta http-equiv="Cache-Control" content="No-Cache">
+        <title>Support @ ITAhM</title>
+        <style>
+
+input {
+    padding: 0.5em;
+}
+
+input[name=key] {
+    width: 100%; box-sizing: border-box;
+}
+
+        </style>
+        <script>
+
+function CSVToArray(source, seperator = ",") {
+    var
+        objPattern = new RegExp(("(\\" + seperator +
+            "|\\r?\\n|\\r|^)(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^\"\\" +
+            seperator + "\\r\\n]*))"), "gi"),
+        quoted = new RegExp( "\"\"", "g" ),
+        row = [],
+        rows = [row];
+
+    for (let matches; matches = objPattern.exec(source);) {
+        if (matches[1].length > 0 && matches[1] !== seperator) {
+            rows.push(row = []);
+        }
+
+        if (matches[2]) {
+            row.push(matches[2].replace(quoted, "\""));
+        }
+        else {
+            row.push(matches[3]);
+        }
+    }
+
+    return rows;
+}
+
+        </script>
+    </head>
+
+    <body>
+        <ul>
+            <li>헤더의 명칭과 순서를 CSV 파일의 데이터와 일치하도록 하십시오.</li>
+            <li>CSV 파일의 데이터가 한글을 사용하는 경우 UTF-8 인코딩을 확인 하십시오.</li>
+            <li>CSV 파일에 빈 열이 포함되지 않도록 하는 것이 좋습니다.</li>
+        </ul>
+        <form>
+            <p>
+                Header
+                <input name="key" value="name, ip, label, protocol, profile, type" placeholder="Columns">
+            </p>
+            <input type="file" name="file" placeholder="CSV File">
+            <input type="reset" value="검사">
+			<input type="submit" value="확인" disabled>
+        </form>
+
+        <script>
+
+var top = window.parent.top;
+
+(function (form) {
+    const btnSubmit = form.querySelector("[type=submit]");
+    var node;
+
+    form.elements["file"].onchange = function () {
+        btnSubmit.disabled = true;
+    };
+
+    form.onreset = function (e) {
+        e.preventDefault();
+        
+        var
+            file = this.elements["file"].files[0],
+            reader = new FileReader(),
+            cols = this.elements["key"].value.split(",").map(key => key.trim()),
+            colSize = cols.length;
+        
+        reader.onload = function () {
+            var
+                o = {},
+                id = 0;
+
+            CSVToArray(this.result).forEach((row, i) => {
+                const
+                    nodeID = "node."+ id++,
+                    node = {id: nodeID};
+
+                o[nodeID] = node;
+
+                if (row.length != colSize) {
+                    console.log(i +" 행의 열 갯수("+ row.length +")가 형식과 일치 하지 않습니다.");
+                }
+                else {
+                    row.forEach((col, i) => {
+                        if (col.length > 0) {
+                            node[cols[i]] = col;
+                        }
+                    });
+
+                    if (!("role" in node)) {
+                        node.role = "node";
+                    }
+                        
+                    if (node.role === "application") {
+                    }
+                    else if (node.role === "group") {
+                    }
+                    else if ("protocol" in node) {
+                        switch (node.protocol) {
+                        case "snmp":
+                            if (!node.profile) {
+                                console.log("노드 "+ node.id +" 의 프로파일이 존재하지 않습니다.");
+                            }
+                            break;
+                        case "icmp":
+                            break;
+                        }
+                    }
+                }
+            });
+
+            alert("검사가 완료되었습니다. console을 확인하십시오.");
+            
+            node = o;
+
+            btnSubmit.disabled = false;
+        };
+
+        reader.readAsText(file);
+    };
+    
+    form.onsubmit = function (e) {
+        e.preventDefault();
+
+        top.postRequest({
+			command: "order",
+			order: "restore",
+			database: {
+                node: node
+            }
+		}, function () {
+			switch (this.status) {
+			case 200:
+				alert("복구가 완료되었습니다.");
+
+				top.location.reload();
+				
+				break;
+			default:
+				alert(top.getMessage(this.status));
+
+				console.log(this.responseText && JSON.parse(this.responseText).error);
+			}
+
+			document.body.classList.remove("loading");	
+		});
+    };
+
+}) (document.body.querySelector("form"));
+
+        </script>
+    </body>
+</html>
