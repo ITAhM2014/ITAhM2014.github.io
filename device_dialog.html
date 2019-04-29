@@ -355,6 +355,8 @@ document.getElementById("close").onclick = close;
 			return;
 		}
 		
+		document.body.classList.add("loading");
+
 		top.postRequest({
 			command: "order",
 			order: "monitor",
@@ -371,6 +373,8 @@ document.getElementById("close").onclick = close;
 
 					console.log(this.responseText && JSON.parse(this.responseText).error);
 			}
+
+			document.body.classList.remove("loading");
 		});
 	};
 

@@ -227,22 +227,22 @@ input.button {
 }
 
 input[name="ip"] {
-	background: url("img/home.png") no-repeat 10px center;
+	background: url("/img/home.png") no-repeat 10px center;
 	padding-left: 36px;
 }
 
 input[name="tcp"] {
-	background: transparent url("img/port.png") no-repeat 10px center;
+	background: transparent url("/img/port.png") no-repeat 10px center;
 	padding-left: 36px;
 }
 
 input[name="username"] {
-	background: transparent url("img/user.png") no-repeat 10px center;
+	background: transparent url("/img/user.png") no-repeat 10px center;
 	padding-left: 36px;
 }
 
 input[name="password"] {
-	background: transparent url("img/lock.png") no-repeat 10px center;
+	background: transparent url("/img/lock.png") no-repeat 10px center;
 	padding-left: 36px;
 }
 

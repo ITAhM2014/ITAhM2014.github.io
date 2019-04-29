@@ -385,9 +385,9 @@ function createRow(id, base) {
 	
 	row.appendChild(document.createElement("li")).textContent = base.protocol || ""; // N.4
 	
-	if (window.customs && base.custom) {
+	if (window.customs) {
 		window.customs.forEach(function (custom) {
-			row.appendChild(document.createElement("li")).textContent = base.custom[custom] || "";
+			row.appendChild(document.createElement("li")).textContent = base.custom && base.custom[custom] || "";
 		});
 	};
 	
@@ -452,7 +452,7 @@ function initLabel() {
 }
 
 // 선택 초기화 (상태별로 필터링)
-function onSelectStatus (src, className) {	
+function onSelectStatus (src, className) {
 	document.body.classList.remove("normal", "critical", "shutdown", "disabled");
 	
 	if (className) {
@@ -462,6 +462,8 @@ function onSelectStatus (src, className) {
 	icon.src = src;
 	
 	window.selector.blur();
+
+	document.getElementById("count").textContent = count();
 }
 
 function onSave() {

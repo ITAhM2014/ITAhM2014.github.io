@@ -283,7 +283,7 @@ function onSignIn(e) {
 	document.body.classList.add("loading");
 	
 	window.username = this.elements["username"].value;
-
+	
 	postRequest({
 		command: "signin",
 		username: window.username,
@@ -420,7 +420,7 @@ function cancel() {
 						</li>
 					</ul>
 					<ul id="status" class="status">
-						<li class="normal">99ms</li>
+						<li class="normal"></li>
 						<li></li>
 						<li></li>
 					</ul>

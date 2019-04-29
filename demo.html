@@ -108,7 +108,7 @@ function onUpdate() {
 	setTimeout(update, 10000);
 }
 
-function update() {return;
+function update() {
 	const xhr = new XMLHttpRequest();
 	
 	xhr.open("POST", window.agent, true);
@@ -419,58 +419,62 @@ function cancel() {
 	<body>
 		<article class="itahm">
 			<header>
-				<div class="logo">
-					<img src="/img/favicon2.png">
+				<div>
+					<ul class="logo">
+						<li>
+							<img src="/img/favicon2.png">
+						</li>
+					</ul>
+					<ul class="icon">
+						<li>
+							<a href="/dashboard.html" id="dashboard" target="main" class="selected">
+								<img src="/img/header/dashboard.png">
+							</a>
+							대시보드
+						</li>
+						<li>
+							<a href="/list.html" id="node" target="main">
+								<img src="/img/header/list.png">
+							</a>
+							노드
+						</li>
+						<li>
+							<a href="/line.html" id="line" target="main">
+								<img src="/img/header/line.png">
+							</a>
+							회선
+						</li>
+						<li>
+							<a href="/event.html" id="event" target="main">
+								<img src="/img/header/event.png">
+							</a>
+							이벤트
+						</li>
+						<li>
+							<a href="/setting.html" id="setting" target="main">
+								<img src="/img/header/setting.png">
+							</a>
+							설정
+						</li>
+						<li>
+							<a href="/icon.html" id="icon" target="main">
+								<img src="/img/header/icon.png">
+							</a>
+							아이콘
+						</li>
+						<li>
+							<a id="signout">
+								<img src="/img/header/signout.png">
+							</a>
+							로그아웃
+						</li>
+					</ul>
+					<ul id="status" class="status">
+						<li class="normal"></li>
+						<li></li>
+						<li></li>
+					</ul>
 				</div>
-				<ul class="icon">
-					<li>
-						<a href="/dashboard.html" id="dashboard" target="main" class="selected">
-							<img src="/img/header/dashboard.png">
-						</a>
-						대시보드
-					</li>
-					<li>
-						<a href="/list.html" id="node" target="main">
-							<img src="/img/header/list.png">
-						</a>
-						노드
-					</li>
-					<li>
-						<a href="/line.html" id="line" target="main">
-							<img src="/img/header/line.png">
-						</a>
-						회선
-					</li>
-					<li>
-						<a href="/event.html" id="event" target="main">
-							<img src="/img/header/event.png">
-						</a>
-						이벤트
-					</li>
-					<li>
-						<a href="/setting.html" id="setting" target="main">
-							<img src="/img/header/setting.png">
-						</a>
-						설정
-					</li>
-					<li>
-						<a href="/icon.html" id="icon" target="main">
-							<img src="/img/header/icon.png">
-						</a>
-						아이콘
-					</li>
-					<li>
-						<a id="signout">
-							<img src="/img/header/signout.png">
-						</a>
-						로그아웃
-					</li>
-				</ul>
-				<ul id="status" class="status">
-					<li class="normal"></li>
-					<li></li>
-					<li></li>
-				</ul>
 			</header>
 			<div class="frame">
 				<iframe id="frame" name="main"></iframe>
