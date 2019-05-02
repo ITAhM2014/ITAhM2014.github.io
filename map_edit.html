@@ -756,8 +756,6 @@ function onEvent(e) {
 const
 	SVG_NS = "http://www.w3.org/2000/svg",
 	XLINK_NS = "http://www.w3.org/1999/xlink",
-	LINE_COLOR = "#d4af37"/*836953*/,
-	LINE_WIDTH = 2,
 	ICON_SIZE = 40,
 	OFFSET_C = ICON_SIZE * Math.sin(Math.PI /4);
 	//OFFSET_R = OFFSET_C - ICON_SIZE /2;
@@ -795,6 +793,11 @@ if ("editor" in top.store) {
 }
 else {
 	window.request.database.push("position");
+}
+
+if ("link" in top.setting) {
+	Line.COLOR = top.setting.link.color;
+	Line.WIDTH = top.setting.link.size || 0.5;
 }
 
 document.onselectstart = function () {

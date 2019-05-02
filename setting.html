@@ -152,6 +152,11 @@ ul.smtp >li >span:last-child {
 	content: ")";
 }
 
+#link input[type=number] {
+	width: 50px;
+	text-align: right;
+}
+
 .bg_loading {
 	position: absolute;
 }
@@ -196,7 +201,7 @@ body:not(.loading) .bg_loading {
   box-shadow:0 8px 16px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
 }
 
-.button:disabled,{
+.button:disabled {
   cursor:not-allowed;
   opacity:0.3
 }
@@ -353,6 +358,13 @@ function createItem(src, key, data, func) {
 				</form>
 			</p>
 			<p>
+				<form id="background">
+					대시보드 배경 : 
+					<input type="text" name="background">
+					<input type="submit" value="적용" class="root">
+				</form>
+			</p>
+			<p>
 				<form id="node">
 					노드정보 항목 추가 : 
 					<input type="text" name="custom" placeholder="항목1 [,항목2 ...]">
@@ -405,7 +417,7 @@ function createItem(src, key, data, func) {
 			</p>
 			<p>
 				<form id="color">
-					색상 테마 :
+					대시보드 테마 :
 					<ul class="top">
 						<li>
 							<input type="radio" name="color" value="default" checked>
@@ -420,6 +432,15 @@ function createItem(src, key, data, func) {
 							<span class="color pastel green"></span>
 						</li>
 					</ul>
+					<input type="submit" value="적용" class="root">
+				</form>
+			</p>
+			<p>
+				<form id="link">
+					기본 연결선 :
+					<input type="color" name="color" value="#d4af37">
+					<input type="number" name="size" value="2" min="0">
+					PX
 					<input type="submit" value="적용" class="root">
 				</form>
 			</p>
@@ -868,6 +889,12 @@ if (top.account.level > 0) {
 		});
 	};
 
+	document.getElementById("background").onsubmit = function (e) {
+		e.preventDefault();
+		
+		postRequest("background", this.elements["background"].value);
+	};
+
 	document.getElementById("node").onsubmit = function (e) {
 		e.preventDefault();
 		
@@ -945,6 +972,15 @@ if (top.account.level > 0) {
 		});
 	});
 
+	document.getElementById("link").onsubmit = function (e) {
+		e.preventDefault();
+		
+		postRequest("link", {
+			color: this.elements["color"].value,
+			size: Math.max(this.elements["size"].value, 0)
+		});
+	};
+
 	if("display" in top.setting) {
 		document.querySelector("select[name=display]").value = top.setting.display;
 	}
@@ -955,6 +991,10 @@ if (top.account.level > 0) {
 	
 	if ("color" in top.setting) {
 		document.querySelector("input[name=color][value="+top.setting.color+"]").checked = true;
+	}
+
+	if ("background" in top.setting) {
+		container.querySelector("input[name=background]").value = top.setting.background;
 	}
 
 	if ("custom" in top.setting) {
@@ -983,6 +1023,13 @@ if (top.account.level > 0) {
 		[].forEach.call(document.getElementById("resources").querySelectorAll("input[type=checkbox]"), function (input) {
 			input.checked = true;
 		});
+	}
+
+	if ("link" in top.setting) {
+		const link = document.getElementById("link");
+
+		link.querySelector("[name=color]").value = top.setting.link.color;
+		link.querySelector("[name=size]").value = top.setting.link.size;
 	}
 
 	container.classList.remove("loading");	

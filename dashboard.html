@@ -16,7 +16,7 @@ body {
 	display: flex;
 }
 
-body::before {
+body:not(.background)::before {
 	content: "";
 	position: absolute; top: 0; right: 0; bottom: 0; left: 0;
 	background-color: rgba(0, 0, 0, 0.8);
@@ -1026,6 +1026,17 @@ var
 		}, delay);
 	};
 }) (1000);
+
+if (top.setting.background) {
+	document.body.style.backgroundImage = "url("+ top.setting.background +")";
+
+	document.body.classList.add("background");
+}
+
+if (top.setting.link) {
+	Line.COLOR_DEFAULT = top.setting.link.color;
+	Line.WIDTH = top.setting.link.size || 0.5;
+}
 
 new Draggable(mapCanvas);
 
