@@ -296,7 +296,7 @@ function createTopItem(id, value, rate, resource, index) {
 	bar.onclick = function (e) {
 		e.stopPropagation();
 		
-		top.showStatus(id, resource.replace("Rate", ""), index);
+		top.showStatus(id, resource === "throughputErr"? "error": resource.replace("Rate", ""), index);
 	}
 	
 	return item;
@@ -362,7 +362,6 @@ function reload() {
 }
 
 reload();
-
 
 		</script>
 	
