@@ -79,28 +79,7 @@ function addNode(id, base, pos, status) {
         }
     }
     
-    if (status === "shutdown" || status === "critical") {
-        const color = status === "shutdown"? 0xff0000: 0xffaa00;
-        var marker = new THREE.Mesh(new THREE.CylinderBufferGeometry(30, 30, 6, 32, 1, true),
-            new THREE.MeshBasicMaterial({
-                color: color,
-                side:THREE.DoubleSide
-            }));
-        
-        marker.position.set(pos.x, pos.z +3, pos.y);
-        marker.rotation.z = Math.PI /9;
-
-        markerList.push(marker);
-        
-        scene.add(marker);
-
-        marker = marker.clone();
-        marker.rotation.z = Math.PI /-9;
-
-        markerList.push(marker);
-        
-        scene.add(marker);
-    }
+    addMarker(pos, status);
 
     scene.add(mesh);
     
@@ -182,7 +161,13 @@ function drawLine(id, line) {
 }
 
 function setNode(id, status) {
+    const pos = parent.position[id];
 
+    addMarker({
+        x: pos.x,
+        y: pos.y,
+        z: 0
+    }, status);
 }
 
 function lookAt(pos) {
@@ -221,7 +206,31 @@ function onResize() {
     renderer.setSize(size.width, size.height);
 }
 
-function addFloor() {console.log();
+function addMarker(pos, status) {
+    if (status === "shutdown" || status === "critical") {
+        const color = status === "shutdown"? 0xff0000: 0xffaa00;
+        var marker = new THREE.Mesh(new THREE.CylinderBufferGeometry(32, 32, 6, 32, 1, true),
+            new THREE.MeshBasicMaterial({
+                color: color,
+                side:THREE.DoubleSide
+            }));
+        
+        marker.position.set(pos.x, pos.z +3, pos.y);
+        marker.rotation.z = Math.PI /9;
+
+        markerList.push(marker);
+        
+        scene.add(marker);
+
+        marker = marker.clone();
+        marker.rotation.z = Math.PI /-9;
+
+        markerList.push(marker);
+        
+        scene.add(marker);
+    }
+}
+function addFloor() {
     const
         width = floorSize.width *2,
         height = floorSize.height *2,
@@ -263,7 +272,7 @@ function onMouseUp(e) {
     e.preventDefault();
 
     const intersect = getIntersect();
-console.log(intersect);
+
     if (intersect && intersect === window.intersect) {
         intersect.onclick && intersect.onclick();
     }
@@ -276,14 +285,14 @@ function onMouseDown(e) {
     
     window.isDrag = true;
 
-    window.intersect = getIntersect();console.log(intersect);
+    window.intersect = getIntersect();
 }
 
 function onMouseMove(e) {
     e.preventDefault();
 
     if (window.isDrag) {
-        window.intersect = undefined;console.log("취소");
+        window.intersect = undefined;
     }
 }
 
