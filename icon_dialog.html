@@ -6,6 +6,7 @@
 		
 		<style>
 @import "css/style.css";
+@import "css/dialog.css";
 
 body {
 	margin: 0; padding: 0;
@@ -58,7 +59,8 @@ div.table li:nth-child(3) {
 	flex: 4;
 }
 
-div.table input[type="text"] {
+div.table input[type="text"],
+div.table input[type="number"] {
 	width: 100%;
 	box-sizing: border-box;
 	padding: .5em;
@@ -131,13 +133,30 @@ body:not(.edit) input[type=reset] {
 				<ul>
 					<li>활성 이미지
 					<li></li>
-					<li><input type="text" name="url" placeholder="http://my.image.com/image.svg">
+					<li><input type="text" name="url" placeholder="Image URL">
 				</ul>
 				<ul>
 					<li>비활성 이미지
 					<li></li>
-					<li><input type="text" name="disabled" placeholder="http://my.image.com/image.svg">
-					
+					<li><input type="text" name="disabled" placeholder="Image URL">
+				</ul>
+				<ul>
+					<li>3D Color
+					<li><input type="text" name="color" placeholder="Color Hex Code">
+				</ul>
+				<ul>
+					<li>3D Unit Size
+					<li><input type="number" name="unit" min="1">
+				</ul>
+				<ul>
+					<li>3D Texture
+					<li></li>
+					<li><input type="text" name="texture" placeholder="Image URL">
+				</ul>
+				<ul>
+					<li>3D Top Texture
+					<li></li>
+					<li><input type="text" name="top" placeholder="Image URL">
 				</ul>
 			</div>
 			<footer>
@@ -211,7 +230,7 @@ if (top.account.level === 0) {
 
 		postRequest(icon);
 	};
-
+	
 	form.onsubmit = function (e) {
 		e.preventDefault();
 		
@@ -220,7 +239,11 @@ if (top.account.level === 0) {
 		icon[form.elements["type"].value] = {
 			group: form.elements["group"].value,
 			src: form.elements["url"].value,
-			disabled: form.elements["disabled"].value
+			disabled: form.elements["disabled"].value,
+			texture: form.elements["texture"].value,
+			color: form.elements["color"].value,
+			unit: parseInt(form.elements["unit"].value),
+			top: form.elements["top"].value
 		};
 
 		postRequest(icon);
@@ -234,7 +257,9 @@ if (top.account.level === 0) {
 		var active;
 
 		form.elements["url"].oninput =
-		form.elements["disabled"].oninput = function (e) {
+		form.elements["disabled"].oninput =
+		form.elements["texture"].oninput = 
+		form.elements["top"].oninput = function (e) {
 			const
 				input = this,
 				start = performance.now();
@@ -273,13 +298,28 @@ if (top.account.level === 0) {
 			form.elements["group"].value = icon.group;
 			form.elements["url"].value = icon.src;
 			form.elements["disabled"].value = icon.disabled;
+			form.elements["unit"].value = icon.unit;
+			form.elements["color"].value = icon.color;
 
 			drawImage(form.elements["url"], icon.src);
 			drawImage(form.elements["disabled"], icon.disabled);
+
+			if (icon.texture) {
+				drawImage(form.elements["texture"], icon.texture);
+
+				form.elements["texture"].value = icon.texture;
+			}
+
+			if (icon.top) {
+				drawImage(form.elements["top"], icon.top);
+
+				form.elements["top"].value = icon.top;
+			}
 		}
 		
 		form.elements["type"].select();
 	};
+
 }) (document.querySelector("form"));
 
 		</script>

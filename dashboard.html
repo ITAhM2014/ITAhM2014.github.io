@@ -110,97 +110,15 @@ header> ul> li:nth-child(3) {
 	background-color: #0f0;
 }
 
-iframe {
+#map {
+	border: none;
+	width: 100%; height: 100%;
+}
+
+iframe.top {
 	flex: none;
 	width: 320px;
 	border: none;
-}
-svg {
-	width: 100%; height: 100%;
-	animation-duration: .5s;
-	animation-timing-function:  cubic-bezier(.9, .1, .9, .1);
-}
-
-nav {
-	position: absolute; top: 0; right: 0;
-	padding: 5px;
-	background-color: #ddd;
-}
-
-nav >img {
-	display: block;
-}
-
-nav >img:not(:nth-of-type(1)) {
-	border-top: 1px solid #777;
-}
-
-/* svg*/
-text::selection {
-	background: none;
-}
-
-text {
-	font-family: tahoma, arial, "맑은 고딕";
-	text-anchor: middle;
-}
-
-.device text {
-	font-size: 10px;
-	fill: #fff;
-}
-
-.parent text {
-	font-size: 12px; font-weight: bold;
-	fill: #336;
-	stroke: none;
-	pointer-events: none;
-}
-
-.line:not(.show) rect {
-	display: none;
-}
-
-.line rect {
-	transition: height 2s cubic-bezier(0.8, -0.6, 0.8, 1.5);
-	fill: rgba(210, 210, 210, 0.2);
-}
-
-.line rect:nth-of-type(2) {
-	fill: #0f0;
-}
-
-.line rect:nth-of-type(3) {
-	fill: #f60;
-}
-
-#line text {
-	font-size: 11px;
-	fill: #aaa;
-	cursor: pointer;
-}
-
-#link line {
-	stroke: #800;
-	stroke-width: 2;
-	stroke-dasharray: 2, 2;
-}
-
-#link.match line {
-	stroke: #0f0;
-}
-
-#device text {
-	font-size: 12px;
-}
-
-@keyframes initialize {
-	from {
-		transform: rotate(0) scale(.1);
-	}
-    to {
-    	transform: rotate(360deg) scale(1);
-    }
 }
 
 div.nav {
@@ -219,38 +137,6 @@ div.nav.hide::after {
 
 div.nav.hide +#summary_list {
 	display: none;
-}
-
-body.loading g {
-	display: none;
-}
-
-.device * {
-	pointer-events: none;
-}
-
-.device circle {
-	pointer-events: all;
-	stroke-width: 5px;
-	stroke: none;
-	fill: none;
-}
-
-.device.checked circle {
-	fill: #fff;
-}
-
-.device.critical circle {
-	stroke: #fa0;
-}
-
-.device.shutdown circle {
-	stroke: #f00; 
-}
-
-.parent {
-	fill: #0084ff;
-	stroke: #ddd; stroke-width: 5px;
 }
 
 /* bounce >> */
@@ -386,529 +272,16 @@ body.loading g {
 	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
 }
 
-.no_pointer_event {
-	pointer-events: none;
-}
-
-body.name tspan:last-child,
-body:not(.name) tspan:first-child,
-body:not(.submap) .parent {
-	display: none;
-}
-
 		</style>
-		
 		<script>
+// public
 
-function resize() {
-	const rect = mapCanvas.getBoundingClientRect();
-	
-	transform.getItem(0).setTranslate(rect.width /2, rect.height /2);
-
-	window.parentAnchor.setAttribute("transform", "translate("+ (rect.width -60) +","+ (rect.height -60) +")");
-}
-	
-function moveMap(x, y) {
-	window.transform.getItem(2).setTranslate(x, y);
-}
-
-function onDragStart(e) {
-	const matrix = window.transform.getItem(2).matrix;
-	
-	window.click = false;
-	window.pos = {
-		x: matrix.e,
-		y: matrix.f
-	};
-}
-
-function onDragMove(e) {
-	var drag = e.detail;
-	
-	moveMap(window.pos.x + drag.dragX / window.scale, window.pos.y + drag.dragY / window.scale);
-}
-function subMap() {
-	top.store.parent = this.id || undefined;
+function moveStage(id) {
+	top.store.parent = id || undefined;
 
 	window.location.reload();
 }
-
-function parse(base) {
-	if (!("snmp" in base)) {
-		return;
-	}
-	
-	const title = [],
-		head = [];
-
-	if (base.ip) {
-		head.push(base.ip);
-	}
-
-	if (base.name) {
-		head.push(base.name);
-	}
-
-	if ("status" in base) {
-
-		if(base.status) {
-			if ("responseTime" in base.snmp) {
-				head.push("응답속도 "+ base.snmp.responseTime["0"].rtt +"ms");
-			}
-		}
-		else {
-			head.push("응답없음");
-		}
-	}
-
-	if (head.length > 0) {
-		title.push(head.join("\n"));
-	}
-
-	(function(entry) {
-		if (!entry) {
-			return;
-		}
-
-		var
-			indexData,
-			max, min, avg = 0, load, count = 0;
-
-		for (let index in entry) {
-			indexData = entry[index];
-
-			load = indexData.hrProcessorLoad;
-
-			if (isNaN(max)) {
-				max = min = avg = load;
-			}
-			else {
-				max = Math.max(max, load);
-				min = Math.min(min, load);
-				avg += load;
-			}
-			count++;
-		}
-
-		if (count > 0) {
-			title.push(["Processor load", "Max: "+ max +", Avg: "+ Math.round(avg / count) +", min: "+ min].join("\n"));
-		}
-
-	})(base.snmp.hrProcessorEntry);
-
-	(function (entry) {
-		if (!entry) {
-			return;
-		}
-
-		var  indexData;
-
-		for (let index in entry) {
-			indexData = entry[index];
-
-			switch(indexData.hrStorageType) {
-			case 4:
-				break;
-			case 2:
-				title.push(["Physical memory", Math.round(100* indexData.hrStorageUsed / indexData.hrStorageSize) +" %"].join("\n"));
-				
-				break;
-			}
-		}
-	}) (base.snmp.hrStorageEntry);
-
-	return title.join("\n\n");
-}
-
-function onMouseOver(e) {
-	var svg = this.querySelector("title");
-
-	if (svg) {
-		this.removeChild(svg);
-	}
-
-	svg = this;
-
-	top.postRequest({
-		command: "node",
-		id: this.id,
-		snmp: true
-	}, function () {
-		switch (this.status) {
-		case 200:
-			const title = parse(JSON.parse(this.responseText));
-
-			if (title) {
-				const svgTitle = document.createElementNS(SVG_NS, "title");
-				
-				svgTitle.textContent = title;
-
-				svg.appendChild(svgTitle);
-			}
-			break;
-		default:
-			console.log(top.getMessage(this.status));
-
-			console.log(this.responseText && JSON.parse(this.responseText).error);
-		}
-	});
-}
-
-function addNode(id, base, pos) {
-	const 
-		svgDevice = document.createElementNS(SVG_NS, "g"),
-		svgIcon = document.createElementNS(SVG_NS, "image"),
-		svgBG = document.createElementNS(SVG_NS, "circle"),
-		svgLabel = document.createElementNS(SVG_NS, "text"),
-		svgAddr = document.createElementNS(SVG_NS, "tspan"),
-		svgName = document.createElementNS(SVG_NS, "tspan"),
-		icon = getIcon(base.type || "unknown");
-	
-	svgIcon.setAttribute("x", window.ICON_SIZE *-1 /2);
-	svgIcon.setAttribute("y", window.ICON_SIZE *-1 /2);
-	svgIcon.setAttribute("width", window.ICON_SIZE +"px");
-	svgIcon.setAttribute("height", window.ICON_SIZE +"px");
-	
-	svgBG.setAttribute("r", window.OFFSET_C);
-	svgBG.setAttribute("cx", 0);
-	svgBG.setAttribute("cy", 0);
-	
-	svgDevice.setAttribute("transform", "translate("+ pos.x +","+ pos.y +")");
-	
-	svgDevice.id = id;
-
-	svgDevice.onmousedown = setClick;
-	
-	if (base.role === "group") {
-		svgDevice.onclick = subMap;
-	}
-	else if (base.protocol === "snmp") {
-		svgDevice.onclick = function () { //bind 사용하면 event가 arguments로 따라가서 안됨
-			if (window.click) {
-				top.showStatus(id);
-			}
-		};
-
-		svgDevice.onmouseenter = onMouseOver;
-	}
-
-	svgName.textContent = base.name || base.ip || "";
-	svgAddr.textContent = base.ip || base.name || "";
-	
-	svgLabel.appendChild(svgName);
-	svgLabel.appendChild(svgAddr);
-	
-	svgLabel.setAttribute("x", 0);
-	svgLabel.setAttribute("y", window.OFFSET_C + 16);
-	// text baseline이 글자의 밑을 기준으로 하므로 글자 크기만큼 내려준다.
-	
-	svgDevice.appendChild(svgBG);
-	svgDevice.appendChild(svgIcon);
-	svgDevice.appendChild(svgLabel);
-	
-	addClass(svgDevice, "device");
-	
-	window.deviceCanvas.appendChild(svgDevice);
-	
-	window.nodeSVGMap[id] = svgDevice;
-	
-	if ("protocol" in base) {
-		svgIcon.setAttributeNS(xlinkNS, "xlink:href", icon.src);
 		
-		if ("status" in base && !base.status) {
-			addClass(svgDevice, "shutdown");
-		}
-		else if ("critical" in base && !base.critical) {
-			addClass(svgDevice, "critical");
-		}
-
-		if (base.protocol === "snmp") {
-			window.topList.push(id);
-		}
-	}
-	else if (icon.group === "group") {
-		svgIcon.setAttributeNS(xlinkNS, "xlink:href", icon.src);
-	}
-	else {
-		svgIcon.setAttributeNS(xlinkNS, "xlink:href", icon.disabled);
-	}
-}
-
-function setClick() {
-	window.click = true;
-}
-
-function addClass(e, className) {
-	var cls = e.getAttribute("class"),
-		classList = cls? cls.split(" "): [];
-	
-	for (var i=1, _i=arguments.length; i<_i; i++) {
-		if (classList.indexOf(className) === -1) {
-			classList.push(className);
-		}
-	}
-	
-	e.setAttribute("class", classList.join(" "));
-}
-
-function removeClass(e, className) {
-	var cls = e.getAttribute("class"),
-		classList = cls? cls.split(" "): [],
-		index;
-	
-	for (var i=1; i<arguments.length; i++) {
-		className = arguments[i];
-		
-		index = classList.indexOf(className);
-		
-		if (index !== -1) {
-			classList.splice(index, 1);
-		}
-	}
-	
-	e.setAttribute("class", classList.join(" "));
-}
-
-function hasClass(e, className) {
-	var cls = e.getAttribute("class"),
-		classList = cls? cls.split(" "): [];
-	
-	for (var i=1; i<arguments.length; i++) {
-		if (classList.indexOf(arguments[i]) == -1) {
-			return false;
-		}
-	}
-	
-	return true;
-}
-
-function Link(link1, link2, option) {
-	this.container = document.createElementNS(SVG_NS, "g");
-	
-	this.line = document.createElementNS(SVG_NS, "line");
-
-	addClass(this.container, "line");
-	
-	if (option) {
-		this.baseColor = option.color;
-
-		this.color(option.color);
-		this.width(option.width);
-	}
-	else {
-		this.baseColor = Line.COLOR_DEFAULT;
-
-		this.width(Line.WIDTH);
-		this.color(Line.COLOR_DEFAULT);
-	}
-
-	this.line.setAttribute("x1", 0);
-	this.line.setAttribute("y1", 0);
-
-	this.container.appendChild(this.line);
-
-	if (link1) {
-		this.label1 = this.container.appendChild(this.label(link1.index, link1.name));
-	}
-
-	if (link2) {
-		this.label2 = this.container.appendChild(this.label(link2.index, link2.name));
-	}
-
-	this.bar = document.createElementNS(SVG_NS, "rect");
-	this.bar.setAttribute("width", Line.BAR_WIDTH *2);
-	this.bar.setAttribute("height", Line.BAR_HEIGHT);
-	this.container.appendChild(this.bar);
-
-	this.barIn = document.createElementNS(SVG_NS, "rect");
-	this.barIn.setAttribute("width", Line.BAR_WIDTH);
-	this.container.appendChild(this.barIn);
-
-	this.barOut = document.createElementNS(SVG_NS, "rect");
-	this.barOut.setAttribute("width", Line.BAR_WIDTH);
-	this.container.appendChild(this.barOut);
-}
-
-Link.prototype = {
-	color: function (color = this.baseColor) {
-		this.line.setAttribute("stroke", color);
-	},
-	width: function (width) {
-		this.line.setAttribute("stroke-width", width);
-	},
-	move: function (x1, y1, x2, y2) {
-		this.container.setAttribute("transform", "translate("+ x1 +","+ y1 +")");
-
-		this.line.setAttribute("x2", x2);
-		this.line.setAttribute("y2", y2);
-		
-		if (this.label1) {
-			this.label1.setAttribute("x", Math.round(x2 /3));
-			this.label1.setAttribute("y", Math.round(y2 /3));
-		}
-		if (this.label2) {	
-			this.label2.setAttribute("x", Math.round(x2 *2/3));
-			this.label2.setAttribute("y", Math.round(y2 *2/3));
-		}
-
-		this.translate(this.bar, x2 /2 - Line.BAR_WIDTH,y2 /2);
-		this.translate(this.barIn, x2 /2 -Line.BAR_WIDTH, y2 /2);
-		this.translate(this.barOut, x2 /2, y2 /2);
-	},
-	translate: function (svg, x, y) {
-		svg.setAttribute("transform", "translate("+ x +","+ y +") scale(1 -1)");
-	},
-	label: function (index, name) {
-		const svg = document.createElementNS(SVG_NS, "text");
-				
-		if (name.length > Line.MAX_LABEL_LEN) {
-			name = name.substring(0, Line.MAX_LABEL_LEN) +"...";
-		}
-
-		svg.textContent = name;
-
-		return svg;
-	}
-};
-
-function Line(id1, id2) {
-	this.pos1 = window.position[this.id1 = id1];
-	this.pos2 = window.position[this.id2 = id2];
-}
-
-Line.COLOR_NORMAL = "#d4af37",
-Line.COLOR_SHUTDOWN = "#f00",
-Line.COLOR_DISABLED = "#ddd",
-Line.COLOR_DEFAULT = "#d4af37";
-Line.BAR_WIDTH = 10;
-Line.BAR_HEIGHT = 30;
-Line.WIDTH = 2;
-Line.MAX_LABEL_LEN = 16;
-
-Line.DIFF = 8;
-
-Line.prototype = {
-	addLink: function (link1, link2, option) {
-		const oLink = new Link(link1, link2, option);
-		
-		if (!this.linkList) {
-			this.linkList = oLink;
-		}
-		else {
-			if (!Array.isArray(this.linkList)) {
-				this.linkList = [this.linkList];
-			}
-			
-			this.linkList.push(oLink);
-		}
-
-		this.move();
-
-		return oLink;
-	},
-	move: function () {
-		const theta = Math.atan2(this.pos2.y - this.pos1.y, this.pos2.x - this.pos1.x);
-
-		if (Array.isArray(this.linkList)) {
-			const len = this.linkList.length -1;
-
-			this.linkList.forEach((oLink, i) => {
-				oLink.move(
-					this.pos1.x + Math.cos(theta -Math.PI /2) * (len -i *2) *Line.DIFF,
-					this.pos1.y + Math.sin(theta -Math.PI /2) * (len -i *2) *Line.DIFF,
-					this.pos2.x - this.pos1.x, this.pos2.y - this.pos1.y);
-			});
-		}
-		else if (this.linkList){
-			this.linkList.move(this.pos1.x, this.pos1.y, this.pos2.x - this.pos1.x, this.pos2.y - this.pos1.y);
-		}
-	},
-	traffic: function (linkList) {
-		if (Array.isArray(this.linkList)) {
-			this.linkList.forEach((oLink, i) => {
-				this.set(oLink, linkList[i]);
-			});
-		}
-		else {
-			this.set(this.linkList, linkList);
-		}
-	},
-	set: function (oLink, link) {
-		let showBar = false;
-
-		switch (link.status) {
-		case 1:
-			oLink.color();
-
-			if ("in" in link && oLink.barIn) {
-				oLink.barIn.setAttribute("height", Math.min(BAR_HEIGHT, link.in *BAR_HEIGHT /100));
-
-				showBar = true;
-			}
-
-			if ("out" in link && oLink.barOut) {
-				oLink.barOut.setAttribute("height", Math.min(BAR_HEIGHT, link.out *BAR_HEIGHT /100));
-
-				showBar = true;
-			}
-
-			break;
-		case -1:
-			oLink.color(Line.COLOR_SHUTDOWN);
-
-			break;
-		default:
-			oLink.color(Line.COLOR_DISABLED);
-		}
-
-		window[showBar? "addClass": "removeClass"] (oLink.container, "show");
-	}
-};
-
-function addLink(oLine, id1, id2, link1, link2, option) {
-	const oLink = oLine.addLink(link1, link2, option);
-
-	window.lineCanvas.appendChild(oLink.container);
-
-	if (oLink.label1) {
-		oLink.label1.onclick = top.showStatus.bind(undefined, id1, "throughput", link1.index);
-	}
-
-	if (oLink.label2) {
-		oLink.label2.onclick = top.showStatus.bind(undefined, id2, "throughput", link2.index);
-	}
-
-	return oLink;
-}
-
-function drawLine(id, line) {
-	const
-		ar = id.split("."),
-		id1 = "node."+ ar[1],
-		id2 = "node."+ ar[2];
-	
-	if (!(id1 in window.nodeSVGMap) || !(id2 in window.nodeSVGMap)) {
-		return;
-	}
-
-	var oLine = new Line(id1, id2);
-
-	window.lineMap[id] = oLine;
-
-	if (Array.isArray(line[id1])) {
-		line[id1].forEach((link, i) => {
-			addLink(oLine, id1, id2, link, line[id2][i], line.option)
-		});
-	}
-	else {
-		addLink(oLine, id1, id2, line[id1], line[id2], line.option);
-	}
-}
-
-function getIcon (type) {
-	return top.setting.icon && top.setting.icon[type] || top.store.icon[type];
-}
-
 		</script>
 	</head>
 	
@@ -940,70 +313,16 @@ function getIcon (type) {
 				<div class="nav"></div>
 				<div id="summary_list"></div>	
 			</aside>
-			<svg id="map">
-				<defs>
-					<circle r="35" id="circle"></circle>
-				</defs>
-				<g class="parent">
-					<circle cx="0" cy="0" r="40"></circle>
-					<image class="no_pointer_event" xlink:href="img/group.png" x="-30" y="-30" width="60" height="60"></image>
-					<text>
-						<tspan alignment-baseline="middle"></tspan>
-						<tspan alignment-baseline="middle"></tspan>
-					</text>
-				</g>
-				<g id="transform" transform="translate(0, 0) scale(1, 1) translate(0, 0)">
-					<g id="line"></g>
-					<g id="link">
-						<line x1="0" y1="0" x2="0" y2="0" />
-					</g>
-					<g id="device"></g>
-				</g>
-			</svg>
-			<nav>
-				<img src="/img/zoomi.png" width="16" height="16" title="전체화면에서 편집" id="edit">
-				<img src="/img/plus.png" width="16" height="16" title="맵 확대" id="zoom_in">
-				<img src="/img/minus.png" width="16" height="16" title="맵 축소" id="zoom_out">
-			</nav>
+			<iframe id="map"></iframe>
 		</article>
 		
 		<iframe class="top"></iframe>
 
-		<script src="js/ITAhM.js"></script>
-		<script src="js/Draggable.js"></script>
 		<script>
-		
+
 var
-	SVG_NS = "http://www.w3.org/2000/svg",
-	xlinkNS = "http://www.w3.org/1999/xlink",
-	ICON_SIZE = 40,
-	OFFSET_C = ICON_SIZE * Math.sin(Math.PI /4),
-	OFFSET_R = OFFSET_C - ICON_SIZE /2;
-
-const
-	MAX_LABEL_LEN = 16,
-	LINE_WIDTH = 2,
-	BAR_WIDTH = 10,
-	BAR_HEIGHT = 30;
-
-var 
-	mapCanvas = document.getElementById("map"),
-	deviceCanvas = document.getElementById("device"),
-	lineCanvas = document.getElementById("line"),
-	transform = document.getElementById("transform").transform.baseVal,
-	linkCanvas = document.getElementById("link"),
-	linkSVG = linkCanvas.querySelector("line"),
-	parentAnchor = document.querySelector("g.parent"),
-	fragment = document.createDocumentFragment(),
 	upper = top.store.parent,
-	worker,
-	lineMap = {},
-	lineSVGMap = {},
-	nodeSVGMap = {},
-	topList = [],
-	checked = {},
-	scale = 1,
-	click = false;
+	topList = [];
 
 (delay => {
 	var timer, id;
@@ -1033,200 +352,11 @@ if (top.setting.background) {
 	document.body.classList.add("background");
 }
 
-if (top.setting.link) {
-	Line.COLOR_DEFAULT = top.setting.link.color;
-	Line.WIDTH = top.setting.link.size || 0.5;
-}
-
-new Draggable(mapCanvas);
-
-mapCanvas.addEventListener("dragon", onDragStart);
-mapCanvas.addEventListener("drag", onDragMove);
-
-mapCanvas.addEventListener("wheel", function (e) {
-	zoom(e.deltaY < 0);
-});
-
 document.body.querySelector("div.nav").onclick = function (e) {
 	this.classList.toggle("hide");
 }
 
-document.getElementById("edit").onclick = function () {
-	const
-		matrix = window.transform.getItem(2).matrix,
-		x = matrix.e,
-		y = matrix.f;
-	var pos;
-
-	for (let id in nodeSVGMap) {
-		if (id in window.position) {
-			pos = window.position[id];
-			pos.x += x;
-			pos.y += y;
-		}
-	}
-	
-	top.store.editor = {
-		scale: window.scale,
-		position: window.position,
-		parent: window.upper
-	};
-
-	window.location.href = "/map_edit.html";
-};
-
-document.getElementById("zoom_in").onclick = function () {
-	zoom(true);
-};
-
-document.getElementById("zoom_out").onclick = function () {
-	zoom(false);
-};
-
-function zoom(zoomIn) {
-	window.scale = zoomIn? window.scale * 1.1: window.scale / 1.1;
-
-	window.transform.getItem(1).setScale(window.scale, window.scale);
-}
-
-if ("display" in top.setting) {
-	document.body.classList[top.setting.display == "name"? "add": "remove"]("name");
-}
-
-(function (delay) {
-	var running = false,
-		start;
-	
-	function optimize(timestamp) {
-		if (timestamp - start > delay) {
-			resize();
-			
-			start = undefined;
-		}
-		else {
-			requestAnimationFrame(optimize);
-		}
-	}
-	
-	window.addEventListener("resize", function() {
-		if (running) {
-			return;
-		}
-			
-		running = true;
-	
-		requestAnimationFrame(function(timestamp) {
-			if (isNaN(start)) {
-				start = timestamp;
-				
-				requestAnimationFrame(optimize);
-			}
-			else {
-				start = timestamp;
-			}
-			
-			running = false;
-		});
-	});
-})(300);
-
-top.postRequest({
-	command: "pull",
-	database: ["node", "line", "position"]
-}, function () {
-	switch (this.status) {
-	case 200:
-		const database = JSON.parse(this.responseText);
-
-		resize();
-		
-		window.node = database.node;
-		window.line = database.line;
-		window.position = database.position;
-
-		(id => {
-			if (id) {
-				delete top.store.focus;
-			
-				if (id in window.position) {
-					const pos = window.position[id];
-
-					if (pos.parent && !(pos.parent in window.node)) {
-						pos.parent = undefined;
-					}
-
-					window.upper = top.store.parent = pos.parent;
-					
-					moveMap(-pos.x, -pos.y);
-
-					window.scale = 0;
-
-					window.transform.getItem(1).setScale(0, 0);
-
-					window.animation = highlight;
-				}
-				else if (id in window.line) {
-					const
-						ar = id.split("."),
-						id1 = "node."+ ar[1],
-						id2 = "node."+ ar[2];
-
-					if (id1 in window.position && id2 in window.position) {
-						const
-							pos1 = window.position[id1],
-							pos2 = window.position[id2];
-						
-						if (pos1.parent === pos2.parent) {
-							window.upper = top.store.parent = pos1.parent;
-
-							moveMap((pos1.x + pos2.x) / -2, (pos1.y + pos2.y) /-2);
-
-							window.scale = 0;
-
-							window.transform.getItem(1).setScale(0, 0);
-
-							window.animation = highlight;
-						}
-					}
-				}
-			}
-		})(top.store.focus);
-
-		initialize();
-
-		break;
-	default:
-		alert(top.getMessage(this.status));
-
-		console.log(this.responseText && JSON.parse(this.responseText).error);
-	}
-});
-
-function highlight() {
-	const scale = window.transform.getItem(1);
-	let start;
-
-	const optimize = t => {
-		if (isNaN(start)) {
-			start = t;
-		}
-		else {
-			window.scale = Math.min(1, (t - start) /1000) *3;
-
-			scale.setScale(window.scale, window.scale);
-
-			if (window.scale === 3) {
-				return;
-			}
-		}
-
-		requestAnimationFrame(optimize);
-	};
-
-	requestAnimationFrame(optimize);
-}
-
-function isChildNode(parent) {
+function findParentFromStage(parent) {
 	for (let tmp; parent; parent = tmp) {
 		if (!(parent in window.position)) {
 			return;
@@ -1294,7 +424,7 @@ function initialize() {
 		sCount = 0,
 		cCount = 0,
 		nCount = 0,
-		base, pos, parent;
+		base, pos, parent, status;
 		
 	for (let id in window.node) {
 		base = window.node[id];
@@ -1313,31 +443,41 @@ function initialize() {
 		}
 
 		if (pos.parent === window.upper) {
-			addNode(id, base, pos);
-			
 			if ("protocol" in base) {
-				if ("status" in base && !base.status) {
-					addClass(window.nodeSVGMap[id], "shutdown");
+				if (base.protocol === "snmp") {
+					window.topList.push(id);
+				}
 
+				if ("status" in base && !base.status) {
+					status = "shutdown";
+					
 					sCount++;
 
 					parseLabel(base.label, "shutdown");
 				}
 				else if ("critical" in base && !base.critical) {
-					addClass(window.nodeSVGMap[id], "critical");
-
+					status = "critical";
+					
 					cCount++;
 					
 					parseLabel(base.label, "critical");
 				}
 				else {
+					status = "normal";
+
 					nCount++;
 
 					parseLabel(base.label, "normal");
 				}
 			}
+
+			window.map.addNode(id, base, {
+				x: pos.x,
+				y: pos.y,
+				z: 0
+			}, status);
 		}
-		else if (parent = isChildNode(pos.parent)) {
+		else if (parent = findParentFromStage(pos.parent)) {
 			// 하위
 			if ("protocol" in base) {
 				if (base.protocol === "snmp") {
@@ -1374,78 +514,95 @@ function initialize() {
 	document.getElementById("summary_list").appendChild(buildLabel());
 
 	for (let id in sMap) {
-		addClass(window.nodeSVGMap[id], "shutdown");
+		window.map.setNode(id, "shutdown");
 	}
 	
 	for (let id in cMap) {
-		addClass(window.nodeSVGMap[id], "critical");
+		window.map.setNode(id, "critical");
 	}
 
 	for (let id in window.line) {
-		drawLine(id, window.line[id]);
+		window.map.drawLine(id, window.line[id]);
 	}
 
-	if (window.upper) {
-		document.body.classList.add("submap");
-
-		base = window.node[window.upper];
-
-		window.parentAnchor.querySelector("tspan:first-child").textContent = base.name || base.ip || "";
-		window.parentAnchor.querySelector("tspan:last-child").textContent = base.ip || base.name || "";
-		
-		const upper = window.position[window.upper].parent;
-		
-		if (upper) {
-			window.parentAnchor.id = upper;
-		}
-
-		window.parentAnchor.onclick = subMap;
-	}
-
-	window.worker = new Worker("/js/dashboard.js");
-	window.worker.onmessage = getTraffic;
+	window.map.start();
 
 	document.querySelector("iframe.top").src ="/top.html";
 
 	document.body.classList.remove("loading");
-
-	if (window.animation) {
-		window.animation();
-	}
-	else {
-		mapCanvas.style.animationName = "initialize";
-	}
 }
 
-function getTraffic(e) {
-	if (e.data) {
-		window.lineMap[e.data.id].traffic(e.data.link);
-	}
-	else {
-		const line = {};
+(map => {
+	map.onload = function () {
+		window.map = this.contentWindow;
 
-		for (let id in window.lineMap) {
-			line[id] = window.line[id];
-		}
-		
 		top.postRequest({
-			command: "order",
-			order: "traffic",
-			line: line
+			command: "pull",
+			database: ["node", "line", "position"]
 		}, function () {
 			switch (this.status) {
 			case 200:
-				window.worker.postMessage(JSON.parse(this.responseText));
+				const database = JSON.parse(this.responseText);
+				
+				window.node = database.node;
+				window.line = database.line;
+				window.position = database.position;
+
+				(id => {
+					if (id) {
+						delete top.store.focus;
+					
+						if (id in window.position) {
+							const pos = window.position[id];
+
+							if (pos.parent && !(pos.parent in window.node)) {
+								pos.parent = undefined;
+							}
+
+							window.upper = top.store.parent = pos.parent;
+							
+							window.map.lookAt(pos);
+						}
+						else if (id in window.line) {
+							const
+								ar = id.split("."),
+								id1 = "node."+ ar[1],
+								id2 = "node."+ ar[2];
+
+							if (id1 in window.position && id2 in window.position) {
+								const
+									pos1 = window.position[id1],
+									pos2 = window.position[id2];
+								
+								if (pos1.parent === pos2.parent) {
+									window.upper = top.store.parent = pos1.parent;
+
+									window.map.lookAt({
+										x: (pos1.x + pos2.x) / -2,
+										y: (pos1.y + pos2.y) /-2
+									});
+								}
+							}
+						}
+					}
+				})(top.store.focus);
+
+				initialize();
 
 				break;
 			default:
-				console.log(top.getMessage(this.status));
+				alert(top.getMessage(this.status));
 
 				console.log(this.responseText && JSON.parse(this.responseText).error);
 			}
 		});
-	}
-}
+	};
+
+	(option => {
+		map.src = option? option: "map3d.html";
+	}) (window.location.search.substring(1));
+	
+}) (document.getElementById("map"));
 
 		</script>
 	

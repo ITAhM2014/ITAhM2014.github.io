@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+
+@import "/css/style.css";
+
+body {
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+    padding: 0; margin: 0;
+}
+
+canvas {
+    width: 100%; height: 100%;
+}
+
+nav {
+	position: absolute; top: 0; right: 0;
+	padding: 5px;
+	background-color: #ddd;
+}
+
+nav >img {
+	display: block;
+}
+
+nav >img:not(:nth-of-type(1)) {
+	border-top: 1px solid #777;
+}
+        </style>
+        <script src="/js/three.js"></script>
+        <script src="/js/OrbitControls.js"></script>
+        <script>
+//public
+
+function start() {
+    addFloor();
+
+    onResize();
+
+    if (parent.upper) {
+        const
+            id = parent.upper,
+            mesh = addNode(id, parent.node[id], UPPER_POS);
+
+        mesh.onclick = parent.moveStage.bind(mesh, parent.position[id].parent);
+    }
+
+    render();
+
+    animate();
+
+    document.body.classList.remove("loading");
+}
+
+function addNode(id, base, pos, status) {
+    const mesh = getMesh(base.type);
+    
+    mesh.position.x += pos.x;
+    mesh.position.y += pos.z;
+    mesh.position.z += pos.y;
+    
+    if ("role" in base && base.role === "group") {
+        const mark = new THREE.Mesh(new THREE.CylinderBufferGeometry(30, 30, 6, 32, 1, true),
+            new THREE.MeshBasicMaterial({
+                color: 0xffff00,
+                side:THREE.DoubleSide
+            }));
+        
+            mark.position.set(pos.x, pos.z +3, pos.y);
+        
+        scene.add(mark);
+        
+        mesh.onclick = parent.moveStage.bind(mesh, id);
+    }
+    else {
+        mesh.onclick = () => {
+            top.showStatus(id);
+        }
+    }
+    
+    if (status === "shutdown" || status === "critical") {
+        const color = status === "shutdown"? 0xff0000: 0xffaa00;
+        var marker = new THREE.Mesh(new THREE.CylinderBufferGeometry(30, 30, 6, 32, 1, true),
+            new THREE.MeshBasicMaterial({
+                color: color,
+                side:THREE.DoubleSide
+            }));
+        
+        marker.position.set(pos.x, pos.z +3, pos.y);
+        marker.rotation.z = Math.PI /9;
+
+        markerList.push(marker);
+        
+        scene.add(marker);
+
+        marker = marker.clone();
+        marker.rotation.z = Math.PI /-9;
+
+        markerList.push(marker);
+        
+        scene.add(marker);
+    }
+
+    scene.add(mesh);
+    
+    nodeList.push(mesh);
+    nodeMap[id] = mesh;
+    
+    floorSize.width = Math.max(floorSize.width, Math.abs(pos.x));
+    floorSize.height = Math.max(floorSize.height, Math.abs(pos.y));
+
+    return mesh;
+}
+
+function drawLine(id, line) {
+    const
+        ar = id.split("."),
+        id1 = "node."+ ar[1],
+        id2 = "node."+ ar[2];
+    var
+        pos1 = parent.position[id1],
+        pos2 = parent.position[id2];
+
+	if (!(id1 in nodeMap) && !(id2 in nodeMap)) {
+		return;
+	}
+    
+    if (!(id1 in nodeMap)) {
+        const id = parent.findParentFromStage(pos1.parent);
+
+        if (id) {
+            pos1 = parent.position[id];
+        }
+        else if (parent.upper) {
+            pos1 = UPPER_POS;
+        }
+        else {
+            return;
+        }
+    }
+
+    if (!(id2 in nodeMap)) {
+        const id = parent.findParentFromStage(pos2.parent);
+
+        if (id) {
+            pos2 = parent.position[id];
+        }
+        else  if (parent.upper) {
+            pos2 = UPPER_POS;
+        }
+        else {
+            return;
+        }
+    }
+
+    if (!("z" in pos1)) {
+            pos1.z = 0;
+        }
+
+    if (!("z" in pos2)) {
+        pos2.z = 0;
+    }
+
+    const
+        v1 = new THREE.Vector3(pos1.x, pos1.z, pos1.y),
+        v2 = new THREE.Vector3(pos2.x, pos2.z, pos2.y),
+        link = new THREE.Mesh(new THREE.CylinderBufferGeometry(2, 2, v1.distanceTo(v2), 32, 1, true),
+            new THREE.MeshLambertMaterial({
+                color: 0x00ff00
+            }));
+
+    matrix.lookAt(v1, v2, yAxis);
+    matrix.multiply(rotationX);
+
+    link.applyMatrix(matrix);
+
+    link.position.copy(v1);
+    link.position.lerp(v2, 0.5);
+    
+    scene.add(link);
+}
+
+function setNode(id, status) {
+
+}
+
+function lookAt(pos) {
+
+}
+        
+        </script>
+        <script>
+        
+function render() {
+    controls.update();
+    
+    renderer.render(scene, camera);
+    
+    requestAnimationFrame(render);
+}
+
+function animate() {
+    const tick = clock.getDelta();
+
+    markerList.forEach(marker => {
+        marker.rotation.y += tick;
+        //marker.rotation.z += tick;
+        //marker.rotation.x += tick;
+    });
+
+    requestAnimationFrame(animate);
+}
+
+function onResize() {
+    const size = document.body.getBoundingClientRect();
+    
+    camera.aspect = size.width / size.height;
+    camera.updateProjectionMatrix();
+    
+    renderer.setSize(size.width, size.height);
+}
+
+function addFloor() {console.log();
+    const
+        width = floorSize.width *2,
+        height = floorSize.height *2,
+        countX = Math.round(width / 100),
+        countY = Math.round(height / 100),
+        geo = new THREE.PlaneBufferGeometry(width +100, height +100, countX, countY),
+        texture = loader.load("/img/3d/floor.png");
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(countX, countY);
+        
+    const floor = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+        map: texture
+    }));
+    
+    floor.rotation.x = Math.PI /-2;
+    
+    scene.add(floor);
+}
+
+function getIntersect() {
+    const
+        size = renderer.domElement.getBoundingClientRect(),
+        raycaster = new THREE.Raycaster(),
+        mouse = new THREE.Vector2();
+        
+    mouse.x = event.clientX / size.width *2 -1;
+    mouse.y = event.clientY / size.height *-2 +1;
+    
+    raycaster.setFromCamera(mouse, camera);
+    
+    const intersects = raycaster.intersectObjects(nodeList);
+    
+    if (intersects.length > 0) {
+        return intersects[0].object;
+    }
+}
+
+function onMouseUp(e) {
+    e.preventDefault();
+
+    const intersect = getIntersect();
+console.log(intersect);
+    if (intersect && intersect === window.intersect) {
+        intersect.onclick && intersect.onclick();
+    }
+
+    window.isDrag = false;
+}
+
+function onMouseDown(e) {
+    e.preventDefault();
+    
+    window.isDrag = true;
+
+    window.intersect = getIntersect();console.log(intersect);
+}
+
+function onMouseMove(e) {
+    e.preventDefault();
+
+    if (window.isDrag) {
+        window.intersect = undefined;console.log("취소");
+    }
+}
+
+function getMesh(type = "unknown") {
+    const
+        icon = top.setting.icon && top.setting.icon[type] || top.store.icon[type];
+    var mesh, height, mat;
+
+    if (icon.texture) {
+        const
+            texture = loader.load(icon.texture),
+            top = icon.top? {
+                map: loader.load(icon.top)
+            }: {
+                color: icon.color? new THREE.Color(parseInt(icon.color)): MESH_COLOR
+            };
+        
+        mat = [new THREE.MeshBasicMaterial({
+            map: texture
+        }),
+        new THREE.MeshBasicMaterial({
+            map: texture
+        }),
+        new THREE.MeshBasicMaterial(top),
+        new THREE.MeshBasicMaterial({
+        }),
+        new THREE.MeshBasicMaterial({
+            map: texture
+        }),
+        new THREE.MeshBasicMaterial({
+            map: texture
+        })];
+    }
+    else {
+        mat = new THREE.MeshBasicMaterial({
+            color: icon.color? new THREE.Color(parseInt(icon.color)): MESH_COLOR
+        });
+    }
+
+    mesh = new THREE.Mesh(new THREE.BoxBufferGeometry(MESH_WIDTH, height = MESH_HEIGHT_U * (icon.unit || 1), MESH_DEPTH), mat);
+
+    mesh.position.y = height /2;
+
+    return mesh;
+}
+
+            </script>
+        </head>
+        
+        <body class="loading">
+            <nav>
+                <img src="/img/num2.png" width="16" height="16" title="2D 맵" id="twod">
+            </nav>
+            <div class="bg_loading"></div>
+        <script>
+
+const
+    MESH_HEIGHT_U = 10,
+    MESH_HEIGHT = MESH_HEIGHT_U *2,
+    MESH_WIDTH = 40,
+    MESH_DEPTH = 40,
+    MESH_COLOR = new THREE.Color(0xdddddd),
+    UPPER_POS = {
+        x: 0,
+        y: 0,
+        z: 160
+    }
+    renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true
+    }),
+    scene = new THREE.Scene,
+    camera = new THREE.PerspectiveCamera(60, 1, 1, 2000), // 시야각이 클수록 외곡
+    controls = new THREE.OrbitControls(camera, renderer.domElement),
+    loader = new THREE.TextureLoader(),
+    clock = new THREE.Clock,
+    matrix = new THREE.Matrix4(),
+    rotationX = new THREE.Matrix4(),
+    yAxis = new THREE.Vector3(0, 1, 0),
+    nodeList = [],
+    markerList = [],
+    nodeMap = {},
+    floorSize = {
+        width: 0,
+        height: 0
+    };
+    
+var light;
+
+renderer.setPixelRatio(window.devicePixelRatio);
+
+document.body.appendChild(renderer.domElement);
+
+scene.add(camera);
+
+controls.enableDamping = true;
+controls.screenSpacePanning = false;
+controls.minDistance = 100;
+controls.maxDistance = 1600;
+controls.maxPolarAngle = Math.PI /2 -0.1;
+
+light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(1, 1, 1);
+scene.add(light);
+
+renderer.setClearColor(0xffffff, 0);
+
+camera.position.set(0, 300, 500);
+
+rotationX.makeRotationX(Math.PI /2);
+
+document.getElementById("twod").onclick = function () {
+	parent.location.href = "/dashboard.html?map2d.html";
+};
+
+renderer.domElement.addEventListener("mousedown", onMouseDown);
+renderer.domElement.addEventListener("mouseup", onMouseUp);
+renderer.domElement.addEventListener("mousemove", onMouseMove);
+
+window.addEventListener("resize", onResize);
+
+        </script>
+    </body>
+</html>

@@ -322,7 +322,13 @@ function trySignIn(username) {
 	}, function () {
 		switch(this.status) {
 		case 200:
-			initialize(JSON.parse(this.responseText));
+			try {
+				initialize(JSON.parse(this.responseText));
+			}
+			catch(e) {
+				alert("서비스가 비정상 종료 되었습니다.\n"+
+				"모든 브라우저를 닫고 다시 시작하십시오.");
+			}
 			
 			break;
 		
