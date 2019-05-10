@@ -129,8 +129,9 @@ ITAhM.iconData = {
         "src": "img/svg/accesspoint.svg",
         "disabled": "img/svg/disabled/accesspoint.svg",
         unit: 1,
-        color: "0xdddddd",
-        texture: ""
+        color: "",
+        texture: "/img/3d/wifi.png",
+        top: "/img/3d/wifi-top.png"
     },
     "accelerator": {
         "group": "network",
@@ -244,7 +245,8 @@ ITAhM.iconData = {
         "src": "img/setting.png",
         "disabled": "img/test.png",
         unit: 1,
-        color: "0xdddddd",
-        texture: ""
+        color: "",
+        texture: "/img/3d/app.png",
+        top: "/img/3d/app-top.png"
     }
 };

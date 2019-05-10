@@ -79,8 +79,8 @@ function addNode(id, base, pos, status) {
         }
     }
     
-    addMarker(pos, status);
-
+    addMarker(mesh, status);
+    
     scene.add(mesh);
     
     nodeList.push(mesh);
@@ -161,13 +161,7 @@ function drawLine(id, line) {
 }
 
 function setNode(id, status) {
-    const pos = parent.position[id];
-
-    addMarker({
-        x: pos.x,
-        y: pos.y,
-        z: 0
-    }, status);
+    addMarker(nodeMap[id], status);
 }
 
 function lookAt(pos) {
@@ -178,11 +172,11 @@ function lookAt(pos) {
         <script>
         
 function render() {
+    requestAnimationFrame(render);
+    
     controls.update();
     
     renderer.render(scene, camera);
-    
-    requestAnimationFrame(render);
 }
 
 function animate() {
@@ -190,8 +184,6 @@ function animate() {
 
     markerList.forEach(marker => {
         marker.rotation.y += tick;
-        //marker.rotation.z += tick;
-        //marker.rotation.x += tick;
     });
 
     requestAnimationFrame(animate);
@@ -206,30 +198,38 @@ function onResize() {
     renderer.setSize(size.width, size.height);
 }
 
-function addMarker(pos, status) {
-    if (status === "shutdown" || status === "critical") {
-        const color = status === "shutdown"? 0xff0000: 0xffaa00;
-        var marker = new THREE.Mesh(new THREE.CylinderBufferGeometry(32, 32, 6, 32, 1, true),
-            new THREE.MeshBasicMaterial({
-                color: color,
-                side:THREE.DoubleSide
-            }));
-        
-        marker.position.set(pos.x, pos.z +3, pos.y);
-        marker.rotation.z = Math.PI /9;
-
-        markerList.push(marker);
-        
-        scene.add(marker);
-
-        marker = marker.clone();
-        marker.rotation.z = Math.PI /-9;
-
-        markerList.push(marker);
-        
-        scene.add(marker);
+function addMarker(mesh, status) {
+    if (status !== "shutdown" && status !== "critical") {
+        return;
     }
+
+    const
+        color = status === "shutdown"? 0xff0000: 0xffaa00,
+        box = new THREE.Box3().setFromObject( mesh ),
+        min = box.min,
+        max = box.max;
+    var marker = new THREE.Mesh(new THREE.CylinderBufferGeometry(32, 32, 3, 32, 1, true),
+        new THREE.MeshBasicMaterial({
+            color: color,
+            side:THREE.DoubleSide
+        }));
+    
+    
+    marker.position.set((min.x + max.x) /2, max.y, (min.z + max.z) /2);
+    marker.rotation.z = Math.PI /9;
+
+    markerList.push(marker);
+    
+    scene.add(marker);
+
+    marker = marker.clone();
+    marker.rotation.z = Math.PI /-9;
+
+    markerList.push(marker);
+    
+    scene.add(marker);
 }
+
 function addFloor() {
     const
         width = floorSize.width *2,
@@ -237,7 +237,27 @@ function addFloor() {
         countX = Math.round(width / 100),
         countY = Math.round(height / 100),
         geo = new THREE.PlaneBufferGeometry(width +100, height +100, countX, countY),
-        texture = loader.load("/img/3d/floor.png");
+        texture = loader.load("/img/3d/floor3.jpg");
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(countX, countY);
+        
+    const floor = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+        map: texture
+    }));
+    
+    floor.rotation.x = Math.PI /-2;
+    
+    scene.add(floor);
+}
+
+function addFloor() {
+    const
+        width = floorSize.width *2,
+        height = floorSize.height *2,
+        countX = Math.round(width / 50),
+        countY = Math.round(height / 50),
+        geo = new THREE.PlaneBufferGeometry(width +100, height +100, countX, countY),
+        texture = loader.load("/img/3d/tile.png");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(countX, countY);
         
@@ -366,7 +386,7 @@ const
     }),
     scene = new THREE.Scene,
     camera = new THREE.PerspectiveCamera(60, 1, 1, 2000), // 시야각이 클수록 외곡
-    controls = new THREE.OrbitControls(camera, renderer.domElement),
+    controls = new THREE.OrbitControls(camera),//, renderer.domElement),
     loader = new THREE.TextureLoader(),
     clock = new THREE.Clock,
     matrix = new THREE.Matrix4(),
@@ -389,6 +409,7 @@ document.body.appendChild(renderer.domElement);
 scene.add(camera);
 
 controls.enableDamping = true;
+controls.dampingFactor = 0.25;
 controls.screenSpacePanning = false;
 controls.minDistance = 100;
 controls.maxDistance = 1600;

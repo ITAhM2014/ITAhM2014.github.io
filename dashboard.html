@@ -513,14 +513,14 @@ function initialize() {
 	
 	document.getElementById("summary_list").appendChild(buildLabel());
 
-	for (let id in sMap) {
-		window.map.setNode(id, "shutdown");
-	}
-	
 	for (let id in cMap) {
 		window.map.setNode(id, "critical");
 	}
 
+	for (let id in sMap) {
+		window.map.setNode(id, "shutdown");
+	}
+	
 	for (let id in window.line) {
 		window.map.drawLine(id, window.line[id]);
 	}
