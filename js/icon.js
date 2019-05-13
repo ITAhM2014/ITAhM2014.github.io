@@ -170,7 +170,7 @@ ITAhM.iconData = {
         "group": "etc",
         "src": "img/svg/cloud.svg",
         "disabled": "img/svg/disabled/cloud.svg",
-        unit: 1,
+        unit: 2,
         color: "",
         texture: "/img/3d/cloud.png",
         top: "/img/3d/cloud-top.png"
@@ -227,7 +227,7 @@ ITAhM.iconData = {
     	"group": "etc",
         "src": "img/svg/security.svg",
         "disabled": "img/svg/disabled/security.svg",
-        unit: 1,
+        unit: 2,
         color: "",
         texture: "/img/3d/security.png",
         top: "/img/3d/security-top.png"

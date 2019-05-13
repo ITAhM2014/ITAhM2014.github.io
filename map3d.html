@@ -214,16 +214,15 @@ function addMarker(mesh, status) {
             side:THREE.DoubleSide
         }));
     
-    
     marker.position.set((min.x + max.x) /2, max.y, (min.z + max.z) /2);
-    marker.rotation.z = Math.PI /9;
+    marker.rotation.z = Math.PI /18;
 
     markerList.push(marker);
     
     scene.add(marker);
 
     marker = marker.clone();
-    marker.rotation.z = Math.PI /-9;
+    marker.rotation.z = Math.PI /-18;
 
     markerList.push(marker);
     
@@ -234,33 +233,15 @@ function addFloor() {
     const
         width = floorSize.width *2,
         height = floorSize.height *2,
-        countX = Math.round(width / 100),
-        countY = Math.round(height / 100),
+        countX = Math.round(width / 500),
+        countY = Math.round(height / 500),
         geo = new THREE.PlaneBufferGeometry(width +100, height +100, countX, countY),
-        texture = loader.load("/img/3d/floor3.jpg");
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(countX, countY);
         
-    const floor = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-        map: texture
-    }));
-    
-    floor.rotation.x = Math.PI /-2;
-    
-    scene.add(floor);
-}
+    texture = loader.load("/img/3d/floor.png");
+    texture.magFilter = THREE.NearestFilter;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(countX, countY);
 
-function addFloor() {
-    const
-        width = floorSize.width *2,
-        height = floorSize.height *2,
-        countX = Math.round(width / 50),
-        countY = Math.round(height / 50),
-        geo = new THREE.PlaneBufferGeometry(width +100, height +100, countX, countY),
-        texture = loader.load("/img/3d/tile.png");
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(countX, countY);
-        
     const floor = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
         map: texture
     }));
@@ -323,28 +304,19 @@ function getMesh(type = "unknown") {
 
     if (icon.texture) {
         const
-            texture = loader.load(icon.texture),
+            texture = new THREE.MeshBasicMaterial({
+                map: loader.load(icon.texture)
+            }),
             top = icon.top? {
                 map: loader.load(icon.top)
             }: {
                 color: icon.color? new THREE.Color(parseInt(icon.color)): MESH_COLOR
             };
         
-        mat = [new THREE.MeshBasicMaterial({
-            map: texture
-        }),
-        new THREE.MeshBasicMaterial({
-            map: texture
-        }),
-        new THREE.MeshBasicMaterial(top),
-        new THREE.MeshBasicMaterial({
-        }),
-        new THREE.MeshBasicMaterial({
-            map: texture
-        }),
-        new THREE.MeshBasicMaterial({
-            map: texture
-        })];
+        mat = [texture, texture,
+            new THREE.MeshBasicMaterial(top),
+            new THREE.MeshBasicMaterial({
+            }), texture, texture];
     }
     else {
         mat = new THREE.MeshBasicMaterial({
