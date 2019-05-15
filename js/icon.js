@@ -242,8 +242,8 @@ ITAhM.iconData = {
     },
     "application": {
         "group": "application",
-        "src": "img/setting.png",
-        "disabled": "img/test.png",
+        "src": "img/svg/application.svg",
+        "disabled": "img/svg/disabled/application.svg",
         unit: 1,
         color: "",
         texture: "/img/3d/app.png",
