@@ -107,16 +107,18 @@ body.loading g {
 	fill: none;
 }
 
-.device.checked circle {
-	fill: #fff;
+.device.group circle {
+	fill: #400080;
 }
 
 .device.critical circle {
 	stroke: #fa0;
+	animation: status 2s infinite;
 }
 
 .device.shutdown circle {
-	stroke: #f00; 
+	stroke: #f00;
+	animation: status 2s infinite;
 }
 
 .parent {
@@ -143,6 +145,15 @@ body:not(.name) tspan:first-child {
 	}
     to {
     	transform: rotate(360deg) scale(1);
+    }
+}
+
+@keyframes status {
+	from {
+    	stroke-opacity: 0;
+    }
+    to {
+    	stroke-opacity: 1;
     }
 }
 
@@ -385,6 +396,8 @@ function addNode(id, base, pos, status) {
 	
 	if (base.role === "group") {
 		svgDevice.onclick = parent.moveStage.bind(svgDevice, id);
+
+		addClass(svgDevice, "group");
 	}
 	else if (base.protocol === "snmp") {
 		svgDevice.onclick = function () { //bind 사용하면 event가 arguments로 따라가서 안됨
@@ -582,6 +595,11 @@ function Line(id1, id2) {
 	this.pos2 = parent.position[this.id2 = id2];
 }
 
+function Line(pos1, pos2) {
+	this.pos1 = pos1;
+	this.pos2 = pos2;
+}
+
 Line.COLOR_NORMAL = "#d4af37",
 Line.COLOR_SHUTDOWN = "#f00",
 Line.COLOR_DISABLED = "#ddd",
@@ -693,11 +711,55 @@ function drawLine(id, line) {
 		id1 = "node."+ ar[1],
 		id2 = "node."+ ar[2];
 	
-	if (!(id1 in window.nodeSVGMap) || !(id2 in window.nodeSVGMap)) {
+	if (!(id1 in parent.node)) {
+		console.log("존재하지 않는 노드 "+ id1);
+
 		return;
 	}
 
-	var oLine = new Line(id1, id2);
+	if (!(id2 in parent.node)) {
+		console.log("존재하지 않는 노드 "+ id2);
+		
+		return;
+	}
+
+	if (!(id1 in window.nodeSVGMap) && !(id2 in window.nodeSVGMap)) {
+		return;
+	}
+
+	var
+        pos1 = parent.position[id1],
+        pos2 = parent.position[id2];
+
+    if (!(id1 in nodeSVGMap)) {
+        const id = parent.findParentFromStage(pos1.parent);
+
+        if (id) {
+            pos1 = parent.position[id];
+        }
+        else if (parent.upper) {
+            pos1 = UPPER_POS;
+        }
+        else {
+            return;
+        }
+    }
+
+    if (!(id2 in nodeSVGMap)) {
+        const id = parent.findParentFromStage(pos2.parent);
+
+        if (id) {
+            pos2 = parent.position[id];
+        }
+        else  if (parent.upper) {
+            pos2 = UPPER_POS;
+        }
+        else {
+            return;
+        }
+    }
+
+	var oLine = new Line(pos1, pos2);
 
 	window.lineMap[id] = oLine;
 
@@ -709,6 +771,8 @@ function drawLine(id, line) {
 	else {
 		addLink(oLine, id1, id2, line[id1], line[id2], line.option);
 	}
+
+	return true;
 }
 
 function getIcon (type) {
@@ -739,6 +803,8 @@ function start () {
     }
 
     if (parent.upper) {
+		
+		/*
         document.body.classList.add("submap");
 
         base = parent.node[parent.upper];
@@ -753,6 +819,13 @@ function start () {
         }
 
         window.parentAnchor.onclick = parent.moveStage.bind(window.parentAnchor, upper);
+*/
+		addNode(parent.upper, parent.node[parent.upper], UPPER_POS);
+
+		const
+			node = window.nodeSVGMap[parent.upper];
+		
+		node.onclick = parent.moveStage.bind(node, parent.position[parent.upper].parent);
     }
 }
 
@@ -795,7 +868,11 @@ const
 	MAX_LABEL_LEN = 16,
 	LINE_WIDTH = 2,
 	BAR_WIDTH = 10,
-    BAR_HEIGHT = 30;
+    BAR_HEIGHT = 30,
+	UPPER_POS = {
+		x: 0,
+		y: 0
+	};
     
 var
 	SVG_NS = "http://www.w3.org/2000/svg",
@@ -815,7 +892,6 @@ var
     lineMap = {},
 	lineSVGMap = {},
     nodeSVGMap = {},
-    checked = {},
 	scale = 1,
     click = false,
     thread;

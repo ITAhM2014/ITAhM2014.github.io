@@ -57,23 +57,23 @@ function addNode(id, base, pos, status) {
     const mesh = getMesh(base.type);
     
     mesh.position.x += pos.x;
-    mesh.position.y += pos.z;
+    mesh.position.y += pos.z || 0;
     mesh.position.z += pos.y;
     
     if ("role" in base && base.role === "group") {
-        const mark = new THREE.Mesh(new THREE.CylinderBufferGeometry(30, 30, 6, 32, 1, true),
+        const mark = new THREE.Mesh(new THREE.CylinderBufferGeometry(MESH_WIDTH, MESH_WIDTH, 6, 4, 1, true),
             new THREE.MeshBasicMaterial({
-                color: 0xffff00,
+                color: 0x400080,
                 side:THREE.DoubleSide
             }));
         
-            mark.position.set(pos.x, pos.z +3, pos.y);
+            mark.position.set(pos.x, (pos.z || 0) +3, pos.y);
         
         scene.add(mark);
         
         mesh.onclick = parent.moveStage.bind(mesh, id);
     }
-    else {
+    else if (base.protocol === "snmp") {
         mesh.onclick = () => {
             top.showStatus(id);
         }
@@ -97,14 +97,15 @@ function drawLine(id, line) {
         ar = id.split("."),
         id1 = "node."+ ar[1],
         id2 = "node."+ ar[2];
-    var
-        pos1 = parent.position[id1],
-        pos2 = parent.position[id2];
 
 	if (!(id1 in nodeMap) && !(id2 in nodeMap)) {
 		return;
 	}
     
+    var
+        pos1 = parent.position[id1],
+        pos2 = parent.position[id2];
+
     if (!(id1 in nodeMap)) {
         const id = parent.findParentFromStage(pos1.parent);
 
@@ -134,8 +135,8 @@ function drawLine(id, line) {
     }
 
     if (!("z" in pos1)) {
-            pos1.z = 0;
-        }
+        pos1.z = 0;
+    }
 
     if (!("z" in pos2)) {
         pos2.z = 0;
@@ -144,7 +145,7 @@ function drawLine(id, line) {
     const
         v1 = new THREE.Vector3(pos1.x, pos1.z, pos1.y),
         v2 = new THREE.Vector3(pos2.x, pos2.z, pos2.y),
-        link = new THREE.Mesh(new THREE.CylinderBufferGeometry(2, 2, v1.distanceTo(v2), 32, 1, true),
+        link = new THREE.Mesh(new THREE.CylinderBufferGeometry(LINE_RADIUS, LINE_RADIUS, v1.distanceTo(v2), 32, 1, true),
             new THREE.MeshLambertMaterial({
                 color: 0x00ff00
             }));
@@ -156,8 +157,18 @@ function drawLine(id, line) {
 
     link.position.copy(v1);
     link.position.lerp(v2, 0.5);
-    
+
     scene.add(link);
+
+    if (Array.isArray(line[id1])) {
+        for (let i=1, _i=line[id1].length, clone; i<_i; i++) {
+            clone = link.clone();
+
+            clone.position.y += i * LINE_RADIUS *2;
+
+            scene.add(clone);
+        }
+    }
 }
 
 function setNode(id, status) {
@@ -165,18 +176,39 @@ function setNode(id, status) {
 }
 
 function lookAt(pos) {
+    controls.target.copy(new THREE.Vector3(pos.x, 0, pos.y));
 
+    camera.position.set(0, 600, 1000);
+        
+    controls.enabled = false;
 }
         
         </script>
         <script>
-        
+
 function render() {
-    requestAnimationFrame(render);
+    if (!controls.enabled) {
+        const pos = camera.position;
+        
+        if (pos.y < MIN_POS.y && pos.z < MIN_POS.z) {
+            controls.enabled = true;
+        }
+        else {
+            if (pos.y >= MIN_POS.y) {
+                pos.y -= 10;
+            }
+
+            if (pos.z >= MIN_POS.z) {
+                pos.z -= 10;
+            }
+        }
+    }
     
     controls.update();
-    
+
     renderer.render(scene, camera);
+
+    requestAnimationFrame(render);
 }
 
 function animate() {
@@ -272,10 +304,10 @@ function getIntersect() {
 function onMouseUp(e) {
     e.preventDefault();
 
-    const intersect = getIntersect();
+    const node = getIntersect();
 
-    if (intersect && intersect === window.intersect) {
-        intersect.onclick && intersect.onclick();
+    if (node && node === window.intersect) {
+        node.onclick();
     }
 
     window.isDrag = false;
@@ -292,9 +324,13 @@ function onMouseDown(e) {
 function onMouseMove(e) {
     e.preventDefault();
 
-    if (window.isDrag) {
+    if (window.isDrag) {console.log("취소");
         window.intersect = undefined;
     }
+}
+
+function skyView() {
+    camera.position.set(0, 600, 0);
 }
 
 function getMesh(type = "unknown") {
@@ -337,6 +373,7 @@ function getMesh(type = "unknown") {
         <body class="loading">
             <nav>
                 <img src="/img/num2.png" width="16" height="16" title="2D 맵" id="twod">
+                <img src="/img/eye.png" width="16" height="16" title="Sky View" id="sky">
             </nav>
             <div class="bg_loading"></div>
         <script>
@@ -347,18 +384,29 @@ const
     MESH_WIDTH = 40,
     MESH_DEPTH = 40,
     MESH_COLOR = new THREE.Color(0xdddddd),
+    LINE_RADIUS = 2,
     UPPER_POS = {
         x: 0,
         y: 0,
         z: 160
-    }
+    },
+    MAX_POS = {
+        x: 0,
+        y: 600,
+        z: 1000
+    },
+    MIN_POS = {
+        x: 0,
+        y: 150,
+        z: 250
+    },
     renderer = new THREE.WebGLRenderer({
         antialias: true,
         alpha: true
     }),
     scene = new THREE.Scene,
     camera = new THREE.PerspectiveCamera(60, 1, 1, 2000), // 시야각이 클수록 외곡
-    controls = new THREE.OrbitControls(camera),//, renderer.domElement),
+    controls = new THREE.OrbitControls(camera),
     loader = new THREE.TextureLoader(),
     clock = new THREE.Clock,
     matrix = new THREE.Matrix4(),
@@ -400,6 +448,8 @@ rotationX.makeRotationX(Math.PI /2);
 document.getElementById("twod").onclick = function () {
 	parent.location.href = "/dashboard.html?map2d.html";
 };
+
+document.getElementById("sky").onclick = skyView;
 
 renderer.domElement.addEventListener("mousedown", onMouseDown);
 renderer.domElement.addEventListener("mouseup", onMouseUp);

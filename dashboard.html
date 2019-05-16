@@ -471,11 +471,7 @@ function initialize() {
 				}
 			}
 
-			window.map.addNode(id, base, {
-				x: pos.x,
-				y: pos.y,
-				z: 0
-			}, status);
+			window.map.addNode(id, base, pos, status);
 		}
 		else if (parent = findParentFromStage(pos.parent)) {
 			// 하위
