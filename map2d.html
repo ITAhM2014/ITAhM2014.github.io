@@ -224,8 +224,6 @@ function resize() {
 	const rect = mapCanvas.getBoundingClientRect();
 	
 	transform.getItem(0).setTranslate(rect.width /2, rect.height /2);
-
-	window.parentAnchor.setAttribute("transform", "translate("+ (rect.width -60) +","+ (rect.height -60) +")");
 }
 	
 function moveMap(x, y) {
@@ -457,15 +455,15 @@ function setClick() {
 	window.click = true;
 }
 
-function addClass(e, className) {
+function addClass(e, ...args) {
 	var cls = e.getAttribute("class"),
 		classList = cls? cls.split(" "): [];
 	
-	for (var i=1, _i=arguments.length; i<_i; i++) {
+	args.forEach(className => {
 		if (classList.indexOf(className) === -1) {
 			classList.push(className);
 		}
-	}
+	});
 	
 	e.setAttribute("class", classList.join(" "));
 }
@@ -803,27 +801,9 @@ function start () {
     }
 
     if (parent.upper) {
-		
-		/*
-        document.body.classList.add("submap");
-
-        base = parent.node[parent.upper];
-
-        window.parentAnchor.querySelector("tspan:first-child").textContent = base.name || base.ip || "";
-        window.parentAnchor.querySelector("tspan:last-child").textContent = base.ip || base.name || "";
-        
-        const upper = parent.position[parent.upper].parent;
-        
-        if (upper) {
-            window.parentAnchor.id = upper;
-        }
-
-        window.parentAnchor.onclick = parent.moveStage.bind(window.parentAnchor, upper);
-*/
 		addNode(parent.upper, parent.node[parent.upper], UPPER_POS);
 
-		const
-			node = window.nodeSVGMap[parent.upper];
+		const node = window.nodeSVGMap[parent.upper];
 		
 		node.onclick = parent.moveStage.bind(node, parent.position[parent.upper].parent);
     }
@@ -837,14 +817,6 @@ function start () {
             <defs>
                 <circle r="35" id="circle"></circle>
             </defs>
-            <g class="parent">
-                <circle cx="0" cy="0" r="40"></circle>
-                <image class="no_pointer_event" xlink:href="img/group.png" x="-30" y="-30" width="60" height="60"></image>
-                <text>
-                    <tspan alignment-baseline="middle"></tspan>
-                    <tspan alignment-baseline="middle"></tspan>
-                </text>
-            </g>
             <g id="transform" transform="translate(0, 0) scale(1, 1) translate(0, 0)">
                 <g id="line"></g>
                 <g id="link">

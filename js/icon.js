@@ -154,9 +154,10 @@ ITAhM.iconData = {
     	"group": "etc",
     	"src": "img/svg/printer.svg",
         "disabled": "img/svg/disabled/printer.svg",
-        unit: 1,
-        color: "0xdddddd",
-        texture: ""
+        unit: 2,
+        color: "",
+        texture: "/img/3d/printer.png",
+        top: "/img/3d/printer-top.png"
     },
     "office": {
         "group": "group",

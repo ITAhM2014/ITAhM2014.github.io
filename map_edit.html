@@ -94,6 +94,10 @@ body.loading g {
 	display: none;
 }
 
+#anchor.group >#link_anchor {
+	display: none;
+}
+
 g.node *,
 body.drag #check circle,
 body.drag #select circle {
@@ -123,6 +127,14 @@ g.node.parent circle {
 
 #parent >circle:not(:hover) {
 	stroke: #ddd; stroke-width: 5px;
+}
+
+g.group >circle {
+	stroke: #400080;
+}
+
+g.upper >circle {
+	stroke: #ddd;
 }
 
 body.drag g.group:hover >circle {
@@ -226,8 +238,7 @@ body::after {
 
 body.name tspan:last-child,
 body:not(.name) tspan:first-child,
-body:not(.root) .root,
-body:not(.submap) .parent {
+body:not(.root) .root {
 	display: none;
 }
 
@@ -278,15 +289,15 @@ function onMoveGroup() {
 	saveTmpReload();
 }
 
-function addClass(e, className) {
+function addClass(e, ...args) {
 	var cls = e.getAttribute("class"),
 		classList = cls? cls.split(" "): [];
 	
-	for (var i=1, _i=arguments.length; i<_i; i++) {
+	args.forEach(className => {
 		if (classList.indexOf(className) === -1) {
 			classList.push(className);
 		}
-	}
+	});
 	
 	e.setAttribute("class", classList.join(" "));
 }
@@ -349,6 +360,62 @@ function preventDefault(e) {
 
 function moveAnchor(x, y) {
 	window.selectCanvas.appendChild(window.anchor).setAttribute("transform", "translate("+ (x) +", "+ (y) +")");
+}
+
+function Upper(id, base) {
+	const
+		svgIcon = document.createElementNS(SVG_NS, "image"),
+		svgBG = document.createElementNS(SVG_NS, "circle"),
+		svgLabel = document.createElementNS(SVG_NS, "text"),
+		svgAddr = document.createElementNS(SVG_NS, "tspan"),
+		svgName = document.createElementNS(SVG_NS, "tspan"),
+		icon = getIcon(base.type);
+	
+	this.node = document.createElementNS(SVG_NS, "g");
+	this.pos = {
+		x: 0,
+		y: 0
+	};
+
+	svgIcon.setAttribute("x", ICON_SIZE *-1 /2);
+	svgIcon.setAttribute("y", ICON_SIZE *-1 /2);
+	svgIcon.setAttribute("width", ICON_SIZE +"px");
+	svgIcon.setAttribute("height", ICON_SIZE +"px");
+	
+	svgBG.setAttribute("r", OFFSET_C);
+	svgBG.setAttribute("cx", 0);
+	svgBG.setAttribute("cy", 0);
+
+	const upper = window.position[id].parent;
+	// id에 "undefined" 문자열이 들어가지 않도록 처리
+	if (upper) {
+		this.node.id = upper;
+	}
+	
+	this.node.onclick = onEnterGroup;
+
+	this.node.addEventListener("movegroup", onMoveGroup);
+	
+	
+	svgName.textContent = base.name || base.ip || "";
+	svgAddr.textContent = base.ip || base.name || "";
+	
+	svgLabel.appendChild(svgName);
+	svgLabel.appendChild(svgAddr);
+	
+	svgLabel.setAttribute("x", 0);
+	svgLabel.setAttribute("y", OFFSET_C + 16);
+	// text baseline이 글자의 밑을 기준으로 하므로 글자 크기만큼 내려준다.
+	
+	this.node.appendChild(svgBG);
+	this.node.appendChild(svgIcon);
+	this.node.appendChild(svgLabel);
+	
+	addClass(this.node, "node", "group", "upper");
+	
+	window.upperCanvas.appendChild(this.node);
+
+	svgIcon.setAttributeNS(XLINK_NS, "xlink:href", "/"+ icon[base.protocol?"src": "disabled"] );
 }
 
 function Node(id, base) {
@@ -473,7 +540,7 @@ Node.prototype = {
 
 		window.selected = this;
 	
-		window.anchor.setAttribute("class", this.protocol);
+		window[hasClass(this.node, "group")? "addClass": "removeClass"](window.anchor, "group");
 	
 		moveAnchor(this.pos.x, this.pos.y);
 	},
@@ -708,19 +775,12 @@ function onEvent(e) {
 					</image>
 				</g>
 			</defs>
-			<g class="parent node group" transform="translate(100, 100)">
-				<circle cx="0" cy="0" r="40"></circle>
-				<image xlink:href="/img/group.png" x="-30" y="-30" width="60" height="60"></image>
-				<text>
-					<tspan alignment-baseline="middle" fill="#336"></tspan>
-					<tspan alignment-baseline="middle" fill="#336"></tspan>
-				</text>
-			</g>
 			<g id="transform" transform="translate(0, 0) scale(1, 1) translate(0, 0)">
 				<g id="line"></g>
 				<g id="link">
 					<line x1="0" y1="0" x2="0" y2="0" />
 				</g>
+				<g id="up"></g>
 				<g id="device"></g>
 				<g id="check"></g>
 				<g id="select"></g>
@@ -767,6 +827,7 @@ const
 
 var 
 	deviceCanvas = document.getElementById("device"),
+	upperCanvas = document.getElementById("up"),
 	lineCanvas = document.getElementById("line"),
 	transform = document.getElementById("transform").transform.baseVal,
 	linkCanvas = document.getElementById("link"),
@@ -889,7 +950,7 @@ document.onselectstart = function () {
 			
 			window.linkAnchor.setAttribute("transform", "translate("+ (pos.x + x) +","+ (pos.y + y) +")");
 			
-			if (hasClass(svgDevice, "node") &&  svgDevice !== window.selected.node) {
+			if (hasClass(svgDevice, "node") && svgDevice !== window.selected.node && !hasClass(svgDevice, "group")) {
 				var matrix = svgDevice.transform.baseVal.getItem(0).matrix;
 				
 				x = matrix.e;
@@ -1040,7 +1101,7 @@ document.onselectstart = function () {
 		
 		window.transform.getItem(0).setTranslate(rect.width /2, rect.height /2);
 
-		window.parentAnchor.setAttribute("transform", "translate("+ (rect.width -60) +","+ (rect.height -60) +")");
+//		window.parentAnchor.setAttribute("transform", "translate("+ (rect.width -60) +","+ (rect.height -60) +")");
 	}
 
 	resize();
@@ -1159,21 +1220,7 @@ top.postRequest(request, function () {
 		}
 
 		if (window.upper) {
-			document.body.classList.add("submap");
-
-			base = window.node[window.upper];
-
-			window.parentAnchor.querySelector("tspan:first-child").textContent = base.name || base.ip || "";
-			window.parentAnchor.querySelector("tspan:last-child").textContent = base.ip || base.name || "";
-
-			const upper = window.position[window.upper].parent; 
-
-			if (upper) {
-				window.parentAnchor.id = upper;
-			}
-			
-			parentAnchor.onclick = onEnterGroup;
-			parentAnchor.addEventListener("movegroup", onMoveGroup);
+			new Upper(window.upper, window.node[window.upper]);
 		}
 
 		initialize();
