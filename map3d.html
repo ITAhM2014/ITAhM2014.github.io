@@ -61,7 +61,7 @@ function addNode(id, base, pos, status) {
     mesh.position.z += pos.y;
     
     if ("role" in base && base.role === "group") {
-        const mark = new THREE.Mesh(new THREE.CylinderBufferGeometry(MESH_WIDTH, MESH_WIDTH, 6, 4, 1, true),
+        const mark = new THREE.Mesh(new THREE.CylinderBufferGeometry(MESH_WIDTH, MESH_WIDTH, 6, 64, 1, true),
             new THREE.MeshBasicMaterial({
                 color: 0x400080,
                 side:THREE.DoubleSide
@@ -211,11 +211,11 @@ function render() {
     requestAnimationFrame(render);
 }
 
-function animate() {
+function animate(t) {
     const tick = clock.getDelta();
 
     markerList.forEach(marker => {
-        marker.rotation.y += tick;
+        marker.material.opacity = Math.round((t %1000) /100) /10;
     });
 
     requestAnimationFrame(animate);
@@ -255,6 +255,28 @@ function addMarker(mesh, status) {
 
     marker = marker.clone();
     marker.rotation.z = Math.PI /-18;
+
+    markerList.push(marker);
+    
+    scene.add(marker);
+}
+
+function addMarker(mesh, status) {
+    if (status !== "shutdown" && status !== "critical") {
+        return;
+    }
+
+    const
+        box = new THREE.Box3().setFromObject( mesh ),
+        min = box.min,
+        max = box.max,
+        marker = new THREE.Mesh(new THREE.BoxBufferGeometry(max.x - min.x +2, max.y - min.y +2, max.z - min.z +2), new THREE.MeshBasicMaterial({
+            transparent: true,
+            opacity: 0.5,
+            color: new THREE.Color("shutdown"? 0xff0000: 0xffaa00)
+        }));
+    
+    marker.position.set((min.x + max.x) /2, (min.y + max.y) /2, (min.z + max.z) /2);
 
     markerList.push(marker);
     
@@ -446,7 +468,9 @@ camera.position.set(0, 300, 500);
 rotationX.makeRotationX(Math.PI /2);
 
 document.getElementById("twod").onclick = function () {
-	parent.location.href = "/dashboard.html?map2d.html";
+    top.store.map3d = false;
+    
+	parent.location.href = "/dashboard.html";
 };
 
 document.getElementById("sky").onclick = skyView;

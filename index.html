@@ -465,7 +465,7 @@ function cancel() {
 		</article>
 		
 		<div class="log">
-			<a href="event.html" target="main">
+			<a href="/event.html" target="main">
 				<span id="count">99</span>
 				<span id="log">message</span>
 			</a>
@@ -475,10 +475,10 @@ function cancel() {
 		
 		<div class="bg_loading"></div>
 		
-		<script src="js/ITAhM.js"></script>
-		<script src="js/object.js"></script>
-		<script src="js/icon.js"></script>
-		<script src="js/md5.js"></script>
+		<script src="/js/ITAhM.js"></script>
+		<script src="/js/object.js"></script>
+		<script src="/js/icon.js"></script>
+		<script src="/js/md5.js"></script>
 		<script>
 
 var agent,
@@ -487,7 +487,8 @@ var agent,
 		command: "listen"
 	},
 	store = {
-		icon: ITAhM.iconData
+        icon: ITAhM.iconData,
+        map3d: false
 	},
 	count = document.getElementById("count"),
 	dialog = document.getElementById("dialog"),

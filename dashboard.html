@@ -594,9 +594,7 @@ function initialize() {
 		});
 	};
 
-	(option => {
-		map.src = option? option: "map2d.html";
-	}) (window.location.search.substring(1));
+	map.src = top.store.map3d? "map3d.html": "map2d.html";
 	
 }) (document.getElementById("map"));
 

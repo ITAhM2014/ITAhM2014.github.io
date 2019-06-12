@@ -895,7 +895,9 @@ document.getElementById("zoom_out").onclick = function () {
 };
 
 document.getElementById("threed").onclick = function () {
-	parent.location.href = "/dashboard.html?map3d.html";
+    top.store.map3d = true;
+    
+	parent.location.href = "/dashboard.html";
 };
 
 document.getElementById("edit").onclick = function () {
