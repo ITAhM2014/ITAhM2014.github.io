@@ -775,7 +775,7 @@ function onEvent(e) {
 					</image>
 				</g>
 			</defs>
-			<g id="transform" transform="translate(0, 0) scale(1, 1) translate(0, 0)">
+			<g id="container" transform="translate(0, 0) scale(1, 1) translate(0, 0)">
 				<g id="line"></g>
 				<g id="link">
 					<line x1="0" y1="0" x2="0" y2="0" />
@@ -829,7 +829,7 @@ var
 	deviceCanvas = document.getElementById("device"),
 	upperCanvas = document.getElementById("up"),
 	lineCanvas = document.getElementById("line"),
-	transform = document.getElementById("transform").transform.baseVal,
+	container = document.getElementById("container")
 	linkCanvas = document.getElementById("link"),
 	selectCanvas = document.getElementById("select"),
 	checkCanvas = document.getElementById("check"),
@@ -838,6 +838,7 @@ var
 	linkAnchor = document.getElementById("link_anchor"),
 	parentAnchor = document.querySelector("g.parent.node"),
 	fragment = document.createDocumentFragment(),
+	transform = container.transform.baseVal,
 	request = {
 		command: "pull",
 		database: ["node", "line"]
@@ -929,6 +930,8 @@ document.onselectstart = function () {
 			for (let id in window.map) {
 				window.map[id].set();
 			}
+
+			window.upperCanvas.style.display = "none";
 		}
 		
 		window.isDragging = true;
@@ -1087,6 +1090,8 @@ document.onselectstart = function () {
 			}
 
 			window.transform.getItem(2).setTranslate(0, 0);
+
+			window.upperCanvas.style.display = "initial";
 		}
 	});
 
@@ -1100,8 +1105,6 @@ document.onselectstart = function () {
 		rect = mapCanvas.getBoundingClientRect();
 		
 		window.transform.getItem(0).setTranslate(rect.width /2, rect.height /2);
-
-//		window.parentAnchor.setAttribute("transform", "translate("+ (rect.width -60) +","+ (rect.height -60) +")");
 	}
 
 	resize();
