@@ -409,6 +409,31 @@ function onSelectStatus (src, className) {
 }
 
 function onSave() {
+    const data = [];
+    var record = [];
+
+    [].forEach.call(window.header.children, function (col) {
+        record.push(col.textContent);
+    });
+
+    data[0] = record.join(",");
+
+    [].forEach.call(window.list.children, function (row) {
+        record = [];
+
+        [].forEach.call(row.children, function (col) {
+            record.push(col.textContent);
+        });
+
+        data.push(record.join(","));
+    });
+
+    ITAhM.util.download(new Blob(["\ufeff", data.join("\n")] ,{
+		type: "text/csv;charset=utf-8;"
+	}), "line.csv");
+}
+
+function _onSave() {
 	const row = [];
 	var
 		columns = ["IP","Name","Interface","IP","Name","Interface"],
