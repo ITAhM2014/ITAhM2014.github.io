@@ -366,7 +366,9 @@ function onSignOut() {
 }
 
 function cancel() {
-	window.location.href = "/";
+    window.localStorage.removeItem("agent");
+
+	window.location.reload();
 }
 
 		</script>
@@ -438,8 +440,9 @@ function cancel() {
 		</article>
 		<article class="signin">
 			<div class="signin">
-				<h1>Connect to agent</h1>
-				<form id="connect" class="set">
+                <h1>Connect to agent</h1>
+                <h2 id="agent"></h2>
+                <form id="connect" class="set">
 					<p>IP Address</p>
 					<input type="text" name="ip" placeholder="IP address" autofocus required>
 					<p>TCP Port</p>
@@ -556,7 +559,7 @@ document.querySelector("div.log").onclick = function () {
 		
 		const agent = ip.value +":" +tcp.value;
 		
-		window.agent = "http://"+ agent;
+		window.agent = window.location.protocol +"//"+ agent;
 		
 		document.body.classList.add("loading");
 		
@@ -566,8 +569,9 @@ document.querySelector("div.log").onclick = function () {
 			switch(this.status) {
 			case 200:
 			case 400:
-				window.location.href = "?"+ agent;
+                window.localStorage.setItem("agent", agent);
 				
+                window.location.reload();
 				break;
 			case 503:
 				alert("아이탐 에이전트 서비스가 준비중입니다.");
@@ -592,8 +596,10 @@ document.querySelector("div.log").onclick = function () {
 			if (!isNaN(args[1]) && args[1] > -1 && args[1] < 65536) {
 				connect.elements["tcp"].value = args[1];
 				
-				window.agent = "http://" + agent;
+				window.agent = window.location.protocol+ "//" + agent;
 				
+                document.getElementById("agent").textContent = agent;
+
 				return trySignIn(signin.elements["username"]);
 			}
 		}
@@ -603,7 +609,7 @@ document.querySelector("div.log").onclick = function () {
 	else {
 		document.body.classList.add("ready");
 	}
-})(window.location.search && window.location.search.substring(1));
+})(window.localStorage.getItem("agent"));
 
 (function (list) {
 	function remove(a) {

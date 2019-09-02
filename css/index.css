@@ -188,12 +188,16 @@ p, input {
 	font-size: 13px;
 }
 
-h1 {
+h1, h2 {
 	text-align: center;
 }
 
 h1 img {
 	vertical-align: middle;
+}
+
+h2 {
+    color: #777;
 }
 
 form {
