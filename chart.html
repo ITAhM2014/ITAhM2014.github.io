@@ -21,7 +21,7 @@ input[type=date] {
 }
 
 header {
-	position: absolute; top: 0; right: 0;
+	position: absolute; top: 5px; right: 5px;
 	color: #fff; 
 }
 
@@ -42,6 +42,12 @@ nav img {
 	cursor: pointer;
 }
 
+h3 {
+    color: #fff;
+    margin: 0; padding: 1em;
+    background-color: #0084ff;
+    text-shadow: 0 2px 3px #00f;
+}
 circle {
 	fill: #777;
 }
@@ -56,6 +62,7 @@ footer {
 	height: 40px;
 	background-color: rgba(99, 99, 99, .1);
 	color: #fff;
+    font-weight: bold;
 	/*border: solid #999;
 	border-width: 1px 0;*/
 }
@@ -435,17 +442,17 @@ function clear(e) {
 				<h3>기간설정</h3>
 				<div>
 					<div>
-						<p>start</p>
+						<p>부터</p>
 						<input type="date" id="set_start" value="2017-12-05">
 					</div>
 					<div>
-						<p>end</p>
+						<p style="text-align: right;">까지(불포함)</p>
 						<input type="date" id="set_end" value="2017-12-12">
 					</div>
 				</div>
 				<div>
-					<input type="reset" value="cancel">
-					<input type="submit" value="apply">
+					<input type="reset" value="취소">
+					<input type="submit" value="적용">
 				</div>
 			</form>
 		</div>
