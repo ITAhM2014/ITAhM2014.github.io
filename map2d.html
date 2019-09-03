@@ -247,90 +247,90 @@ function onDragMove(e) {
 }
 
 function parse(base) {
-	if (!("snmp" in base)) {
-		return;
-	}
-	
-	const title = [],
-		head = [];
+	const title = [];
 
 	if (base.ip) {
-		head.push(base.ip);
+		title.push("IP 주소 : "+ base.ip);
 	}
 
 	if (base.name) {
-		head.push(base.name);
+		title.push("노드명 : "+ base.name);
 	}
 
-	if ("status" in base) {
+    if ("snmp" in base) {
+        if ("status" in base) {
+            if(base.status) {
+                if ("responseTime" in base.snmp) {
+                    title.push("상태 : 정상");
+                    title.push("응답속도 : "+ base.snmp.responseTime["0"].rtt +"ms");
+                }
+            }
+            else {
+                title.push("상태 : 응답없음");
+            }
+        }
 
-		if(base.status) {
-			if ("responseTime" in base.snmp) {
-				head.push("응답속도 "+ base.snmp.responseTime["0"].rtt +"ms");
-			}
-		}
-		else {
-			head.push("응답없음");
-		}
-	}
+        (function(entry) {
+            if (!entry) {
+                return;
+            }
 
-	if (head.length > 0) {
-		title.push(head.join("\n"));
-	}
+            var
+                indexData,
+                max, min, avg = 0, load, count = 0;
 
-	(function(entry) {
-		if (!entry) {
-			return;
-		}
+            for (let index in entry) {
+                indexData = entry[index];
 
-		var
-			indexData,
-			max, min, avg = 0, load, count = 0;
+                load = indexData.hrProcessorLoad;
 
-		for (let index in entry) {
-			indexData = entry[index];
+                if (isNaN(max)) {
+                    max = min = avg = load;
+                }
+                else {
+                    max = Math.max(max, load);
+                    min = Math.min(min, load);
+                    avg += load;
+                }
+                count++;
+            }
+            if (count > 0) {
+                title.push("프로세서 로드 : "+ max +", "+ Math.round(avg / count) +", "+ min);
+            }
 
-			load = indexData.hrProcessorLoad;
+        })(base.snmp.hrProcessorEntry);
 
-			if (isNaN(max)) {
-				max = min = avg = load;
-			}
-			else {
-				max = Math.max(max, load);
-				min = Math.min(min, load);
-				avg += load;
-			}
-			count++;
-		}
+        (function (entry) {
+            if (!entry) {
+                return;
+            }
 
-		if (count > 0) {
-			title.push(["Processor load", "Max: "+ max +", Avg: "+ Math.round(avg / count) +", min: "+ min].join("\n"));
-		}
+            var  indexData;
 
-	})(base.snmp.hrProcessorEntry);
+            for (let index in entry) {
+                indexData = entry[index];
 
-	(function (entry) {
-		if (!entry) {
-			return;
-		}
+                switch(indexData.hrStorageType) {
+                case 4:
+                    break;
+                case 2:
+                    title.push("물리 메모리 : "+ Math.round(100* indexData.hrStorageUsed / indexData.hrStorageSize) +"%");
+                    
+                    break;
+                }
+            }
+        }) (base.snmp.hrStorageEntry);
 
-		var  indexData;
+        (function (entry) {
+            if (!entry) {
+                return;
+            }
 
-		for (let index in entry) {
-			indexData = entry[index];
+            title.push("인터페이스 : "+ Object.keys(entry).length +"개");
+        }) (base.snmp.ifEntry);
+    }
 
-			switch(indexData.hrStorageType) {
-			case 4:
-				break;
-			case 2:
-				title.push(["Physical memory", Math.round(100* indexData.hrStorageUsed / indexData.hrStorageSize) +" %"].join("\n"));
-				
-				break;
-			}
-		}
-	}) (base.snmp.hrStorageEntry);
-
-	return title.join("\n\n");
+	return title.join("\n");
 }
 
 function onMouseOver(e) {
@@ -403,9 +403,9 @@ function addNode(id, base, pos, status) {
 				top.showStatus(id);
 			}
 		};
-
-		svgDevice.onmouseenter = onMouseOver;
 	}
+
+    svgDevice.onmouseenter = onMouseOver;
 
 	svgName.textContent = base.name || base.ip || "";
 	svgAddr.textContent = base.ip || base.name || "";
