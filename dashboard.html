@@ -13,7 +13,7 @@ body {
 	position: fixed; top: 0; right: 0; bottom: 0; left: 0;
 	background: url("img/world.png") no-repeat center center fixed;
 	background-size: cover;
-	display: flex;
+	display: flex; flex-direction: column;
 }
 
 body:not(.background)::before {
@@ -42,6 +42,22 @@ aside {
 	padding: .5em;
 	color: #fff;
 	text-shadow: 1px 1px 1px #000;
+}
+
+nav {
+    flex: none;
+	padding: 5px;
+    color: #fff;
+    display: flex;
+    background-color: #4d525a;
+}
+
+nav >img {
+	vertical-align: bottom;
+}
+
+nav >* {
+    margin: 1px;
 }
 
 ul {
@@ -116,8 +132,8 @@ header> ul> li:nth-child(3) {
 }
 
 iframe.top {
-	flex: none;
-	width: 320px;
+	position: absolute; top: 0; right: 0; bottom: 0;
+	width: 320px; height: 100%;
 	border: none;
 }
 
@@ -222,6 +238,63 @@ div.nav.hide +#summary_list {
 	z-index: -1;
 }
 
+/* switch button*/
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 2em;
+    height: 1em;
+    font-size: 20px;
+}
+
+.switch >input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch >.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.switch >.slider:before {
+    position: absolute;
+    content: "";
+    height: 0.6em;
+    width: 0.6em;
+    left: 0.2em;
+    bottom: 0.2em;
+    background-color: #fff;
+    transition: .4s;
+}
+
+input:checked +.slider {
+    background-color: #424242;
+}
+
+input:focus +.slider {
+    box-shadow: 0 0 1px #424242;
+}
+
+input:checked + .slider:before {
+    transform: translateX(1em);
+}
+
+.switch >.slider.round {
+    border-radius: 0.5em;
+}
+
+.switch >.slider.round:before {
+    border-radius: 50%;
+}
+
 @keyframes bounce {
 	0% {
 		top: 0;
@@ -285,7 +358,18 @@ function moveStage(id) {
 		</script>
 	</head>
 	
-	<body class="loading name">
+	<body class="loading">
+        <nav>
+            <img src="/img/setting.png" width="20" height="20" class="pointer" title="맵 편집" id="edit">
+            <label class="switch" title="3D 맵 적용">
+                <input type="checkbox" id="threed" checked>
+                <span class="slider"></span>
+            </label>
+            <select id="display">
+                <option value="name">장비명
+                <option value="address">IP 주소
+            </select>
+        </nav>
 		<article>
 			<aside>
 				<header>
@@ -313,16 +397,18 @@ function moveStage(id) {
 				<div class="nav"></div>
 				<div id="summary_list"></div>	
 			</aside>
-			<iframe id="map"></iframe>
+            <iframe id="map"></iframe>
+            <iframe class="top"></iframe>
 		</article>
 		
-		<iframe class="top"></iframe>
-
 		<script>
 
 var
 	upper = top.store.parent,
-	topList = [];
+	topList = [],
+    mapList = [],
+    criticalMap = {},
+    shutdownMap = {};
 
 (delay => {
 	var timer, id;
@@ -346,15 +432,29 @@ var
 	};
 }) (1000);
 
-if (top.setting.background) {
-	document.body.style.backgroundImage = "url("+ top.setting.background +")";
+((background, display, map) => {
+    if (background) {
+        document.body.style.backgroundImage = "url("+ top.setting.background +")";
 
-	document.body.classList.add("background");
-}
+        document.body.classList.add("background");
+    }
+
+    if (display) {
+        document.getElementById("display").value = display;
+    }
+
+    if (map && map == "map2d.html") {
+        document.getElementById("threed").checked = false;
+    }
+})(top.setting["background"], top.setting["display"], top.setting["map"]);
 
 document.body.querySelector("div.nav").onclick = function (e) {
 	this.classList.toggle("hide");
 }
+
+document.getElementById("edit").onclick = function () {
+	window.location.href = "/map_edit.html";
+};
 
 function findParentFromStage(parent) {
 	for (let tmp; parent; parent = tmp) {
@@ -419,8 +519,6 @@ function initialize() {
 		CRITICAL = 1,
 		NORMAL = 2;
 	var
-		sMap = {},
-		cMap = {},
 		sCount = 0,
 		cCount = 0,
 		nCount = 0,
@@ -443,6 +541,8 @@ function initialize() {
 		}
 
 		if (pos.parent === window.upper) {
+            window.mapList.push(id);
+
 			if ("protocol" in base) {
 				if (base.protocol === "snmp") {
 					window.topList.push(id);
@@ -470,8 +570,6 @@ function initialize() {
 					parseLabel(base.label, "normal");
 				}
 			}
-
-			window.map.addNode(id, base, pos, status);
 		}
 		else if (parent = findParentFromStage(pos.parent)) {
 			// 하위
@@ -481,14 +579,14 @@ function initialize() {
 				}
 
 				if ("status" in base && !base.status) {
-					sMap[parent] = null;
+					shutdownMap[parent] = null;
 
 					sCount++;
 					
 					parseLabel(base.label, "shutdown");
 				}
 				else if ("critical" in base && !base.critical) {
-					cMap[parent] = null;
+					criticalMap[parent] = null;
 
 					cCount++;
 					
@@ -509,94 +607,158 @@ function initialize() {
 	
 	document.getElementById("summary_list").appendChild(buildLabel());
 
-	for (let id in cMap) {
-		window.map.setNode(id, "critical");
-	}
-
-	for (let id in sMap) {
-		window.map.setNode(id, "shutdown");
-	}
-	
-	for (let id in window.line) {
-		window.map.drawLine(id, window.line[id]);
-	}
-
-	window.map.start();
-
-	document.querySelector("iframe.top").src ="/top.html";
-
 	document.body.classList.remove("loading");
 }
 
-(map => {
-	map.onload = function () {
+((mapFrame, topFrame) => {
+	mapFrame.onload = function () {
 		window.map = this.contentWindow;
 
-		top.postRequest({
-			command: "pull",
-			database: ["node", "line", "position"]
-		}, function () {
-			switch (this.status) {
-			case 200:
-				const database = JSON.parse(this.responseText);
-				
-				window.node = database.node;
-				window.line = database.line;
-				window.position = database.position;
+        window.mapList.forEach(id => {
+            window.map.addNode(id);
+        });
 
-				(id => {
-					if (id) {
-						delete top.store.focus;
-					
-						if (id in window.position) {
-							const pos = window.position[id];
+        for (let id in window.criticalMap) {
+            window.map.setNode(id, "critical");
+        }
 
-							if (pos.parent && !(pos.parent in window.node)) {
-								pos.parent = undefined;
-							}
+        for (let id in window.shutdownMap) {
+            window.map.setNode(id, "shutdown");
+        }
 
-							window.upper = top.store.parent = pos.parent;
-							
-							window.map.lookAt(pos);
-						}
-						else if (id in window.line) {
-							const
-								ar = id.split("."),
-								id1 = "node."+ ar[1],
-								id2 = "node."+ ar[2];
+        for (let id in window.line) {
+            window.map.drawLine(id, window.line[id]);
+        }
 
-							if (id1 in window.position && id2 in window.position) {
-								const
-									pos1 = window.position[id1],
-									pos2 = window.position[id2];
-								
-								if (pos1.parent === pos2.parent) {
-									window.upper = top.store.parent = pos1.parent;
+        (id => {
+            if (id) {
 
-									window.map.lookAt({
-										x: (pos1.x + pos2.x) / -2,
-										y: (pos1.y + pos2.y) /-2
-									});
-								}
-							}
-						}
-					}
-				})(top.store.focus);
+                delete top.store.focus;
+            
+                if (id in window.position) {
+                    const pos = window.position[id];
 
-				initialize();
+                    if (pos.parent && !(pos.parent in window.node)) {
+                        pos.parent = undefined;
+                    }
 
-				break;
-			default:
-				alert(top.getMessage(this.status));
+                    window.upper = top.store.parent = pos.parent;
+                    
+                    window.map.lookAt(pos);
+                }
+                else if (id in window.line) {
+                    const
+                        ar = id.split("."),
+                        id1 = "node."+ ar[1],
+                        id2 = "node."+ ar[2];
 
-				console.log(this.responseText && JSON.parse(this.responseText).error);
-			}
-		});
+                    if (id1 in window.position && id2 in window.position) {
+                        const
+                            pos1 = window.position[id1],
+                            pos2 = window.position[id2];
+                        
+                        if (pos1.parent === pos2.parent) {
+                            window.upper = top.store.parent = pos1.parent;
+
+                            window.map.lookAt({
+                                x: (pos1.x + pos2.x) / -2,
+                                y: (pos1.y + pos2.y) /-2
+                            });
+                        }
+                    }
+                }
+            }
+        })(top.store.focus);
+
+        window.map.start();
 	};
 
-	map.src = top.store.map3d? "map3d.html": "map2d.html";
-	
-}) (document.getElementById("map"));
+    document.getElementById("display").onchange = function () {
+        const
+            button = this,
+            display = this.value;
+
+        button.disabled = true;
+
+        top.postRequest({
+            command: "put",
+			database: "setting",
+			key: "display",
+			value: display
+        }, function () {
+            switch (this.status) {
+            case 200:
+                top.setting["display"] = display;
+
+                mapFrame.contentWindow.display();
+                topFrame.contentWindow.display();
+
+                break;
+            default:
+                alert("Error!\n\n설정을 변경할 수 없습니다.");
+
+                window.location.reload();
+            }
+
+            button.disabled = false;
+        });
+    }
+
+    document.getElementById("threed").onclick = function () {
+        const
+            button = this,
+            map = button.checked? "map3d.html": "map2d.html";
+
+        button.disabled = true;
+
+        top.postRequest({
+            command: "put",
+			database: "setting",
+			key: "map",
+			value: map
+        }, function () {
+            switch (this.status) {
+            case 200:
+                mapFrame.src = map;
+
+                top.setting["map"] = map;
+
+                break;
+            default:
+                alert("Error!\n\n설정을 변경할 수 없습니다.");
+
+                window.location.reload();
+            }
+
+            map.disabled = false;
+        });
+    };
+
+	top.postRequest({
+        command: "pull",
+        database: ["node", "line", "position"]
+    }, function () {
+        switch (this.status) {
+        case 200:
+            const database = JSON.parse(this.responseText);
+            
+            window.node = database.node;
+            window.line = database.line;
+            window.position = database.position;
+
+            initialize();
+
+            mapFrame.src = document.getElementById("threed").checked? "map3d.html": "map2d.html";
+            topFrame.src ="/top.html";
+
+            break;
+        default:
+            alert(top.getMessage(this.status));
+
+            console.log(this.responseText && JSON.parse(this.responseText).error);
+        }
+    });
+}) (document.getElementById("map"), document.querySelector("iframe.top"));
 
 		</script>
 	

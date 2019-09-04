@@ -41,7 +41,7 @@ function start() {
     if (parent.upper) {
         const
             id = parent.upper,
-            mesh = addNode(id, parent.node[id], UPPER_POS);
+            mesh = addNode(id, UPPER_POS);
 
         mesh.onclick = parent.moveStage.bind(mesh, parent.position[id].parent);
     }
@@ -53,8 +53,10 @@ function start() {
     document.body.classList.remove("loading");
 }
 
-function addNode(id, base, pos, status) {
-    const mesh = getMesh(base.type);
+function addNode(id, pos = parent.position[id]) {
+    const
+        base = parent.node[id],
+        mesh = getMesh(base.type);
     
     mesh.position.x += pos.x;
     mesh.position.y += pos.z || 0;
@@ -183,6 +185,12 @@ function lookAt(pos) {
     controls.enabled = false;
 }
         
+function display() {
+    if ("display" in top.setting) {
+	    document.body.classList[top.setting.display == "name"? "add": "remove"]("name");
+    }
+}
+
         </script>
         <script>
 
@@ -394,6 +402,7 @@ function getMesh(type = "unknown") {
         
         <body class="loading">
             <nav>
+                <img src="/img/zoomi.png" width="16" height="16" title="전체화면에서 편집" id="edit">
                 <img src="/img/num2.png" width="16" height="16" title="2D 맵" id="twod">
                 <img src="/img/eye.png" width="16" height="16" title="Sky View" id="sky">
             </nav>
@@ -474,6 +483,10 @@ document.getElementById("twod").onclick = function () {
 };
 
 document.getElementById("sky").onclick = skyView;
+
+document.getElementById("edit").onclick = function () {
+	parent.location.href = "/map_edit.html";
+};
 
 renderer.domElement.addEventListener("mousedown", onMouseDown);
 renderer.domElement.addEventListener("mouseup", onMouseUp);

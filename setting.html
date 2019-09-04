@@ -338,16 +338,6 @@ function createItem(src, key, data, func) {
 		</h2>
 		<div id="setting" class="container box loading">
 			<p>
-				<form id="display">
-					표시 : 
-					<select name="display">
-						<option value="name" selected>장비명
-						<option value="address">IP 주소
-					</select>
-					<input type="submit" value="적용" class="root">
-				</form>
-			</p>
-			<p>
 				<form id="menu">
 					메뉴 고정 : 
 					<select name="menu">
@@ -875,12 +865,6 @@ if (top.account.level > 0) {
 		});
 	}
 
-	document.getElementById("display").onsubmit = function (e) {
-		e.preventDefault();
-		
-		postRequest("display", this.elements["display"].value);
-	};
-
 	document.getElementById("menu").onsubmit = function (e) {
 		e.preventDefault();
 		
@@ -980,10 +964,6 @@ if (top.account.level > 0) {
 			size: Math.max(this.elements["size"].value, 0)
 		});
 	};
-
-	if("display" in top.setting) {
-		document.querySelector("select[name=display]").value = top.setting.display;
-	}
 
 	if ("menu" in top.setting) {
 		document.querySelector("select[name=menu]").value = top.setting.menu;
