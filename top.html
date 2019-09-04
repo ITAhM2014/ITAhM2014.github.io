@@ -302,11 +302,17 @@ function createTopItem(id, value, rate, resource, index) {
 	return item;
 }
 
+function display() {
+    if ("display" in top.setting) {
+	    document.body.classList[top.setting.display == "name"? "add": "remove"]("name");
+    }
+}
+
 		</script>
 		
 	</head>
 	
-	<body class="name">
+	<body>
 		<div id="list">
 			<section id="responseTime" data-func="toMillsString" title="응답시간"></section>
 			<section id="processor" data-func="toPercentageString" title="프로세서 로드"></section>
@@ -324,17 +330,12 @@ function createTopItem(id, value, rate, resource, index) {
 const INTERVAL = 8000;
 var request = {
 		command: "order",
-		order: "top"
+		order: "top",
+        top: parent.topList
 	},
 	rafID;
 
-if ("display" in top.setting && top.setting.display !== "name") {
-	document.body.classList.remove("name");
-}
-
-if (top.store.parent) {
-	window.request.top = parent.topList;
-}
+display();
 
 initialize();
 

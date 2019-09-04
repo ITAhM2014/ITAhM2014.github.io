@@ -336,7 +336,7 @@ function onMouseUp(e) {
 
     const node = getIntersect();
 
-    if (node && node === window.intersect) {
+    if (node && node === window.intersect && node.onclick) {
         node.onclick();
     }
 
@@ -401,11 +401,6 @@ function getMesh(type = "unknown") {
         </head>
         
         <body class="loading">
-            <nav>
-                <img src="/img/zoomi.png" width="16" height="16" title="전체화면에서 편집" id="edit">
-                <img src="/img/num2.png" width="16" height="16" title="2D 맵" id="twod">
-                <img src="/img/eye.png" width="16" height="16" title="Sky View" id="sky">
-            </nav>
             <div class="bg_loading"></div>
         <script>
 
@@ -476,21 +471,10 @@ camera.position.set(0, 300, 500);
 
 rotationX.makeRotationX(Math.PI /2);
 
-document.getElementById("twod").onclick = function () {
-    top.store.map3d = false;
-    
-	parent.location.href = "/dashboard.html";
-};
-
-document.getElementById("sky").onclick = skyView;
-
-document.getElementById("edit").onclick = function () {
-	parent.location.href = "/map_edit.html";
-};
-
 renderer.domElement.addEventListener("mousedown", onMouseDown);
 renderer.domElement.addEventListener("mouseup", onMouseUp);
 renderer.domElement.addEventListener("mousemove", onMouseMove);
+renderer.domElement.addEventListener("dblclick", skyView);
 
 window.addEventListener("resize", onResize);
 
