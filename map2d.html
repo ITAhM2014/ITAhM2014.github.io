@@ -880,45 +880,7 @@ window.mapCanvas.addEventListener("drag", onDragMove);
 window.mapCanvas.addEventListener("wheel", function (e) {
 	zoom(e.deltaY < 0);
 });
-/*
-document.getElementById("zoom_in").onclick = function () {
-	zoom(true);
-};
 
-document.getElementById("zoom_out").onclick = function () {
-	zoom(false);
-};
-
-document.getElementById("threed").onclick = function () {
-    top.store.map3d = true;
-    
-	parent.location.href = "/dashboard.html";
-};
-
-document.getElementById("edit").onclick = function () {
-	const
-		matrix = window.transform.getItem(2).matrix,
-		x = matrix.e,
-		y = matrix.f;
-	var pos;
-
-	for (let id in window.nodeSVGMap) {
-		if (id in parent.position) {
-			pos = parent.position[id];
-			pos.x += x;
-			pos.y += y;
-		}
-	}
-	
-	top.store.editor = {
-		scale: window.scale,
-		position: parent.position,
-		parent: window.upper
-	};
-
-	parent.location.href = "/map_edit.html";
-};
-*/
 (function (delay) {
 	var running = false,
 		start;
