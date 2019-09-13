@@ -407,8 +407,8 @@ var
 	upper = top.store.parent,
 	topList = [],
     mapList = [],
-    criticalMap = {},
-    shutdownMap = {};
+    criticalList = [],
+    shutdownList = [];
 
 (delay => {
 	var timer, id;
@@ -550,14 +550,18 @@ function initialize() {
 
 				if ("status" in base && !base.status) {
 					status = "shutdown";
-					
+                    
+                    window.shutdownList.push(id);
+
 					sCount++;
 
 					parseLabel(base.label, "shutdown");
 				}
 				else if ("critical" in base && !base.critical) {
 					status = "critical";
-					
+                    
+                    window.criticalList.push(id);
+
 					cCount++;
 					
 					parseLabel(base.label, "critical");
@@ -579,14 +583,14 @@ function initialize() {
 				}
 
 				if ("status" in base && !base.status) {
-					shutdownMap[parent] = null;
+                    window.shutdownList.push(parent);
 
 					sCount++;
 					
 					parseLabel(base.label, "shutdown");
 				}
 				else if ("critical" in base && !base.critical) {
-					criticalMap[parent] = null;
+					window.criticalList.push(parent);
 
 					cCount++;
 					
@@ -618,13 +622,9 @@ function initialize() {
             window.map.addNode(id);
         });
 
-        for (let id in window.criticalMap) {
-            window.map.setNode(id, "critical");
-        }
+        window.criticalList.forEach(id => window.map.setNode(id, "critical"));
 
-        for (let id in window.shutdownMap) {
-            window.map.setNode(id, "shutdown");
-        }
+        window.shutdownList.forEach(id => window.map.setNode(id, "shutdown"));
 
         for (let id in window.line) {
             window.map.drawLine(id, window.line[id]);

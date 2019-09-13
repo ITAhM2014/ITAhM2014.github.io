@@ -8,9 +8,16 @@
 
 @import "/css/index.css";
 
-body.auto header >div {
-	width: 0;
-	transition: 0.5s width;
+body.auto header {
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    transform: translateX(-100%);
+    transition: 0.5s;
+    background-color: #4d525a;
+}
+
+body.auto header:hover {
+    transform: none;
 }
 
 body.auto header::after {
@@ -23,11 +30,6 @@ body.auto header::after {
 	border-bottom-right-radius: 1em;
 	transform: translateY(-50%);
 }
-
-body.auto header:hover >div {
-	width: 80px;
-}
-
 
 		</style>
 		<script src="js/google.js"></script>
