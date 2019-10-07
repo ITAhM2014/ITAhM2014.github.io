@@ -231,6 +231,31 @@ function postRequest(request, onResponse, timeout) {
 	xhr.send(JSON.stringify(request));
 }
 
+function initSetting() {
+    postRequest({
+        command: "pull",
+        database: "setting"
+    }, function () {
+        switch (this.status) {
+            case 200:
+                window.setting = JSON.parse (this.responseText);
+
+                window.frame.src="/dashboard.html";
+
+                update();
+
+                listen();
+
+                document.body.classList.add("authorized");
+
+                break;
+            default:
+                alert("Error!\n\n서버 오류 코드 "+ this.status +".");
+
+                window.location.reload();
+        }
+    });
+}
 		</script>
 	</head>
 	
@@ -400,13 +425,7 @@ window.addEventListener("unload", onClose);
 		}, function () {
 			switch(this.status) {
 			case 200:
-				window.frame.src="/dashboard.html";
-
-				update();
-
-				listen();
-				
-				document.body.classList.add("authorized");
+                initSetting();
 
 				break;
 			default:
