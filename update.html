@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+@import url("//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css");
+
+body {
+    font: 10pt "맑은 고딕", Arial, Tahoma;
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+    display:flex; justify-content: center; align-items: center;
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+main {
+    width: 500px;
+    padding: 1em;
+    background-color: #efefef;
+}
+
+#close {
+    float: right;
+}
+
+#close::before {
+    font-family: "Glyphicons Halflings";
+    content: "\e014";
+}
+
+#close:hover {
+    transform: scale(1.2);
+}
+
+article {
+    border: 1px solid #777;
+    padding: 1em;
+    margin-bottom: 1em;
+}
+        </style>            
+    </head>
+    <body>
+        <main>
+            <div id="close" title="닫기"></div>
+            <article>
+                <h2>Update!</h2>
+                <p>
+                    ITAhM 이 주식회사 코어브릿지의 CeMS 솔루션으로 거듭 났습니다.
+                </p>
+                <p>
+                    더욱 강력한 기능과 향상된 UI를 경험하실 수 있습니다.<br>
+                    기존 데이터베이스와 호환되지 않기 때문에 새로운 공간에서 시작하십시오.<br>
+                    무료 정책은 동일하고 영원히 유지됩니다.
+                </p>
+                <p>
+                    <a href="http://www.corebrg.com?page=product&search=download" target="_blank">바로가기</a>
+                </p>
+            </article>
+            <label>
+                <input type="radio" name="cookie" value="onemore">
+                오늘 하루 보지 않기
+            </label>
+            <label>
+                <input type="radio" name="cookie" value="nomore">
+                더 이상 보지 않기
+            </label>
+        </main>
+        <script>
+
+function initialize() {
+    document.getElementById("close").onclick = e => {console.log(top);
+        [].forEach.call(document.getElementsByName("cookie"), input => {
+            if (input.checked) {
+                const date = new Date();
+                let cookie;
+
+                if (input.value === "onemore") {
+                    cookie = "nomore=onemore;expires=";
+
+                    date.setDate(date.getDate() +1, 0, 0, 0, 0);
+                    //date.setMinutes(date.getMinutes() +10, 0, 0);
+
+                } else {
+                    cookie = "nomore=nomore;expires=";
+
+                    date.setFullYear(9999);
+                }
+
+                document.cookie = cookie + date.toUTCString() + ';path=/';
+            }
+        });
+
+        top.closeDialog();
+    };
+}
+        </script>
+    </body>
+</html>

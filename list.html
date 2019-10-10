@@ -362,6 +362,14 @@ function initialize() {
 	document.getElementById("count").textContent = count();
 
 	initLabel();
+
+    if (window.sessionStorage.getItem("list_status")) {
+        const status = window.sessionStorage.getItem("list_status");
+
+        window.sessionStorage.removeItem("list_status");
+        
+        document.getElementById(status).click();
+    }
 }
 
 function createRow(id, base) {
@@ -451,15 +459,12 @@ function initLabel() {
 	window.label.insertBefore(df, window.label.firstChild);
 }
 
-// 선택 초기화 (상태별로 필터링)
-function onSelectStatus (src, className) {
-	document.body.classList.remove("normal", "critical", "shutdown", "disabled");
+function onSelectStatus () {
+	document.body.classList.remove("normal", "critical", "shutdown", "disabled", "all");
 	
-	if (className) {
-		document.body.classList.add(className);
-	}
+	document.body.classList.add(this.id);
 	
-	icon.src = src;
+	window.icon.src = this.querySelector("img").src;
 	
 	window.selector.blur();
 
@@ -650,11 +655,12 @@ label.onchange = function () {
 	document.getElementById("count").textContent = count();
 };
 
-document.getElementById("shutdown").onclick = onSelectStatus.bind(window, "img/warning.png", "shutdown");
-document.getElementById("critical").onclick = onSelectStatus.bind(window, "img/siren.png", "critical");
-document.getElementById("normal").onclick = onSelectStatus.bind(window, "img/normal.png", "normal");
-document.getElementById("disabled").onclick = onSelectStatus.bind(window, "img/disabled.png", "disabled");
-document.getElementById("all").onclick = onSelectStatus.bind(window, "img/all.png", "");
+document.getElementById("shutdown").onclick = onSelectStatus;
+document.getElementById("critical").onclick = onSelectStatus;
+document.getElementById("normal").onclick = onSelectStatus;
+document.getElementById("disabled").onclick = onSelectStatus;
+document.getElementById("all").onclick = onSelectStatus;
+
 document.getElementById("save").onclick = onSave;
 
 document.getElementById("sort").onclick = function (e) {

@@ -33,6 +33,12 @@ function showStatus(id, resource, index) {
 	statusWindow.focus();
 }
 
+function getCookie(name) {
+    const value = document.cookie.match("(^|;) ?" + name + "=([^;]*)(;|$)");
+    
+    return value? value[2] : undefined;
+}
+
 // public
 function showDialog() {
 	var opener = this,
@@ -467,6 +473,9 @@ window.addEventListener("unload", onClose);
 	};
 }) (document.querySelector("header").querySelectorAll("a"));
 
+if (!getCookie("nomore")) {
+    showDialog("/update.html");
+}
 		</script>
 	
 	</body>

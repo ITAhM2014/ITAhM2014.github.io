@@ -176,6 +176,7 @@ div.nav.hide +#summary_list {
 	height: 120px;
 	color: #fff;
 	font-weight: bold;
+    pointer-events: auto;
 }
 
 .ball {
@@ -367,6 +368,12 @@ function moveStage(id) {
 	top.store.parent = id || undefined;
 
 	window.location.reload();
+}
+
+function onSelectStatus(e) {
+    window.sessionStorage.setItem("list_status", this.id);
+
+    top.selectMenu("node");
 }
 		
 		</script>
@@ -620,8 +627,16 @@ function initialize() {
 	}
 	
 	document.getElementById("alert").textContent = sCount;
+
+    document.getElementById("alert").onclick = onSelectStatus;
+
 	document.getElementById("critical").textContent = cCount;
+
+    document.getElementById("critical").onclick = onSelectStatus;
+
 	document.getElementById("normal").textContent = nCount;
+
+    document.getElementById("normal").onclick = onSelectStatus;
 	
 	document.getElementById("summary_list").appendChild(buildLabel());
 
